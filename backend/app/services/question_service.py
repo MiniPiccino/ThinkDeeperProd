@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Dict, Set
 
 from ..config import Settings
@@ -70,6 +70,21 @@ class QuestionService:
             "weekProgress": week_progress,
         }
         response["previousFeedback"] = previous_feedback
+        priming = self._priming_meta(
+            question=question,
+            progress=progress,
+            previous_feedback=previous_feedback,
+            difficulty=difficulty_meta,
+        )
+        dopamine = self._dopamine_meta(
+            question=question,
+            progress=progress,
+            week_progress=week_progress,
+            previous_feedback=previous_feedback,
+            difficulty=difficulty_meta,
+        )
+        response["priming"] = priming
+        response["dopamine"] = dopamine
         return response
 
     @staticmethod
@@ -90,4 +105,131 @@ class QuestionService:
             "label": "primer",
             "score": day_index + 1,
             "multiplier": 1.0,
+        }
+
+    def _priming_meta(
+        self,
+        question: Question,
+        progress: Dict[str, int],
+        previous_feedback: Dict[str, object] | None,
+        difficulty: Dict[str, object],
+    ) -> Dict[str, object]:
+        streak = int(progress.get("streak", 0))
+        difficulty_label = str(difficulty.get("label", "primer")).lower()
+
+        emotional_hook = (
+            f'Before reading the full prompt, close your eyes and notice the first feeling that rises when you dwell on "{question.theme}".'
+        )
+        if streak >= 3:
+            emotional_hook = (
+                f'You are on a {streak}-day streak. Take a breath and feel what rises when you sit with "{question.theme}"—ride that momentum into the session.'
+            )
+
+        if previous_feedback and previous_feedback.get("feedback"):
+            emotional_hook += " Bring yesterday's takeaway to mind so the feeling has a clear target."
+
+        teaser_question = (
+            "If that feeling could ask a single question about today's theme, what would it be?"
+        )
+
+        somatic_cue = (
+            "Take one 4-6 breathing cycle (inhale 4, exhale 6) and name the feeling out loud before you start."
+        )
+        if difficulty_label == "mastery":
+            somatic_cue = (
+                "Try a 4-7-8 breath, then consciously relax your shoulders; mastery mode needs a settled body."
+            )
+
+        cognitive_bridge = (
+            "When the question unlocks, translate the feeling into a hypothesis you can test or disprove."
+        )
+
+        return {
+            "emotionalHook": emotional_hook,
+            "teaserQuestion": teaser_question,
+            "somaticCue": somatic_cue,
+            "cognitiveCue": cognitive_bridge,
+        }
+
+    def _dopamine_meta(
+        self,
+        question: Question,
+        progress: Dict[str, int],
+        week_progress: Dict[str, int | bool],
+        previous_feedback: Dict[str, object] | None,
+        difficulty: Dict[str, object],
+    ) -> Dict[str, object]:
+        streak = int(progress.get("streak", 0))
+        xp_total = int(progress.get("xp_total", 0))
+        total_days = int(week_progress.get("totalDays", self.WEEK_TOTAL_DAYS))
+        completed_days = int(week_progress.get("completedDays", 0))
+
+        curiosity_prompts = [
+            f"You are on day {question.day_index + 1} of this week's deep work arc.",
+            f"Theme spotlight: {question.theme}. Notice the angle that surprises you.",
+        ]
+        if previous_feedback and previous_feedback.get("feedback"):
+            curiosity_prompts.append("Carry yesterday's feedback forward: stay mindful of the insight you unlocked.")
+
+        curiosity_hook = (
+            f"Prime your curiosity around {question.theme.lower()}. Look for the assumption you usually skip."
+        )
+
+        challenge_modes = [
+            {
+                "label": "Primer flow",
+                "description": "Open with gentle focus to warm up. Ideal when you are rebuilding momentum.",
+                "multiplier": 1.0,
+                "unlocked": True,
+            },
+            {
+                "label": "Deepening",
+                "description": "Lean into nuance and contrast ideas to unlock richer feedback loops.",
+                "multiplier": 1.15,
+                "unlocked": question.day_index >= 2 or streak >= 1,
+            },
+            {
+                "label": "Mastery",
+                "description": "Choose the toughest variant and defend your reasoning under pressure.",
+                "multiplier": 1.35,
+                "unlocked": question.day_index >= 4 or streak >= 3,
+            },
+        ]
+
+        remaining_sessions = max(total_days - completed_days, 0)
+        reward_highlights = [
+            {
+                "title": "Lifetime XP",
+                "description": f"{xp_total} total XP collected so far.",
+                "earned": xp_total > 0,
+            },
+            {
+                "title": "Active streak",
+                "description": f"{streak} day streak alive." if streak > 0 else "Start today to build your streak momentum.",
+                "earned": streak > 0,
+            },
+            {
+                "title": "Weekly badge",
+                "description": (
+                    "Badge secured for finishing the arc."
+                    if week_progress.get("badgeEarned")
+                    else f"{remaining_sessions} session(s) left before this week's badge unlocks."
+                ),
+                "earned": bool(week_progress.get("badgeEarned")),
+            },
+        ]
+
+        anticipate_teaser = (
+            "Tomorrow extends this thread - show up ready to test whether your reflection still holds."
+        )
+        next_prompt_time = question.available_on + timedelta(days=1)
+
+        return {
+            "curiosityHook": curiosity_hook,
+            "curiosityPrompts": curiosity_prompts,
+            "challengeModes": challenge_modes,
+            "rewardHighlights": reward_highlights,
+            "anticipationTeaser": anticipate_teaser,
+            "nextPromptAvailableAt": datetime.combine(next_prompt_time, datetime.min.time(), tzinfo=None).isoformat(),
+            "activeDifficulty": difficulty.get("label"),
         }

@@ -14,6 +14,14 @@ def test_daily_question_payload(question_service: QuestionService) -> None:
     assert payload["difficulty"]["label"] == "primer"
     assert payload["weekProgress"]["completedDays"] == 0
     assert payload["weekProgress"]["totalDays"] == 7
+    dopamine = payload["dopamine"]
+    assert dopamine["curiosityHook"]  # non-empty string
+    assert len(dopamine["challengeModes"]) == 3
+    assert dopamine["challengeModes"][0]["unlocked"] is True
+    priming = payload["priming"]
+    assert priming["emotionalHook"]
+    assert "feeling" in priming["emotionalHook"]
+    assert priming["teaserQuestion"]
 
 
 def test_daily_question_reflects_progress(
@@ -25,6 +33,12 @@ def test_daily_question_reflects_progress(
     assert payload["streak"] == 1
     assert payload["xpTotal"] == 7
     assert payload["weekProgress"]["completedDays"] == 0
+    dopamine = payload["dopamine"]
+    reward = dopamine["rewardHighlights"][0]
+    assert reward["title"] == "Lifetime XP"
+    assert reward["earned"] is True
+    priming = payload["priming"]
+    assert "streak" not in priming["emotionalHook"].lower()
 
 
 def test_daily_question_includes_previous_feedback(
@@ -50,3 +64,7 @@ def test_daily_question_includes_previous_feedback(
     assert previous["feedback"] == "Consider adding concrete examples tomorrow."
     assert previous["questionId"] == "week-1-day-1"
     assert payload["weekProgress"]["completedDays"] == 1
+    dopamine = payload["dopamine"]
+    assert any("Carry yesterday's feedback" in item for item in dopamine["curiosityPrompts"])
+    priming = payload["priming"]
+    assert "yesterday" in priming["emotionalHook"]

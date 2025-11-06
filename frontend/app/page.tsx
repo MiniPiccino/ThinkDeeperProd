@@ -7,6 +7,8 @@ import { AnswerForm } from '@/components/AnswerForm';
 import { QuestionCard } from '@/components/QuestionCard';
 import { SubmissionCelebration } from '@/components/SubmissionCelebration';
 import { DopamineDrivers } from '@/components/DopamineDrivers';
+import { PrimingCard } from '@/components/PrimingCard';
+import { PrimingModal } from '@/components/PrimingModal';
 import { Timer } from '@/components/Timer';
 import { XpMeter } from '@/components/XpMeter';
 import { EvaluatingInsight } from '@/components/EvaluatingInsight';
@@ -21,6 +23,7 @@ import {
 
 const USER_STORAGE_KEY = 'thinkdeeper.userId';
 const XP_PER_LEVEL = 120;
+const PRIMING_MODAL_KEY = 'thinkdeeper.priming-seen';
 
 type LevelStats = {
   level: number;
@@ -109,6 +112,23 @@ export default function HomePage() {
   });
   const [showCelebration, setShowCelebration] = useState(false);
   const celebrationTriggerRef = useRef<HTMLDivElement | null>(null);
+  const [showDopamine, setShowDopamine] = useState(false);
+  const [showPrimingModal, setShowPrimingModal] = useState(false);
+  const [primingMode, setPrimingMode] = useState<'intro' | 'reminder'>('intro');
+  const answerRef = useRef<HTMLTextAreaElement | null>(null);
+  const questionSectionRef = useRef<HTMLDivElement | null>(null);
+
+  const markPrimingSeen = useCallback(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    window.localStorage.setItem(PRIMING_MODAL_KEY, 'seen');
+  }, []);
+
+  const handleDismissPrimingModal = useCallback(() => {
+    markPrimingSeen();
+    setShowPrimingModal(false);
+  }, [markPrimingSeen]);
 
   const generateUserId = () => {
     if (typeof crypto !== 'undefined') {
@@ -197,6 +217,19 @@ export default function HomePage() {
     setXpToNextLevel(levelStats.xpToNextLevel);
     setLevelProgressPercent(levelStats.progressPercent);
   }, [dailyQuestion?.id]);
+
+  useEffect(() => {
+    if (!dailyQuestion?.priming) {
+      setShowPrimingModal(false);
+      return;
+    }
+    if (typeof window === 'undefined') {
+      return;
+    }
+    const seen = window.localStorage.getItem(PRIMING_MODAL_KEY);
+    setPrimingMode(seen ? 'reminder' : 'intro');
+    setShowPrimingModal(true);
+  }, [dailyQuestion?.id, dailyQuestion?.priming]);
 
   useEffect(() => {
     if (!hasStarted || !startTime || !dailyQuestion || isSubmitted) {
@@ -294,16 +327,36 @@ export default function HomePage() {
     },
   });
 
+  const startSession = useCallback(
+    (fromModal = false) => {
+      setShowPrimingModal(false);
+      if (!fromModal) {
+        markPrimingSeen();
+      }
+      setHasStarted(true);
+      setIsSubmitted(false);
+      setStartTime(Date.now());
+      setFeedback(undefined);
+      setLastGain(0);
+      setLastDuration(0);
+      if (dailyQuestion) {
+        setSecondsRemaining(dailyQuestion.timerSeconds);
+      }
+      setShowDopamine(true);
+      if (questionSectionRef.current) {
+        questionSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      requestAnimationFrame(() => {
+        if (answerRef.current) {
+          answerRef.current.focus({ preventScroll: true });
+        }
+      });
+    },
+    [dailyQuestion, markPrimingSeen],
+  );
+
   const handleStart = () => {
-    setHasStarted(true);
-    setIsSubmitted(false);
-    setStartTime(Date.now());
-    setFeedback(undefined);
-    setLastGain(0);
-    setLastDuration(0);
-    if (dailyQuestion) {
-      setSecondsRemaining(dailyQuestion.timerSeconds);
-    }
+    startSession(false);
   };
 
   const handleSubmit = () => {
@@ -412,6 +465,7 @@ export default function HomePage() {
         label: mode.label,
         description: mode.description,
         emphasis: mode.multiplier ? `x${mode.multiplier.toFixed(2)} XP` : undefined,
+        unlocked: mode.unlocked ?? true,
       })) ??
       [
         {
@@ -435,10 +489,10 @@ export default function HomePage() {
       title: 'Challenge dopamine',
       description: 'Choose the stretch that matches your energy today.',
       modes: challengeModes,
-      activeLabel: difficulty.label,
+      activeLabel: (dailyQuestion.dopamine?.activeDifficulty as string | undefined) ?? difficulty.label,
     };
 
-    const rewardStats = [
+    let rewardStats = [
       {
         label: 'Total XP',
         value: `${xpTotal}`,
@@ -471,9 +525,26 @@ export default function HomePage() {
       },
     ];
 
+    const rewardHighlights =
+      dailyQuestion.dopamine?.rewardHighlights?.filter(
+        (highlight): highlight is { title: string; description: string; earned?: boolean } =>
+          Boolean(highlight?.title) && Boolean(highlight?.description),
+      ) ?? [];
+
+    if (rewardHighlights.length > 0) {
+      rewardStats = rewardHighlights.slice(0, 3).map((highlight) => ({
+        label: highlight.title,
+        value: highlight.earned ? 'Unlocked' : 'In progress',
+        hint: highlight.description,
+      }));
+    }
+
     const reward = {
       title: 'Reward dopamine',
-      description: 'See your wins stack up as you stay consistent.',
+      description:
+        rewardHighlights.length > 0
+          ? 'Progress snapshots tuned to your current streak.'
+          : 'See your wins stack up as you stay consistent.',
       stats: rewardStats,
       celebration: weekProgress.badgeEarned
         ? `Badge unlocked: ${weekBadgeName ?? 'Weekly insight badge'}`
@@ -589,10 +660,23 @@ export default function HomePage() {
         capturedOn: previousFeedbackDate,
       }
     : null;
+  const priming = dailyQuestion?.priming;
 
   return (
-    <main className="relative flex min-h-screen w-full justify-center bg-gradient-to-br from-emerald-50 via-white to-emerald-100 px-4 py-16 dark:from-zinc-950 dark:via-zinc-950 dark:to-zinc-900">
-      <div className="flex w-full max-w-4xl flex-col gap-8">
+    <>
+      {priming && showPrimingModal ? (
+        <PrimingModal
+          mode={primingMode}
+          emotionalHook={priming.emotionalHook}
+          teaserQuestion={priming.teaserQuestion}
+          somaticCue={priming.somaticCue}
+          cognitiveCue={priming.cognitiveCue}
+          onClose={handleDismissPrimingModal}
+          onBegin={() => startSession(true)}
+        />
+      ) : null}
+      <main className="relative flex min-h-screen w-full justify-center bg-gradient-to-br from-emerald-50 via-white to-emerald-100 px-4 py-16 dark:from-zinc-950 dark:via-zinc-950 dark:to-zinc-900">
+        <div className="flex w-full max-w-4xl flex-col gap-8">
         <header className="flex flex-col gap-2 text-center">
           <span className="text-sm font-semibold uppercase tracking-widest text-emerald-600">
             Deep
@@ -629,24 +713,55 @@ export default function HomePage() {
 
         {dailyQuestion && status === 'ready' ? (
           <>
-            {dopamineDrivers ? (
-              <DopamineDrivers
-                curiosity={dopamineDrivers.curiosity}
-                challenge={dopamineDrivers.challenge}
-                reward={dopamineDrivers.reward}
-                anticipation={dopamineDrivers.anticipation}
+            {priming ? (
+              <PrimingCard
+                emotionalHook={priming.emotionalHook}
+                teaserQuestion={priming.teaserQuestion}
+                somaticCue={priming.somaticCue}
+                cognitiveCue={priming.cognitiveCue}
               />
             ) : null}
 
-            <QuestionCard
-              theme={dailyQuestion.theme}
-              prompt={dailyQuestion.prompt}
-              hasStarted={hasStarted}
-              onStart={handleStart}
-              previousFocus={previousFocus}
-              sessionTips={sessionTips}
-              challengeNote={challengeNote}
-            />
+            <div ref={questionSectionRef}>
+              <QuestionCard
+                theme={dailyQuestion.theme}
+                prompt={dailyQuestion.prompt}
+                hasStarted={hasStarted}
+                onStart={() => {
+                  if (showPrimingModal) {
+                    setShowPrimingModal(false);
+                    markPrimingSeen();
+                  }
+                  handleStart();
+                }}
+                previousFocus={previousFocus}
+                sessionTips={sessionTips}
+                challengeNote={challengeNote}
+              />
+            </div>
+
+            {dopamineDrivers ? (
+              <section className="space-y-4 rounded-3xl border border-zinc-200 bg-white/80 p-4 shadow-sm backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/60">
+                <button
+                  type="button"
+                  onClick={() => setShowDopamine((prev) => !prev)}
+                  className="inline-flex items-center justify-between rounded-2xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-zinc-800 dark:bg-zinc-700 dark:hover:bg-zinc-600"
+                >
+                  <span>{showDopamine ? 'Hide the motivation loop' : 'Prime the motivation loop'}</span>
+                  <span className="ml-3 text-xs uppercase tracking-wide text-zinc-200">
+                    {showDopamine ? 'Less thinking' : 'Feel first'}
+                  </span>
+                </button>
+                {showDopamine ? (
+                  <DopamineDrivers
+                    curiosity={dopamineDrivers.curiosity}
+                    challenge={dopamineDrivers.challenge}
+                    reward={dopamineDrivers.reward}
+                    anticipation={dopamineDrivers.anticipation}
+                  />
+                ) : null}
+              </section>
+            ) : null}
 
             <div className="grid gap-8 lg:grid-cols-[1.7fr,1fr]">
               <div className="flex flex-col gap-6">
@@ -663,6 +778,7 @@ export default function HomePage() {
                     onSubmit={handleSubmit}
                     isSubmitting={mutation.isPending}
                     disabled={isSubmitted}
+                    ref={answerRef}
                   />
                 ) : null}
 
@@ -732,5 +848,6 @@ export default function HomePage() {
         ) : null}
       </div>
     </main>
+    </>
   );
 }

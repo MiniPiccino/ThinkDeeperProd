@@ -13,6 +13,12 @@ export type DailyQuestionResponse = {
     submittedAt: string;
     questionId: string;
   } | null;
+  priming?: {
+    emotionalHook: string;
+    teaserQuestion: string;
+    somaticCue: string;
+    cognitiveCue: string;
+  };
   difficulty: {
     label: string;
     score: number;

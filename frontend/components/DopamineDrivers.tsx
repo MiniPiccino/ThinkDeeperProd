@@ -3,6 +3,7 @@ type DopaminePoint = {
   description: string;
   badge?: string;
   emphasis?: string;
+  unlocked?: boolean;
 };
 
 type RewardStat = {
@@ -81,13 +82,20 @@ export function DopamineDrivers({
               key={mode.label}
               className="rounded-2xl border border-indigo-200/70 bg-white/60 px-4 py-3 text-sm shadow-sm dark:border-indigo-700/40 dark:bg-indigo-900/50"
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <p className="font-semibold text-indigo-800 dark:text-indigo-50">{mode.label}</p>
-                {mode.emphasis ? (
-                  <span className="text-xs font-semibold uppercase tracking-wide text-indigo-500">
-                    {mode.emphasis}
-                  </span>
-                ) : null}
+                <div className="flex items-center gap-2">
+                  {mode.emphasis ? (
+                    <span className="text-xs font-semibold uppercase tracking-wide text-indigo-500">
+                      {mode.emphasis}
+                    </span>
+                  ) : null}
+                  {mode.unlocked === false ? (
+                    <span className="text-xs font-semibold uppercase tracking-wide text-indigo-400">
+                      Locked
+                    </span>
+                  ) : null}
+                </div>
               </div>
               <p className="mt-1 text-sm leading-relaxed text-indigo-700 dark:text-indigo-100/80">
                 {mode.description}
@@ -152,4 +160,3 @@ export function DopamineDrivers({
     </section>
   );
 }
-

@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent } from 'react';
+import { FormEvent, forwardRef } from 'react';
 
 type AnswerFormProps = {
   answer: string;
@@ -10,7 +10,10 @@ type AnswerFormProps = {
   disabled?: boolean;
 };
 
-export function AnswerForm({ answer, onChange, onSubmit, isSubmitting, disabled }: AnswerFormProps) {
+export const AnswerForm = forwardRef<HTMLTextAreaElement, AnswerFormProps>(function AnswerForm(
+  { answer, onChange, onSubmit, isSubmitting, disabled }: AnswerFormProps,
+  ref,
+) {
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     onSubmit();
@@ -31,6 +34,7 @@ export function AnswerForm({ answer, onChange, onSubmit, isSubmitting, disabled 
           className="mt-2 h-40 w-full resize-none rounded-2xl border border-zinc-200 bg-white p-4 text-base leading-6 text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200 disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
           disabled={disabled || isSubmitting}
           required
+          ref={ref}
         />
       </label>
       <div className="flex justify-end">
@@ -44,4 +48,4 @@ export function AnswerForm({ answer, onChange, onSubmit, isSubmitting, disabled 
       </div>
     </form>
   );
-}
+});

@@ -22,6 +22,10 @@ def test_fetch_daily_question(
     assert body["timerSeconds"] == 300
     assert body["weekProgress"]["completedDays"] == 0
     assert "difficulty" in body
+    assert "dopamine" in body
+    assert body["dopamine"]["curiosityHook"]
+    assert "priming" in body
+    assert body["priming"]["teaserQuestion"]
 
 
 def test_submit_answer_updates_progress(
