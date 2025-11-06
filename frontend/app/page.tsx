@@ -6,6 +6,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { AnswerForm } from '@/components/AnswerForm';
 import { QuestionCard } from '@/components/QuestionCard';
 import { SubmissionCelebration } from '@/components/SubmissionCelebration';
+import { DopamineDrivers } from '@/components/DopamineDrivers';
 import { Timer } from '@/components/Timer';
 import { XpMeter } from '@/components/XpMeter';
 import { EvaluatingInsight } from '@/components/EvaluatingInsight';
@@ -376,6 +377,177 @@ export default function HomePage() {
     };
   }, [difficulty]);
 
+  const dopamineDrivers = useMemo(() => {
+    if (!dailyQuestion) {
+      return null;
+    }
+
+    const totalDays = weekProgress.totalDays || 7;
+    const completedDays = Math.min(weekProgress.completedDays || 0, totalDays);
+    const normalizedDay = Math.min(completedDays + 1, totalDays);
+    const sessionsRemaining = Math.max(totalDays - completedDays, 0);
+
+    let curiosityPoints =
+      dailyQuestion.dopamine?.curiosityPrompts?.filter((point): point is string => Boolean(point)) ??
+      [];
+    if (curiosityPoints.length === 0) {
+      curiosityPoints = [
+        `Theme focus: ${dailyQuestion.theme}`,
+        totalDays > 0
+          ? `Day ${normalizedDay} of ${totalDays} in this reflection cycle`
+          : 'Each session layers on your last insight.',
+      ];
+    }
+
+    const curiosity = {
+      title: 'Curiosity dopamine',
+      description:
+        dailyQuestion.dopamine?.curiosityHook ??
+        `Prime your mind for today's focus on ${dailyQuestion.theme.toLowerCase()}. Explore the angles that surprise you.`,
+      points: curiosityPoints,
+    };
+
+    const challengeModes =
+      dailyQuestion.dopamine?.challengeModes?.map((mode) => ({
+        label: mode.label,
+        description: mode.description,
+        emphasis: mode.multiplier ? `x${mode.multiplier.toFixed(2)} XP` : undefined,
+      })) ??
+      [
+        {
+          label: 'Primer flow',
+          description: 'Ease in with lighter prompts to cement the habit and keep your streak alive.',
+          emphasis: 'x1.00 XP',
+        },
+        {
+          label: 'Deepening',
+          description: 'Layer nuance into your answer for a richer critique and a bigger XP multiplier.',
+          emphasis: 'x1.25 XP',
+        },
+        {
+          label: 'Mastery',
+          description: 'Tackle the toughest variant to stress-test your reasoning muscles.',
+          emphasis: 'x1.50 XP',
+        },
+      ];
+
+    const challenge = {
+      title: 'Challenge dopamine',
+      description: 'Choose the stretch that matches your energy today.',
+      modes: challengeModes,
+      activeLabel: difficulty.label,
+    };
+
+    const rewardStats = [
+      {
+        label: 'Total XP',
+        value: `${xpTotal}`,
+        hint: 'Accumulated across every Deep session.',
+      },
+      {
+        label: 'Latest session',
+        value:
+          lastGain > 0
+            ? `+${lastGain} XP`
+            : hasStarted && !isSubmitted
+            ? 'Session in progress'
+            : "Complete today's prompt",
+        hint:
+          lastGain > 0
+            ? `Base ${baseGain} + Bonus ${bonusGain}`
+            : 'Higher challenge tiers boost your bonus XP.',
+      },
+      {
+        label: 'Streak',
+        value: `${streak} day${streak === 1 ? '' : 's'}`,
+        hint:
+          sessionsRemaining > 0
+            ? `${sessionsRemaining} more day${sessionsRemaining === 1 ? '' : 's'} unlocks ${weekBadgeName ?? "this week's badge"}.`
+            : weekProgress.badgeEarned
+            ? weekBadgeName
+              ? `${weekBadgeName} secured.`
+              : 'Weekly badge secured.'
+            : 'Keep your streak alive to earn the badge.',
+      },
+    ];
+
+    const reward = {
+      title: 'Reward dopamine',
+      description: 'See your wins stack up as you stay consistent.',
+      stats: rewardStats,
+      celebration: weekProgress.badgeEarned
+        ? `Badge unlocked: ${weekBadgeName ?? 'Weekly insight badge'}`
+        : undefined,
+    };
+
+    const anticipateTeaser =
+      dailyQuestion.dopamine?.anticipationTeaser ??
+      'Tomorrow continues this arc—set yourself up for another deep focus rep.';
+
+    const parseDate = (value?: string) => {
+      if (!value) return null;
+      const candidate = new Date(value);
+      return Number.isNaN(candidate.getTime()) ? null : candidate;
+    };
+
+    let nextPromptDate = parseDate(dailyQuestion.dopamine?.nextPromptAvailableAt);
+    if (!nextPromptDate) {
+      const currentAvailability = parseDate(dailyQuestion.availableOn);
+      if (currentAvailability) {
+        const next = new Date(currentAvailability);
+        next.setDate(next.getDate() + 1);
+        nextPromptDate = next;
+      }
+    }
+
+    const nextPrompt =
+      nextPromptDate?.toLocaleString(undefined, {
+        weekday: 'short',
+        hour: 'numeric',
+        minute: '2-digit',
+      }) ?? null;
+
+    const anticipationActions = [
+      weekProgress.badgeEarned
+        ? 'Plan your next mastery sprint to stay ahead of the streak.'
+        : sessionsRemaining > 0
+        ? `Complete ${sessionsRemaining} more reflection${sessionsRemaining === 1 ? '' : 's'} to earn ${
+            weekBadgeName ?? "this week's badge"
+          }.`
+        : 'Keep momentum by tackling a mastery-mode prompt tomorrow.',
+      'Set a five-minute block tomorrow so momentum is ready to fire.',
+      'Capture a curiosity spark now so you arrive primed for the next question.',
+    ];
+
+    const anticipation = {
+      title: 'Anticipation dopamine',
+      description: anticipateTeaser,
+      actions: Array.from(new Set(anticipationActions)),
+      nextPrompt,
+    };
+
+    return {
+      curiosity,
+      challenge,
+      reward,
+      anticipation,
+    };
+  }, [
+    dailyQuestion,
+    weekProgress.badgeEarned,
+    weekProgress.completedDays,
+    weekProgress.totalDays,
+    difficulty.label,
+    xpTotal,
+    lastGain,
+    hasStarted,
+    isSubmitted,
+    baseGain,
+    bonusGain,
+    streak,
+    weekBadgeName,
+  ]);
+
   const ethicalHeadline = 'The ethical dopamine difference';
   const ethicalLines = useMemo(
     () => [
@@ -457,6 +629,15 @@ export default function HomePage() {
 
         {dailyQuestion && status === 'ready' ? (
           <>
+            {dopamineDrivers ? (
+              <DopamineDrivers
+                curiosity={dopamineDrivers.curiosity}
+                challenge={dopamineDrivers.challenge}
+                reward={dopamineDrivers.reward}
+                anticipation={dopamineDrivers.anticipation}
+              />
+            ) : null}
+
             <QuestionCard
               theme={dailyQuestion.theme}
               prompt={dailyQuestion.prompt}

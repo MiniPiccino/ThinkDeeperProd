@@ -23,6 +23,23 @@ export type DailyQuestionResponse = {
     totalDays: number;
     badgeEarned: boolean;
   };
+  dopamine?: {
+    curiosityHook?: string;
+    curiosityPrompts?: string[];
+    challengeModes?: Array<{
+      label: string;
+      description: string;
+      multiplier?: number;
+      unlocked?: boolean;
+    }>;
+    rewardHighlights?: Array<{
+      title: string;
+      description: string;
+      earned?: boolean;
+    }>;
+    anticipationTeaser?: string;
+    nextPromptAvailableAt?: string;
+  };
 };
 
 export type SubmitAnswerPayload = {
