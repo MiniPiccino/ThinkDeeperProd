@@ -76,6 +76,7 @@ class AnswerService:
             streak=int(progress["streak"]),
             created_at=now,
             duration_seconds=duration_seconds,
+            week_index=question.week_index,
         )
         self._answer_repository.save_answer(stored)
 

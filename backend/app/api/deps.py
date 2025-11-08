@@ -2,6 +2,7 @@ from fastapi import Depends
 from openai import OpenAI
 
 from ..config import Settings, get_settings
+from ..integrations.supabase_client import SupabaseClient
 from ..repositories import AnswerRepository, ProgressRepository, QuestionRepository
 from ..services import AnswerService, EvaluationService, QuestionService
 
@@ -12,6 +13,7 @@ _OPENAI_CLIENT: OpenAI | None = None
 _EVALUATION_SERVICE: EvaluationService | None = None
 _QUESTION_SERVICE: QuestionService | None = None
 _ANSWER_SERVICE: AnswerService | None = None
+_SUPABASE_CLIENT: SupabaseClient | None = None
 
 
 def _question_repository(settings: Settings) -> QuestionRepository:
@@ -21,17 +23,38 @@ def _question_repository(settings: Settings) -> QuestionRepository:
     return _QUESTION_REPOSITORY
 
 
+def _supabase_client(settings: Settings) -> SupabaseClient | None:
+    global _SUPABASE_CLIENT
+    if settings.supabase_url and settings.supabase_service_key:
+        if _SUPABASE_CLIENT is None:
+            _SUPABASE_CLIENT = SupabaseClient(
+                settings.supabase_url,
+                settings.supabase_service_key,
+            )
+    return _SUPABASE_CLIENT
+
+
 def _progress_repository(settings: Settings) -> ProgressRepository:
     global _PROGRESS_REPOSITORY
     if _PROGRESS_REPOSITORY is None:
-        _PROGRESS_REPOSITORY = ProgressRepository(settings.progress_store_path)
+        supabase = _supabase_client(settings)
+        _PROGRESS_REPOSITORY = ProgressRepository(
+            settings.progress_store_path,
+            supabase_client=supabase,
+            supabase_table=settings.supabase_progress_table if supabase else None,
+        )
     return _PROGRESS_REPOSITORY
 
 
 def _answer_repository(settings: Settings) -> AnswerRepository:
     global _ANSWER_REPOSITORY
     if _ANSWER_REPOSITORY is None:
-        _ANSWER_REPOSITORY = AnswerRepository(settings.answers_store_path)
+        supabase = _supabase_client(settings)
+        _ANSWER_REPOSITORY = AnswerRepository(
+            settings.answers_store_path,
+            supabase_client=supabase,
+            supabase_table=settings.supabase_answers_table if supabase else None,
+        )
     return _ANSWER_REPOSITORY
 
 

@@ -29,6 +29,10 @@ class Settings(BaseSettings):
         default=_DATA_DIR / "progress.json",
         alias="PROGRESS_STORE_PATH",
     )
+    supabase_url: Optional[str] = Field(default=None, alias="SUPABASE_URL")
+    supabase_service_key: Optional[str] = Field(default=None, alias="SUPABASE_SERVICE_KEY")
+    supabase_answers_table: str = Field(default="answers", alias="SUPABASE_ANSWERS_TABLE")
+    supabase_progress_table: str = Field(default="user_progress", alias="SUPABASE_PROGRESS_TABLE")
     evaluation_model: str = Field(default="gpt-4o-mini", alias="EVALUATION_MODEL")
     default_timer_seconds: int = Field(default=300, alias="DEFAULT_TIMER_SECONDS")
     xp_max: int = Field(default=100, alias="XP_MAX")
