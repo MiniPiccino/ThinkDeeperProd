@@ -327,36 +327,31 @@ export default function HomePage() {
     },
   });
 
-  const startSession = useCallback(
-    (fromModal = false) => {
-      setShowPrimingModal(false);
-      if (!fromModal) {
-        markPrimingSeen();
+  const startSession = useCallback(() => {
+    setShowPrimingModal(false);
+    markPrimingSeen();
+    setHasStarted(true);
+    setIsSubmitted(false);
+    setStartTime(Date.now());
+    setFeedback(undefined);
+    setLastGain(0);
+    setLastDuration(0);
+    if (dailyQuestion) {
+      setSecondsRemaining(dailyQuestion.timerSeconds);
+    }
+    setShowDopamine(true);
+    if (questionSectionRef.current) {
+      questionSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    requestAnimationFrame(() => {
+      if (answerRef.current) {
+        answerRef.current.focus({ preventScroll: true });
       }
-      setHasStarted(true);
-      setIsSubmitted(false);
-      setStartTime(Date.now());
-      setFeedback(undefined);
-      setLastGain(0);
-      setLastDuration(0);
-      if (dailyQuestion) {
-        setSecondsRemaining(dailyQuestion.timerSeconds);
-      }
-      setShowDopamine(true);
-      if (questionSectionRef.current) {
-        questionSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-      requestAnimationFrame(() => {
-        if (answerRef.current) {
-          answerRef.current.focus({ preventScroll: true });
-        }
-      });
-    },
-    [dailyQuestion, markPrimingSeen],
-  );
+    });
+  }, [dailyQuestion, markPrimingSeen]);
 
   const handleStart = () => {
-    startSession(false);
+    startSession();
   };
 
   const handleSubmit = () => {
@@ -453,7 +448,7 @@ export default function HomePage() {
     }
 
     const curiosity = {
-      title: 'Curiosity dopamine',
+      title: 'Curiosity spark',
       description:
         dailyQuestion.dopamine?.curiosityHook ??
         `Prime your mind for today's focus on ${dailyQuestion.theme.toLowerCase()}. Explore the angles that surprise you.`,
@@ -486,7 +481,7 @@ export default function HomePage() {
       ];
 
     const challenge = {
-      title: 'Challenge dopamine',
+      title: 'Challenge fuel',
       description: 'Choose the stretch that matches your energy today.',
       modes: challengeModes,
       activeLabel: (dailyQuestion.dopamine?.activeDifficulty as string | undefined) ?? difficulty.label,
@@ -540,7 +535,7 @@ export default function HomePage() {
     }
 
     const reward = {
-      title: 'Reward dopamine',
+      title: 'Reward signal',
       description:
         rewardHighlights.length > 0
           ? 'Progress snapshots tuned to your current streak.'
@@ -591,7 +586,7 @@ export default function HomePage() {
     ];
 
     const anticipation = {
-      title: 'Anticipation dopamine',
+      title: 'Anticipation cue',
       description: anticipateTeaser,
       actions: Array.from(new Set(anticipationActions)),
       nextPrompt,
@@ -619,13 +614,13 @@ export default function HomePage() {
     weekBadgeName,
   ]);
 
-  const ethicalHeadline = 'The ethical dopamine difference';
+  const ethicalHeadline = 'The ethical motivation difference';
   const ethicalLines = useMemo(
     () => [
-      "You're not building an app that hijacks attention; you're building one that rewards insight.",
-      "That's a huge ethical advantage.",
-      'Instead of "Scroll forever for another random hit," you\'re doing "Come back tomorrow for your next deep hit of self-awareness."',
-      "That's positive dopamine conditioning. It builds growth, not compulsion.",
+      'This loop trains anticipation for clarity, not endless scrolling.',
+      'Each session ends with a next-step plan instead of a cliffhanger feed.',
+      'You choose one deep hit per day, so your nervous system recovers between reps.',
+      'That’s how motivation stays aligned with growth instead of compulsion.',
     ],
     [],
   );
@@ -648,6 +643,11 @@ export default function HomePage() {
   const friendlyFeedback = useMemo(() => {
     if (!previousFeedback?.feedback) {
       return null;
+    }
+    const [, improveRaw] = previousFeedback.feedback.split(/Improve:/i);
+    const improve = improveRaw?.trim();
+    if (improve && improve.length > 0) {
+      return `Focus: ${improve}`;
     }
     const casual = casualizeFeedback(previousFeedback.feedback);
     return casual || previousFeedback.feedback;
@@ -672,7 +672,7 @@ export default function HomePage() {
           somaticCue={priming.somaticCue}
           cognitiveCue={priming.cognitiveCue}
           onClose={handleDismissPrimingModal}
-          onBegin={() => startSession(true)}
+          onBegin={handleDismissPrimingModal}
         />
       ) : null}
       <main className="relative flex min-h-screen w-full justify-center bg-gradient-to-br from-emerald-50 via-white to-emerald-100 px-4 py-16 dark:from-zinc-950 dark:via-zinc-950 dark:to-zinc-900">
@@ -727,13 +727,7 @@ export default function HomePage() {
                 theme={dailyQuestion.theme}
                 prompt={dailyQuestion.prompt}
                 hasStarted={hasStarted}
-                onStart={() => {
-                  if (showPrimingModal) {
-                    setShowPrimingModal(false);
-                    markPrimingSeen();
-                  }
-                  handleStart();
-                }}
+                onStart={handleStart}
                 previousFocus={previousFocus}
                 sessionTips={sessionTips}
                 challengeNote={challengeNote}
@@ -747,9 +741,11 @@ export default function HomePage() {
                   onClick={() => setShowDopamine((prev) => !prev)}
                   className="inline-flex items-center justify-between rounded-2xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-zinc-800 dark:bg-zinc-700 dark:hover:bg-zinc-600"
                 >
-                  <span>{showDopamine ? 'Hide the motivation loop' : 'Prime the motivation loop'}</span>
+                  <span>
+                    {showDopamine ? 'Hide the focus primer' : "Prime today's focus"}
+                  </span>
                   <span className="ml-3 text-xs uppercase tracking-wide text-zinc-200">
-                    {showDopamine ? 'Less thinking' : 'Feel first'}
+                    {showDopamine ? 'Simplify' : 'Feel first'}
                   </span>
                 </button>
                 {showDopamine ? (

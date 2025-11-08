@@ -116,21 +116,19 @@ class QuestionService:
     ) -> Dict[str, object]:
         streak = int(progress.get("streak", 0))
         difficulty_label = str(difficulty.get("label", "primer")).lower()
-
+        prompt_focus = question.prompt.strip()
         emotional_hook = (
-            f'Before reading the full prompt, close your eyes and notice the first feeling that rises when you dwell on "{question.theme}".'
+            "Before unlocking the prompt, imagine how today's question might challenge your beliefs and notice the first feeling that surfaces."
         )
         if streak >= 3:
             emotional_hook = (
-                f'You are on a {streak}-day streak. Take a breath and feel what rises when you sit with "{question.theme}"—ride that momentum into the session.'
+                f'You are on a {streak}-day streak. Let today\'s question brush past your thoughts and feel the first pulse of emotion—ride that wave into the session.'
             )
 
         if previous_feedback and previous_feedback.get("feedback"):
-            emotional_hook += " Bring yesterday's takeaway to mind so the feeling has a clear target."
+            emotional_hook += " Bring yesterday's takeaway to mind so the feeling anchors to something concrete."
 
-        teaser_question = (
-            "If that feeling could ask a single question about today's theme, what would it be?"
-        )
+        teaser_question = "What does that feeling want to ask before your rational mind edits it?"
 
         somatic_cue = (
             "Take one 4-6 breathing cycle (inhale 4, exhale 6) and name the feeling out loud before you start."
@@ -140,9 +138,7 @@ class QuestionService:
                 "Try a 4-7-8 breath, then consciously relax your shoulders; mastery mode needs a settled body."
             )
 
-        cognitive_bridge = (
-            "When the question unlocks, translate the feeling into a hypothesis you can test or disprove."
-        )
+        cognitive_bridge = "When the prompt unlocks, turn the feeling into one bold claim you can test."
 
         return {
             "emotionalHook": emotional_hook,

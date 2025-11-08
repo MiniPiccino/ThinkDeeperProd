@@ -74,24 +74,22 @@ export function PrimingModal({
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-end">
           <button
             type="button"
-            onClick={onClose}
-            className="inline-flex items-center justify-center rounded-full border border-rose-400/60 px-5 py-2.5 text-sm font-semibold text-rose-700 transition hover:border-rose-500 hover:bg-rose-100 dark:border-rose-700 dark:text-rose-100 dark:hover:border-rose-500 dark:hover:bg-rose-900/60"
-          >
-            I&apos;ll start in a moment
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              onClose();
-              onBegin?.();
-            }}
-            className="inline-flex items-center justify-center rounded-full bg-rose-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:bg-rose-500"
-          >
-            Drop in & start
-          </button>
-        </div>
+          onClick={onClose}
+          className="inline-flex items-center justify-center rounded-full border border-rose-400/60 px-5 py-2.5 text-sm font-semibold text-rose-700 transition hover:border-rose-500 hover:bg-rose-100 dark:border-rose-700 dark:text-rose-100 dark:hover:border-rose-500 dark:hover:bg-rose-900/60"
+        >
+          I&apos;ll start in a moment
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            onBegin?.();
+          }}
+          className="inline-flex items-center justify-center rounded-full bg-rose-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:bg-rose-500"
+        >
+          I&apos;m ready
+        </button>
+      </div>
       </div>
     </div>
   );
 }
-

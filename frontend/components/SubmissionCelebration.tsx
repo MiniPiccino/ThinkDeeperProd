@@ -58,6 +58,26 @@ export function SubmissionCelebration({
   const [animatedTotal, setAnimatedTotal] = useState(baselineTotal);
   const [animatedStreak, setAnimatedStreak] = useState(targetStreak === 0 ? 0 : Math.max(1, targetStreak));
   const [shareState, setShareState] = useState<'idle' | 'success' | 'copied' | 'error'>('idle');
+  const levelCapacity = Math.max(xpIntoLevel + xpToNextLevel, 1);
+  const targetLevelPercent = Math.min(Math.max(levelProgressPercent, 0), 100);
+  const estimatedGainPercent = Math.min(Math.round((xpGain / levelCapacity) * 100), 100);
+  const startingLevelPercent = Math.max(targetLevelPercent - estimatedGainPercent, 0);
+  const [animatedLevelPercent, setAnimatedLevelPercent] = useState(startingLevelPercent);
+
+  const parsedFeedback = useMemo(() => {
+    if (!feedback) {
+      return null;
+    }
+    const trimmed = feedback.trim();
+    if (!trimmed) {
+      return null;
+    }
+    const [celebrate, improve] = trimmed.split(/Improve:/i);
+    return {
+      celebrate: celebrate?.trim() ?? trimmed,
+      improve: improve?.trim() ?? null,
+    };
+  }, [feedback]);
 
   useEffect(() => {
     let frame: number | null = null;
@@ -69,6 +89,7 @@ export function SubmissionCelebration({
       setAnimatedXp(xpGain);
       setAnimatedTotal(xpTotal);
       setAnimatedStreak(targetStreak === 0 ? 0 : Math.max(1, targetStreak));
+      setAnimatedLevelPercent(targetLevelPercent);
     };
 
     const animate = (now: number) => {
@@ -77,6 +98,7 @@ export function SubmissionCelebration({
       const eased = 1 - Math.pow(1 - clamped, 3);
       setAnimatedXp(Math.round(xpGain * eased));
       setAnimatedTotal(Math.round(baselineTotal + (xpTotal - baselineTotal) * eased));
+      setAnimatedLevelPercent(Math.round(startingLevelPercent + (targetLevelPercent - startingLevelPercent) * eased));
       if (targetStreak === 0) {
         setAnimatedStreak(0);
       } else {
@@ -105,7 +127,7 @@ export function SubmissionCelebration({
         window.clearTimeout(timeout);
       }
     };
-  }, [baselineTotal, targetStreak, xpGain, xpTotal]);
+  }, [baselineTotal, startingLevelPercent, targetLevelPercent, targetStreak, xpGain, xpTotal]);
 
   useEffect(() => {
     if (typeof document === 'undefined') {
@@ -126,8 +148,8 @@ export function SubmissionCelebration({
   }, [onClose]);
 
   const heroFeedback = useMemo(() => {
-    if (feedback && feedback.trim().length > 0) {
-      return feedback;
+    if (parsedFeedback?.celebrate) {
+      return parsedFeedback.celebrate;
     }
     if (xpGain >= 18) {
       return 'Legendary insight!';
@@ -139,7 +161,7 @@ export function SubmissionCelebration({
       return 'Solid reflections!';
     }
     return "You're building momentum!";
-  }, [feedback, xpGain]);
+  }, [parsedFeedback?.celebrate, xpGain]);
 
   const focusLine = useMemo(() => {
     if (durationSeconds >= 240) {
@@ -339,6 +361,50 @@ export function SubmissionCelebration({
                 </div>
               </div>
             </div>
+
+            <div className="mt-6 rounded-3xl border border-emerald-200/70 bg-emerald-50/70 p-5 text-left shadow-sm dark:border-emerald-500/30 dark:bg-emerald-500/10">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-300">
+                    Level trajectory
+                  </p>
+                  <p className="text-lg font-semibold text-emerald-900 dark:text-emerald-100">
+                    {targetLevelPercent >= 100
+                      ? `Level ${level} complete!`
+                      : `Level ${level} is ${targetLevelPercent}% charged`}
+                  </p>
+                </div>
+                <p className="text-sm text-emerald-700 dark:text-emerald-200">
+                  {xpIntoLevel}/{levelCapacity} XP stored
+                </p>
+              </div>
+              <div className="mt-3 h-3 w-full rounded-full bg-emerald-200/60 dark:bg-emerald-500/20">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-emerald-400 to-amber-300 transition-[width] duration-500 ease-out"
+                  style={{ width: `${Math.min(Math.max(animatedLevelPercent, 0), 100)}%` }}
+                />
+              </div>
+              <p className="mt-2 text-xs uppercase tracking-wide text-emerald-600 dark:text-emerald-300">
+                {levelMessage}
+              </p>
+            </div>
+
+            {parsedFeedback ? (
+              <div className="mt-5 rounded-3xl border border-zinc-200 bg-white/90 p-5 text-left shadow-sm dark:border-zinc-700 dark:bg-zinc-900/70">
+                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-300">
+                  Coach response
+                </p>
+                <p className="mt-2 text-base font-semibold text-zinc-900 dark:text-zinc-50">
+                  {parsedFeedback.celebrate}
+                </p>
+                {parsedFeedback.improve ? (
+                  <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-200">
+                    <span className="font-semibold text-emerald-600 dark:text-emerald-300">Improve:</span>{' '}
+                    {parsedFeedback.improve}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
 
             <div className="mt-5 grid gap-4 text-left text-sm md:grid-cols-2">
               <div className="rounded-2xl border border-sky-400/40 bg-sky-900/20 p-4 text-sky-100 shadow">
