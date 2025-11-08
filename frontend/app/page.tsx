@@ -120,6 +120,7 @@ export default function HomePage() {
   const [primingMode, setPrimingMode] = useState<'intro' | 'reminder'>('intro');
   const answerRef = useRef<HTMLTextAreaElement | null>(null);
   const questionSectionRef = useRef<HTMLDivElement | null>(null);
+  const writingSectionRef = useRef<HTMLDivElement | null>(null);
 
   const markPrimingSeen = useCallback(() => {
     if (typeof window === 'undefined') {
@@ -751,33 +752,8 @@ export default function HomePage() {
               />
             </div>
 
-            {dopamineDrivers ? (
-              <section className="space-y-4 rounded-3xl border border-zinc-200 bg-white/80 p-4 shadow-sm backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/60">
-                <button
-                  type="button"
-                  onClick={() => setShowDopamine((prev) => !prev)}
-                  className="inline-flex items-center justify-between rounded-2xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-zinc-800 dark:bg-zinc-700 dark:hover:bg-zinc-600"
-                >
-                  <span>
-                    {showDopamine ? 'Hide the focus primer' : "Prime today's focus"}
-                  </span>
-                  <span className="ml-3 text-xs uppercase tracking-wide text-zinc-200">
-                    {showDopamine ? 'Simplify' : 'Feel first'}
-                  </span>
-                </button>
-                {showDopamine ? (
-                  <DopamineDrivers
-                    curiosity={dopamineDrivers.curiosity}
-                    challenge={dopamineDrivers.challenge}
-                    reward={dopamineDrivers.reward}
-                    anticipation={dopamineDrivers.anticipation}
-                  />
-                ) : null}
-              </section>
-            ) : null}
-
             <div className="grid gap-8 lg:grid-cols-[1.7fr,1fr]">
-              <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-6" ref={writingSectionRef}>
                 <div ref={celebrationTriggerRef} />
                 <Timer
                   remainingSeconds={secondsRemaining}
@@ -857,6 +833,31 @@ export default function HomePage() {
                 </div>
               </aside>
             </div>
+
+            {dopamineDrivers ? (
+              <section className="space-y-4 rounded-3xl border border-zinc-200 bg-white/80 p-4 shadow-sm backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/60">
+                <button
+                  type="button"
+                  onClick={() => setShowDopamine((prev) => !prev)}
+                  className="inline-flex items-center justify-between rounded-2xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-zinc-800 dark:bg-zinc-700 dark:hover:bg-zinc-600"
+                >
+                  <span>
+                    {showDopamine ? 'Hide the focus primer' : "Prime today's focus"}
+                  </span>
+                  <span className="ml-3 text-xs uppercase tracking-wide text-zinc-200">
+                    {showDopamine ? 'Simplify' : 'Feel first'}
+                  </span>
+                </button>
+                {showDopamine ? (
+                  <DopamineDrivers
+                    curiosity={dopamineDrivers.curiosity}
+                    challenge={dopamineDrivers.challenge}
+                    reward={dopamineDrivers.reward}
+                    anticipation={dopamineDrivers.anticipation}
+                  />
+                ) : null}
+              </section>
+            ) : null}
           </>
         ) : null}
       </div>
