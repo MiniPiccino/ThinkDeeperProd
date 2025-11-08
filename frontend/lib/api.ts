@@ -32,6 +32,7 @@ export type DailyQuestionResponse = {
   dopamine?: {
     curiosityHook?: string;
     curiosityPrompts?: string[];
+    activeDifficulty?: string;
     challengeModes?: Array<{
       label: string;
       description: string;
