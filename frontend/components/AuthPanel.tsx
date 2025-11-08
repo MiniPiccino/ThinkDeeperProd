@@ -15,7 +15,9 @@ export function AuthPanel() {
   const [message, setMessage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  if (!supabaseClient) {
+  const client = supabaseClient;
+
+  if (!client) {
     return null;
   }
 
@@ -25,7 +27,7 @@ export function AuthPanel() {
     setMessage(null);
     try {
       if (mode === 'signup') {
-        const { error } = await supabaseClient.auth.signUp({
+        const { error } = await client.auth.signUp({
           email,
           password,
           options: { emailRedirectTo: `${window.location.origin}` },
@@ -35,7 +37,7 @@ export function AuthPanel() {
         }
         setMessage('Check your inbox to confirm your email.');
       } else {
-        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        const { error } = await client.auth.signInWithPassword({ email, password });
         if (error) {
           throw error;
         }
@@ -55,7 +57,7 @@ export function AuthPanel() {
     setIsProcessing(true);
     setMessage(null);
     try {
-      const { error } = await supabaseClient.auth.signOut();
+      const { error } = await client.auth.signOut();
       if (error) {
         throw error;
       }
