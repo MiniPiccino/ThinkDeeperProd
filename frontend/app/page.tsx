@@ -9,6 +9,7 @@ import { SubmissionCelebration } from '@/components/SubmissionCelebration';
 import { DopamineDrivers } from '@/components/DopamineDrivers';
 import { PrimingCard } from '@/components/PrimingCard';
 import { PrimingModal } from '@/components/PrimingModal';
+import { AuthPanel } from '@/components/AuthPanel';
 import { Timer } from '@/components/Timer';
 import { XpMeter } from '@/components/XpMeter';
 import { EvaluatingInsight } from '@/components/EvaluatingInsight';
@@ -20,6 +21,7 @@ import {
   fetchDailyQuestion,
   submitAnswer,
 } from '@/lib/api';
+import { useAuth } from './providers';
 
 const USER_STORAGE_KEY = 'thinkdeeper.userId';
 const XP_PER_LEVEL = 120;
@@ -83,6 +85,7 @@ function casualizeFeedback(message: string): string {
 
 export default function HomePage() {
   const [userId, setUserId] = useState<string | null>(null);
+  const [guestId, setGuestId] = useState<string | null>(null);
   const [hasStarted, setHasStarted] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [startTime, setStartTime] = useState<number | null>(null);
@@ -151,19 +154,31 @@ export default function HomePage() {
     return `user-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   };
 
+  const { user: authUser } = useAuth();
+
   useEffect(() => {
     if (typeof window === 'undefined') {
       return;
     }
     const existing = window.localStorage.getItem(USER_STORAGE_KEY);
     if (existing) {
-      setUserId(existing);
+      setGuestId(existing);
       return;
     }
     const generated = generateUserId();
     window.localStorage.setItem(USER_STORAGE_KEY, generated);
-    setUserId(generated);
+    setGuestId(generated);
   }, []);
+
+  useEffect(() => {
+    if (authUser?.id) {
+      setUserId(authUser.id);
+      return;
+    }
+    if (guestId) {
+      setUserId(guestId);
+    }
+  }, [authUser?.id, guestId]);
 
   const {
     data: dailyQuestion,
@@ -688,6 +703,8 @@ export default function HomePage() {
             Reflect on today&apos;s question, write deeply, and earn XP toward mastery.
           </p>
         </header>
+
+        <AuthPanel />
 
         {status === 'loading' ? (
           <div className="flex h-64 w-full items-center justify-center rounded-3xl border border-dashed border-zinc-300 text-zinc-500">
