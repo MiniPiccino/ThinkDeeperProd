@@ -79,6 +79,7 @@ export type AnswerResponse = {
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS === "true";
 
 type FetchOptions = RequestInit & { headers?: HeadersInit };
 
@@ -101,6 +102,9 @@ async function request<T>(path: string, options: FetchOptions = {}): Promise<T> 
 }
 
 export function fetchDailyQuestion(userId?: string): Promise<DailyQuestionResponse> {
+  if (USE_MOCKS) {
+    return Promise.resolve(mockDailyQuestion);
+  }
   const search = userId ? `?userId=${encodeURIComponent(userId)}` : "";
   return request<DailyQuestionResponse>(`/v1/questions/daily${search}`, {
     cache: "no-store",
@@ -108,6 +112,9 @@ export function fetchDailyQuestion(userId?: string): Promise<DailyQuestionRespon
 }
 
 export function submitAnswer(payload: SubmitAnswerPayload): Promise<AnswerResponse> {
+  if (USE_MOCKS) {
+    return Promise.resolve(mockAnswerResponse);
+  }
   return request<AnswerResponse>("/v1/answers", {
     method: "POST",
     body: JSON.stringify({
@@ -118,3 +125,78 @@ export function submitAnswer(payload: SubmitAnswerPayload): Promise<AnswerRespon
     }),
   });
 }
+
+const mockDailyQuestion: DailyQuestionResponse = {
+  id: "week-5-day-3",
+  prompt: "Is comfort a distraction from purpose?",
+  theme: "Week 5 — Truth and Lies",
+  weekIndex: 4,
+  dayIndex: 2,
+  availableOn: new Date().toISOString(),
+  timerSeconds: 300,
+  xpTotal: 75,
+  streak: 3,
+  previousFeedback: {
+    feedback: "Nice depth yesterday! Improve: add an example to ground the idea.",
+    submittedAt: new Date(Date.now() - 86400000).toISOString(),
+    questionId: "week-5-day-2",
+  },
+  priming: {
+    emotionalHook: "Let today’s question nudge the gut feeling that shows up when you think about distraction versus purpose.",
+    teaserQuestion: "What does that feeling ask before your rational mind edits it?",
+    somaticCue: "Take one 4-6 breath and name the feeling out loud.",
+    cognitiveCue: "When the prompt unlocks, turn the feeling into one bold claim you can test.",
+  },
+  difficulty: {
+    label: "deepening",
+    score: 3,
+    multiplier: 1.15,
+  },
+  weekProgress: {
+    completedDays: 2,
+    totalDays: 7,
+    badgeEarned: false,
+  },
+  dopamine: {
+    curiosityHook: "Prime your mind around truth vs. comfort today.",
+    curiosityPrompts: [
+      "Theme focus: Truth and Lies",
+      "Day 3 of 7 in this arc",
+      "Where does honesty pinch the most?",
+    ],
+    activeDifficulty: "deepening",
+    challengeModes: [
+      { label: "Primer flow", description: "Ease back in with lighter nuance.", multiplier: 1, unlocked: true },
+      { label: "Deepening", description: "Pull apart comfort vs purpose for more insight.", multiplier: 1.15, unlocked: true },
+      { label: "Mastery", description: "Defend a bold claim about honesty.", multiplier: 1.35, unlocked: false },
+    ],
+    rewardHighlights: [
+      { title: "Total XP", description: "75 XP so far", earned: true },
+      { title: "Streak", description: "3 days alive", earned: true },
+      { title: "Weekly badge", description: "5 sessions left until badge", earned: false },
+    ],
+    anticipationTeaser: "Tomorrow tests whether you’ll act on what you write today.",
+    nextPromptAvailableAt: new Date(Date.now() + 86400000).toISOString(),
+  },
+};
+
+const mockAnswerResponse: AnswerResponse = {
+  feedback: "Loved the honesty. Improve: add a concrete scenario.",
+  xpAwarded: 14,
+  baseXp: 12,
+  bonusXp: 2,
+  xpTotal: 89,
+  streak: 4,
+  evaluatedAt: new Date().toISOString(),
+  difficultyLevel: "deepening",
+  difficultyMultiplier: 1.15,
+  weekCompletedDays: 3,
+  weekTotalDays: 7,
+  weekBadgeEarned: false,
+  badgeName: null,
+  level: 2,
+  xpToNextLevel: 151,
+  nextLevelThreshold: 240,
+  xpIntoLevel: 89,
+  levelProgressPercent: 37,
+};

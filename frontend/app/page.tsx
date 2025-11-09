@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 
+import Link from 'next/link';
 import { AnswerForm } from '@/components/AnswerForm';
 import { QuestionCard } from '@/components/QuestionCard';
 import { SubmissionCelebration } from '@/components/SubmissionCelebration';
-import { DopamineDrivers } from '@/components/DopamineDrivers';
 import { PrimingCard } from '@/components/PrimingCard';
 import { PrimingModal } from '@/components/PrimingModal';
 import { AuthPanel } from '@/components/AuthPanel';
@@ -115,7 +115,6 @@ export default function HomePage() {
   });
   const [showCelebration, setShowCelebration] = useState(false);
   const celebrationTriggerRef = useRef<HTMLDivElement | null>(null);
-  const [showDopamine, setShowDopamine] = useState(false);
   const [showPrimingModal, setShowPrimingModal] = useState(false);
   const [primingMode, setPrimingMode] = useState<'intro' | 'reminder'>('intro');
   const answerRef = useRef<HTMLTextAreaElement | null>(null);
@@ -355,7 +354,6 @@ export default function HomePage() {
     if (dailyQuestion) {
       setSecondsRemaining(dailyQuestion.timerSeconds);
     }
-    setShowDopamine(true);
     if (questionSectionRef.current) {
       questionSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -441,206 +439,6 @@ export default function HomePage() {
     };
   }, [difficulty]);
 
-  const dopamineDrivers = useMemo(() => {
-    if (!dailyQuestion) {
-      return null;
-    }
-
-    const totalDays = weekProgress.totalDays || 7;
-    const completedDays = Math.min(weekProgress.completedDays || 0, totalDays);
-    const normalizedDay = Math.min(completedDays + 1, totalDays);
-    const sessionsRemaining = Math.max(totalDays - completedDays, 0);
-
-    let curiosityPoints =
-      dailyQuestion.dopamine?.curiosityPrompts?.filter((point): point is string => Boolean(point)) ??
-      [];
-    if (curiosityPoints.length === 0) {
-      curiosityPoints = [
-        `Theme focus: ${dailyQuestion.theme}`,
-        totalDays > 0
-          ? `Day ${normalizedDay} of ${totalDays} in this reflection cycle`
-          : 'Each session layers on your last insight.',
-      ];
-    }
-
-    const curiosity = {
-      title: 'Curiosity spark',
-      description:
-        dailyQuestion.dopamine?.curiosityHook ??
-        `Prime your mind for today's focus on ${dailyQuestion.theme.toLowerCase()}. Explore the angles that surprise you.`,
-      points: curiosityPoints,
-    };
-
-    const challengeModes =
-      dailyQuestion.dopamine?.challengeModes?.map((mode) => ({
-        label: mode.label,
-        description: mode.description,
-        emphasis: mode.multiplier ? `x${mode.multiplier.toFixed(2)} XP` : undefined,
-        unlocked: mode.unlocked ?? true,
-      })) ??
-      [
-        {
-          label: 'Primer flow',
-          description: 'Ease in with lighter prompts to cement the habit and keep your streak alive.',
-          emphasis: 'x1.00 XP',
-        },
-        {
-          label: 'Deepening',
-          description: 'Layer nuance into your answer for a richer critique and a bigger XP multiplier.',
-          emphasis: 'x1.25 XP',
-        },
-        {
-          label: 'Mastery',
-          description: 'Tackle the toughest variant to stress-test your reasoning muscles.',
-          emphasis: 'x1.50 XP',
-        },
-      ];
-
-    const challenge = {
-      title: 'Challenge fuel',
-      description: 'Choose the stretch that matches your energy today.',
-      modes: challengeModes,
-      activeLabel: (dailyQuestion.dopamine?.activeDifficulty as string | undefined) ?? difficulty.label,
-    };
-
-    let rewardStats = [
-      {
-        label: 'Total XP',
-        value: `${xpTotal}`,
-        hint: 'Accumulated across every Deep session.',
-      },
-      {
-        label: 'Latest session',
-        value:
-          lastGain > 0
-            ? `+${lastGain} XP`
-            : hasStarted && !isSubmitted
-            ? 'Session in progress'
-            : "Complete today's prompt",
-        hint:
-          lastGain > 0
-            ? `Base ${baseGain} + Bonus ${bonusGain}`
-            : 'Higher challenge tiers boost your bonus XP.',
-      },
-      {
-        label: 'Streak',
-        value: `${streak} day${streak === 1 ? '' : 's'}`,
-        hint:
-          sessionsRemaining > 0
-            ? `${sessionsRemaining} more day${sessionsRemaining === 1 ? '' : 's'} unlocks ${weekBadgeName ?? "this week's badge"}.`
-            : weekProgress.badgeEarned
-            ? weekBadgeName
-              ? `${weekBadgeName} secured.`
-              : 'Weekly badge secured.'
-            : 'Keep your streak alive to earn the badge.',
-      },
-    ];
-
-    const rewardHighlights =
-      dailyQuestion.dopamine?.rewardHighlights?.filter(
-        (highlight): highlight is { title: string; description: string; earned?: boolean } =>
-          Boolean(highlight?.title) && Boolean(highlight?.description),
-      ) ?? [];
-
-    if (rewardHighlights.length > 0) {
-      rewardStats = rewardHighlights.slice(0, 3).map((highlight) => ({
-        label: highlight.title,
-        value: highlight.earned ? 'Unlocked' : 'In progress',
-        hint: highlight.description,
-      }));
-    }
-
-    const reward = {
-      title: 'Reward signal',
-      description:
-        rewardHighlights.length > 0
-          ? 'Progress snapshots tuned to your current streak.'
-          : 'See your wins stack up as you stay consistent.',
-      stats: rewardStats,
-      celebration: weekProgress.badgeEarned
-        ? `Badge unlocked: ${weekBadgeName ?? 'Weekly insight badge'}`
-        : undefined,
-    };
-
-    const anticipateTeaser =
-      dailyQuestion.dopamine?.anticipationTeaser ??
-      'Tomorrow continues this arc—set yourself up for another deep focus rep.';
-
-    const parseDate = (value?: string) => {
-      if (!value) return null;
-      const candidate = new Date(value);
-      return Number.isNaN(candidate.getTime()) ? null : candidate;
-    };
-
-    let nextPromptDate = parseDate(dailyQuestion.dopamine?.nextPromptAvailableAt);
-    if (!nextPromptDate) {
-      const currentAvailability = parseDate(dailyQuestion.availableOn);
-      if (currentAvailability) {
-        const next = new Date(currentAvailability);
-        next.setDate(next.getDate() + 1);
-        nextPromptDate = next;
-      }
-    }
-
-    const nextPrompt =
-      nextPromptDate?.toLocaleString(undefined, {
-        weekday: 'short',
-        hour: 'numeric',
-        minute: '2-digit',
-      }) ?? null;
-
-    const anticipationActions = [
-      weekProgress.badgeEarned
-        ? 'Plan your next mastery sprint to stay ahead of the streak.'
-        : sessionsRemaining > 0
-        ? `Complete ${sessionsRemaining} more reflection${sessionsRemaining === 1 ? '' : 's'} to earn ${
-            weekBadgeName ?? "this week's badge"
-          }.`
-        : 'Keep momentum by tackling a mastery-mode prompt tomorrow.',
-      'Set a five-minute block tomorrow so momentum is ready to fire.',
-      'Capture a curiosity spark now so you arrive primed for the next question.',
-    ];
-
-    const anticipation = {
-      title: 'Anticipation cue',
-      description: anticipateTeaser,
-      actions: Array.from(new Set(anticipationActions)),
-      nextPrompt,
-    };
-
-    return {
-      curiosity,
-      challenge,
-      reward,
-      anticipation,
-    };
-  }, [
-    dailyQuestion,
-    weekProgress.badgeEarned,
-    weekProgress.completedDays,
-    weekProgress.totalDays,
-    difficulty.label,
-    xpTotal,
-    lastGain,
-    hasStarted,
-    isSubmitted,
-    baseGain,
-    bonusGain,
-    streak,
-    weekBadgeName,
-  ]);
-
-  const ethicalHeadline = 'The ethical motivation difference';
-  const ethicalLines = useMemo(
-    () => [
-      'This loop trains anticipation for clarity, not endless scrolling.',
-      'Each session ends with a next-step plan instead of a cliffhanger feed.',
-      'You choose one deep hit per day, so your nervous system recovers between reps.',
-      'That’s how motivation stays aligned with growth instead of compulsion.',
-    ],
-    [],
-  );
-
   const previousFeedbackDate = useMemo(() => {
     if (!previousFeedback?.submittedAt) {
       return null;
@@ -693,15 +491,15 @@ export default function HomePage() {
       ) : null}
       <main className="relative flex min-h-screen w-full justify-center bg-gradient-to-br from-emerald-50 via-white to-emerald-100 px-4 py-16 dark:from-zinc-950 dark:via-zinc-950 dark:to-zinc-900">
         <div className="flex w-full max-w-4xl flex-col gap-8">
-        <header className="flex flex-col gap-2 text-center">
-          <span className="text-sm font-semibold uppercase tracking-widest text-emerald-600">
-            Deep
+        <header className="flex flex-col items-center gap-3 text-center">
+          <span className="rounded-full bg-emerald-100 px-4 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200">
+            Deep daily
           </span>
-          <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
-            Train your reasoning every day
+          <h1 className="text-4xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
+            One question. Five minutes. Zero noise.
           </h1>
-          <p className="text-base text-zinc-600 dark:text-zinc-400">
-            Reflect on today&apos;s question, write deeply, and earn XP toward mastery.
+          <p className="max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">
+            Drop in, write, and get feedback that compounds. Everything else lives off to the side until you ask for it.
           </p>
         </header>
 
@@ -821,47 +619,26 @@ export default function HomePage() {
                     className="h-full"
                   />
                 </div>
-                <div className="rounded-3xl border border-sky-500/50 bg-gradient-to-br from-sky-950/70 via-sky-900/60 to-emerald-900/50 p-6 text-sm text-sky-100 shadow-lg">
-                  <p className="text-xs font-semibold uppercase tracking-[0.35em] text-sky-300">
-                    {ethicalHeadline}
-                  </p>
-                  <ul className="mt-4 space-y-2 leading-relaxed">
-                    {ethicalLines.map((line) => (
-                      <li key={line}>{line}</li>
-                    ))}
-                  </ul>
-                </div>
               </aside>
             </div>
-
-            {dopamineDrivers ? (
-              <section className="space-y-4 rounded-3xl border border-zinc-200 bg-white/80 p-4 shadow-sm backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/60">
-                <button
-                  type="button"
-                  onClick={() => setShowDopamine((prev) => !prev)}
-                  className="inline-flex items-center justify-between rounded-2xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-zinc-800 dark:bg-zinc-700 dark:hover:bg-zinc-600"
-                >
-                  <span>
-                    {showDopamine ? 'Hide the focus primer' : "Prime today's focus"}
-                  </span>
-                  <span className="ml-3 text-xs uppercase tracking-wide text-zinc-200">
-                    {showDopamine ? 'Simplify' : 'Feel first'}
-                  </span>
-                </button>
-                {showDopamine ? (
-                  <DopamineDrivers
-                    curiosity={dopamineDrivers.curiosity}
-                    challenge={dopamineDrivers.challenge}
-                    reward={dopamineDrivers.reward}
-                    anticipation={dopamineDrivers.anticipation}
-                  />
-                ) : null}
-              </section>
-            ) : null}
           </>
         ) : null}
       </div>
     </main>
+      <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3">
+        <Link
+          href="/focus-tools"
+          className="inline-flex items-center rounded-full bg-zinc-900 px-5 py-3 text-sm font-semibold text-white shadow-xl transition hover:bg-zinc-800 dark:bg-zinc-700 dark:hover:bg-zinc-600"
+        >
+          Open focus tools →
+        </Link>
+        <Link
+          href="/focus-tools#why"
+          className="inline-flex items-center rounded-full border border-zinc-300/60 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-zinc-700 shadow-lg transition hover:border-zinc-400 hover:bg-white dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-100"
+        >
+          Why this works
+        </Link>
+      </div>
     </>
   );
 }
