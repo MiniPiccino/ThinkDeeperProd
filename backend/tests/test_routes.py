@@ -5,9 +5,7 @@ from fastapi.testclient import TestClient
 
 
 def _expected_prompt(question_repository: QuestionRepository, target_date: date) -> str:
-    questions = list(question_repository.iter_all())
-    index = (target_date.timetuple().tm_yday - 1) % len(questions)
-    return questions[index].prompt
+    return question_repository.get_daily_question(target_date).prompt
 
 
 def test_fetch_daily_question(
