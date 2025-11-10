@@ -15,6 +15,7 @@ export default function FocusToolsPage() {
   });
 
   const dopamine = data?.dopamine;
+  const nextWeekTheme = data?.theme ? `Up next: ${data.theme}` : 'Next theme arrives soon';
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 px-4 py-12 text-slate-100">
@@ -41,6 +42,11 @@ export default function FocusToolsPage() {
           >
             Refresh focus tools
           </button>
+          <div className="flex-1 rounded-2xl border border-slate-700/60 bg-slate-900/30 px-4 py-3 text-left text-xs text-slate-300">
+            <p className="font-semibold uppercase tracking-[0.35em] text-slate-500">Next week</p>
+            <p className="mt-1 text-base text-white">{nextWeekTheme}</p>
+            <p className="mt-1 text-xs text-slate-400">Invite someone to start this arc with you.</p>
+          </div>
         </div>
 
         {isLoading ? (

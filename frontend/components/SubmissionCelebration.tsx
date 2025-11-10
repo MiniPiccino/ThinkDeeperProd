@@ -213,6 +213,20 @@ export function SubmissionCelebration({
     return `Level ${level} | ${levelProgressPercent}% toward the next peak.`;
   }, [level, levelProgressPercent, xpToNextLevel]);
 
+  const streakGrid = useMemo(() => {
+    const filled = '🟩';
+    const empty = '⬜';
+    const rows = [];
+    const totalWeeks = 52;
+    for (let week = 0; week < totalWeeks; week++) {
+      const dayFilled = week === weekTotalDays ? weekCompletedDays : weekTotalDays;
+      const row =
+        week === weekTotalDays ? filled.repeat(weekCompletedDays) + empty.repeat(Math.max(weekTotalDays - weekCompletedDays, 0)) : empty.repeat(weekTotalDays);
+      rows.push(`Week ${week + 1}: ${row}`);
+    }
+    return rows.slice(0, 3).join('\n');
+  }, [weekCompletedDays, weekTotalDays]);
+
   const sharePayload = useMemo(() => {
     const shareTitle = 'Think Deeper reflection';
     const summaryParts = [
@@ -231,7 +245,7 @@ export function SubmissionCelebration({
 
     return {
       title: shareTitle,
-      text: `${summary}\n${highlight}`,
+      text: `${summary}\n${highlight}\n\n${streakGrid}`,
       url,
     };
   }, [
@@ -243,6 +257,7 @@ export function SubmissionCelebration({
     heroFeedback,
     level,
     levelProgressPercent,
+    streakGrid,
     targetStreak,
     xpGain,
     xpTotal,
