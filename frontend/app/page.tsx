@@ -619,13 +619,13 @@ export default function HomePage() {
       <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3">
         <Link
           href="/focus-tools"
-          className="inline-flex items-center rounded-full bg-zinc-900 px-5 py-3 text-sm font-semibold text-white shadow-xl transition hover:bg-zinc-800 dark:bg-zinc-700 dark:hover:bg-zinc-600"
+          className="inline-flex items-center rounded-full border border-zinc-200/70 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-zinc-700 shadow transition hover:border-zinc-300 hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-100"
         >
-          Open focus tools →
+          Focus tools
         </Link>
         <Link
           href="/focus-tools#why"
-          className="inline-flex items-center rounded-full border border-zinc-300/60 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-zinc-700 shadow-lg transition hover:border-zinc-400 hover:bg-white dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-100"
+          className="inline-flex items-center rounded-full border border-transparent bg-transparent px-3 py-1 text-xs font-semibold text-zinc-500 underline-offset-4 hover:underline dark:text-zinc-300"
         >
           Why this works
         </Link>

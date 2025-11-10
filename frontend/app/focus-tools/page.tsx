@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { DopamineDrivers } from '@/components/DopamineDrivers';
 import { fetchDailyQuestion, type DailyQuestionResponse } from '@/lib/api';
+import { StreakTree } from '@/components/StreakTree';
 
 export default function FocusToolsPage() {
   const { data, isLoading, isError, refetch } = useQuery({
@@ -56,12 +57,20 @@ export default function FocusToolsPage() {
         ) : null}
 
         {dopamine ? (
-          <DopamineDrivers
-            curiosity={dopamineCuriosity(dopamine)}
-            challenge={dopamineChallenge(dopamine)}
-            reward={dopamineReward(dopamine)}
-            anticipation={dopamineAnticipation(dopamine)}
-          />
+          <>
+            <DopamineDrivers
+              curiosity={dopamineCuriosity(dopamine)}
+              challenge={dopamineChallenge(dopamine)}
+              reward={dopamineReward(dopamine)}
+              anticipation={dopamineAnticipation(dopamine)}
+            />
+            <StreakTree
+              streak={data?.streak ?? 0}
+              weekCompletedDays={data?.weekProgress?.completedDays ?? 0}
+              weekTotalDays={data?.weekProgress?.totalDays ?? 7}
+              currentWeekIndex={data?.weekIndex ?? 0}
+            />
+          </>
         ) : (
           !isLoading &&
           !isError && (
