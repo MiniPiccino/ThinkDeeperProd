@@ -28,21 +28,21 @@ export default function FocusToolsPage() {
           </p>
         </header>
 
-        <div className="flex flex-wrap gap-3">
-          <Link
-            href="/"
-            className="inline-flex items-center rounded-full border border-emerald-400/60 px-4 py-2 text-sm font-semibold text-emerald-200 transition hover:border-emerald-300 hover:text-emerald-100"
-          >
-            ← Back to session
-          </Link>
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-300">
           <button
             type="button"
             onClick={() => refetch()}
-            className="inline-flex items-center rounded-full border border-slate-600/60 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-slate-400 hover:text-white"
+            className="inline-flex gap-2 rounded-full border border-emerald-400/50 bg-transparent px-4 py-1.5 text-[12px] font-semibold uppercase tracking-wide text-emerald-200 transition hover:border-emerald-300 hover:text-emerald-100"
           >
             Refresh focus tools
           </button>
-          <div className="flex-1 rounded-2xl border border-slate-700/60 bg-slate-900/30 px-4 py-3 text-left text-xs text-slate-300">
+          <Link
+            href="/"
+            className="inline-flex gap-2 rounded-full border border-emerald-400/50 bg-transparent px-4 py-1.5 text-[12px] font-semibold uppercase tracking-wide text-emerald-200 transition hover:border-emerald-300 hover:text-emerald-100"
+          >
+            Back to session
+          </Link>
+          <div className="flex-1 rounded-2xl border border-slate-800/50 bg-slate-950/40 px-4 py-3 text-left text-[11px] text-slate-200">
             <p className="font-semibold uppercase tracking-[0.35em] text-slate-500">Next week</p>
             <p className="mt-1 text-base text-white">{nextWeekTheme}</p>
             <p className="mt-1 text-xs text-slate-400">Invite someone to start this arc with you.</p>
