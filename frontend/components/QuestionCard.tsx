@@ -42,15 +42,9 @@ export function QuestionCard({
           {prompt}
         </h2>
       ) : (
-        <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-left text-sm text-emerald-900 shadow-sm dark:border-emerald-800/40 dark:bg-emerald-950/40 dark:text-emerald-100">
-          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-500">
-            Ready stance
-          </p>
-          <p className="mt-2 text-base font-semibold">Tap Start Thinking to unlock today’s prompt.</p>
-          <p className="mt-1 text-sm text-emerald-800 dark:text-emerald-100/80">
-            Two breaths. One intention. Then let instinct write the first line.
-          </p>
-        </div>
+        <p className="mt-4 text-base text-zinc-600 dark:text-zinc-300">
+          Press start to reveal today&apos;s question. Take a breath, clear your mind, and then dive in.
+        </p>
       )}
       {showPreviousFocus ? (
         <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900 shadow-sm dark:border-emerald-700/40 dark:bg-emerald-950/40 dark:text-emerald-100">
