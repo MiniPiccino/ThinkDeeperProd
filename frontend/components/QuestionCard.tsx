@@ -13,10 +13,6 @@ type QuestionCardProps = {
   hasStarted: boolean;
   previousFocus?: PreviousFocus | null;
   sessionTips?: string[];
-  challengeNote?: {
-    title: string;
-    description: string;
-  };
 };
 
 export function QuestionCard({
@@ -26,7 +22,6 @@ export function QuestionCard({
   hasStarted,
   previousFocus,
   sessionTips = [],
-  challengeNote,
 }: QuestionCardProps) {
   const focusMessage = previousFocus?.friendlyFeedback ?? previousFocus?.feedback;
   const showPreviousFocus = !hasStarted && Boolean(focusMessage);
@@ -55,12 +50,6 @@ export function QuestionCard({
               ? `Captured on ${previousFocus.capturedOn}. Keep it in mind as you write today.`
               : "Carry this insight into today's reflection."}
           </p>
-        </div>
-      ) : null}
-      {!hasStarted && challengeNote ? (
-        <div className="mt-5 rounded-2xl border border-sky-300/40 bg-sky-50 p-5 text-sm text-sky-900 shadow-sm dark:border-sky-700/40 dark:bg-sky-950/40 dark:text-sky-100">
-          <p className="font-semibold text-sky-900 dark:text-sky-100">{challengeNote.title}</p>
-          <p className="mt-2 leading-relaxed">{challengeNote.description}</p>
         </div>
       ) : null}
       {!hasStarted ? (

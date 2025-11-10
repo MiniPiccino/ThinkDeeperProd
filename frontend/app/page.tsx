@@ -419,26 +419,6 @@ export default function HomePage() {
   const weekProgress = weekProgressState;
   const difficulty = activeDifficulty;
 
-  const challengeNote = useMemo(() => {
-    const multiplierText = `x${difficulty.multiplier.toFixed(2)} reward boost`;
-    if (difficulty.label === 'primer') {
-      return {
-        title: 'Ease-in challenge',
-        description: `Start the week with calm reflection. Stay grounded and collect a steady ${multiplierText}.`,
-      };
-    }
-    if (difficulty.label === 'deepening') {
-      return {
-        title: 'Deepening challenge',
-        description: `The questions are stretching now. Lean into nuance for an amplified ${multiplierText}.`,
-      };
-    }
-    return {
-      title: 'Mastery challenge',
-      description: `This is a peak prompt. Take your time; mastery mode delivers a generous ${multiplierText}.`,
-    };
-  }, [difficulty]);
-
   const previousFeedbackDate = useMemo(() => {
     if (!previousFeedback?.submittedAt) {
       return null;
@@ -505,6 +485,18 @@ export default function HomePage() {
 
         <AuthPanel />
 
+        {streak > 0 ? (
+          <div className="flex justify-center">
+            <div className="inline-flex items-center gap-3 rounded-full border border-amber-200 bg-amber-50 px-5 py-2 text-sm font-semibold text-amber-900 shadow-sm dark:border-amber-600/50 dark:bg-amber-500/10 dark:text-amber-100">
+              <span className="text-lg">🔥</span>
+              <span>{streak}-day streak alive</span>
+              <span className="text-xs font-medium uppercase tracking-widest text-amber-500">
+                {weekProgress.completedDays}/{weekProgress.totalDays} this week
+              </span>
+            </div>
+          </div>
+        ) : null}
+
         {status === 'loading' ? (
           <div className="flex h-64 w-full items-center justify-center rounded-3xl border border-dashed border-zinc-300 text-zinc-500">
             Loading today&apos;s prompt...
@@ -546,7 +538,6 @@ export default function HomePage() {
                 onStart={handleStart}
                 previousFocus={previousFocus}
                 sessionTips={sessionTips}
-                challengeNote={challengeNote}
               />
             </div>
 
