@@ -11,6 +11,14 @@ from ..repositories import (
 from .evaluation_service import EvaluationService
 
 
+class DuplicateAnswerError(RuntimeError):
+    """Raised when a user attempts to answer the same question more than once."""
+
+    def __init__(self, question_id: str) -> None:
+        super().__init__(f"Question '{question_id}' already answered.")
+        self.question_id = question_id
+
+
 class AnswerService:
     """Handles evaluation workflow, persistence, and streak calculations."""
 
@@ -49,6 +57,9 @@ class AnswerService:
         )
         answered_ids: Set[str] = {stored.question_id for stored in answers_this_week}
         already_completed_today = question_id in answered_ids
+
+        if already_completed_today:
+            raise DuplicateAnswerError(question_id)
 
         difficulty_meta = self._difficulty_meta(question.day_index)
         adjusted_xp = self._apply_difficulty(base_xp, difficulty_meta["multiplier"])

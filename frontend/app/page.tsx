@@ -22,6 +22,7 @@ import {
 import { useUserIdentifier } from '@/hooks/useUserIdentifier';
 const XP_PER_LEVEL = 120;
 const PRIMING_MODAL_KEY = 'thinkdeeper.priming-seen';
+const ALREADY_ANSWERED_MESSAGE = "You've already completed today's prompt. Come back tomorrow for a fresh one.";
 
 type LevelStats = {
   level: number;
@@ -75,6 +76,8 @@ type SessionState = {
   showCelebration: boolean;
   showPrimingModal: boolean;
   primingMode: 'intro' | 'reminder';
+  locked: boolean;
+  submissionError: string | null;
 };
 
 const initialSessionState: SessionState = {
@@ -98,12 +101,15 @@ const initialSessionState: SessionState = {
   showCelebration: false,
   showPrimingModal: false,
   primingMode: 'intro',
+  locked: false,
+  submissionError: null,
 };
 
 type LoadPayload = {
   question: DailyQuestionResponse;
   primingMode: 'intro' | 'reminder';
   showPrimingModal: boolean;
+  locked: boolean;
 };
 
 type SessionAction =
@@ -113,14 +119,14 @@ type SessionAction =
   | { type: 'SET_SECONDS'; payload: number }
   | { type: 'SUBMISSION_PENDING'; payload: { durationSeconds: number; timerSeconds: number } }
   | { type: 'SUBMISSION_SUCCESS'; payload: AnswerResponse }
-  | { type: 'SUBMISSION_ERROR' }
+  | { type: 'SUBMISSION_ERROR'; payload?: { message?: string } }
   | { type: 'DISMISS_CELEBRATION' }
   | { type: 'DISMISS_PRIMING' };
 
 function sessionReducer(state: SessionState, action: SessionAction): SessionState {
   switch (action.type) {
     case 'LOAD_FROM_QUESTION': {
-      const { question, primingMode, showPrimingModal } = action.payload;
+      const { question, primingMode, showPrimingModal, locked } = action.payload;
       const weekProgress = normalizeWeekProgress(question.weekProgress);
       const badgeName = computeBadgeName(question.theme, weekProgress.badgeEarned, state.weekBadgeName);
       return {
@@ -143,8 +149,10 @@ function sessionReducer(state: SessionState, action: SessionAction): SessionStat
         weekBadgeName: badgeName,
         activeDifficulty: question.difficulty ?? state.activeDifficulty,
         showCelebration: false,
-        showPrimingModal,
+        showPrimingModal: showPrimingModal && !locked,
         primingMode,
+        locked,
+        submissionError: null,
       };
     }
     case 'SET_ANSWER':
@@ -164,6 +172,7 @@ function sessionReducer(state: SessionState, action: SessionAction): SessionStat
         bonusGain: 0,
         showCelebration: false,
         showPrimingModal: false,
+        submissionError: null,
       };
     case 'SET_SECONDS':
       return { ...state, secondsRemaining: action.payload };
@@ -176,6 +185,7 @@ function sessionReducer(state: SessionState, action: SessionAction): SessionStat
         secondsRemaining: Math.max(0, action.payload.timerSeconds - action.payload.durationSeconds),
         baseGain: 0,
         bonusGain: 0,
+        submissionError: null,
       };
     case 'SUBMISSION_SUCCESS': {
       const nextWeekProgress: WeekProgressState = {
@@ -207,10 +217,20 @@ function sessionReducer(state: SessionState, action: SessionAction): SessionStat
         answer: '',
         isEvaluating: false,
         showCelebration: true,
+        locked: true,
+        submissionError: null,
       };
     }
     case 'SUBMISSION_ERROR':
-      return { ...state, isSubmitted: false, isEvaluating: false, baseGain: 0, bonusGain: 0, showCelebration: false };
+      return {
+        ...state,
+        isSubmitted: false,
+        isEvaluating: false,
+        baseGain: 0,
+        bonusGain: 0,
+        showCelebration: false,
+        submissionError: action.payload?.message ?? 'We could not submit your answer. Please try again.',
+      };
     case 'DISMISS_CELEBRATION':
       return { ...state, showCelebration: false };
     case 'DISMISS_PRIMING':
@@ -294,6 +314,8 @@ export default function HomePage() {
     showCelebration,
     showPrimingModal,
     primingMode,
+    locked,
+    submissionError,
   } = session;
   const { level, xpIntoLevel, xpToNextLevel, progressPercent: levelProgressPercent } = levelStats;
   const celebrationTriggerRef = useRef<HTMLDivElement | null>(null);
@@ -338,6 +360,7 @@ export default function HomePage() {
     }
     previousQuestionIdRef.current = dailyQuestion.id;
     const hasPriming = Boolean(dailyQuestion.priming);
+    const locked = Boolean(dailyQuestion.hasAnsweredToday);
     let primingModeValue: 'intro' | 'reminder' = 'intro';
     if (hasPriming && typeof window !== 'undefined') {
       const seen = window.localStorage.getItem(PRIMING_MODAL_KEY);
@@ -349,6 +372,7 @@ export default function HomePage() {
         question: dailyQuestion,
         primingMode: primingModeValue,
         showPrimingModal: hasPriming,
+        locked,
       },
     });
   }, [dailyQuestion, dispatchSession]);
@@ -419,13 +443,34 @@ export default function HomePage() {
       dispatchSession({ type: 'SUBMISSION_SUCCESS', payload: result });
       playRewardSound();
     },
-    onError: () => {
-      dispatchSession({ type: 'SUBMISSION_ERROR' });
+    onError: (error) => {
+      let friendly = 'We could not submit your answer. Please try again.';
+      const raw = error?.message;
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (typeof parsed?.detail === 'string') {
+            friendly = parsed.detail;
+          } else if (typeof raw === 'string' && raw.trim().length > 0) {
+            friendly = raw;
+          }
+        } catch {
+          friendly = raw;
+        }
+      }
+      dispatchSession({ type: 'SUBMISSION_ERROR', payload: { message: friendly } });
     },
   });
 
   const startSession = useCallback(() => {
     if (!dailyQuestion) {
+      return;
+    }
+    if (locked || dailyQuestion.hasAnsweredToday) {
+      dispatchSession({
+        type: 'SUBMISSION_ERROR',
+        payload: { message: ALREADY_ANSWERED_MESSAGE },
+      });
       return;
     }
     markPrimingSeen();
@@ -441,7 +486,7 @@ export default function HomePage() {
         answerRef.current.focus({ preventScroll: true });
       }
     });
-  }, [dailyQuestion, dispatchSession, markPrimingSeen]);
+  }, [dailyQuestion, dispatchSession, locked, markPrimingSeen]);
 
   const handleStart = () => {
     startSession();
@@ -456,6 +501,13 @@ export default function HomePage() {
 
   const handleSubmit = () => {
     if (!dailyQuestion || answer.trim().length === 0) {
+      return;
+    }
+    if (locked || dailyQuestion.hasAnsweredToday) {
+      dispatchSession({
+        type: 'SUBMISSION_ERROR',
+        payload: { message: ALREADY_ANSWERED_MESSAGE },
+      });
       return;
     }
     const elapsed = startTime ? Math.round((Date.now() - startTime) / 1000) : 0;
@@ -495,6 +547,8 @@ export default function HomePage() {
     'Use concrete examples and personal insights.',
     'Revisit your answer tomorrow to grow your streak.',
   ];
+  const alreadyAnsweredToday = locked || Boolean(dailyQuestion?.hasAnsweredToday);
+  const lockedMessage = alreadyAnsweredToday ? ALREADY_ANSWERED_MESSAGE : null;
 
   const previousFeedbackDate = useMemo(() => {
     if (!previousFeedback?.submittedAt) {
@@ -615,6 +669,7 @@ export default function HomePage() {
                 onStart={handleStart}
                 previousFocus={previousFocus}
                 sessionTips={sessionTips}
+                lockedMessage={lockedMessage}
               />
             </div>
 
@@ -626,7 +681,13 @@ export default function HomePage() {
                   totalSeconds={dailyQuestion.timerSeconds}
                 />
 
-                {hasStarted && !isSubmitted ? (
+                {submissionError ? (
+                  <div className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm dark:border-amber-600/40 dark:bg-amber-500/10 dark:text-amber-100">
+                    {submissionError}
+                  </div>
+                ) : null}
+
+                {hasStarted && !isSubmitted && !locked ? (
                   <AnswerForm
                     answer={answer}
                     onChange={handleAnswerChange}

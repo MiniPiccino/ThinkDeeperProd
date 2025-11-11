@@ -13,6 +13,7 @@ type QuestionCardProps = {
   hasStarted: boolean;
   previousFocus?: PreviousFocus | null;
   sessionTips?: string[];
+  lockedMessage?: string | null;
 };
 
 export function QuestionCard({
@@ -22,6 +23,7 @@ export function QuestionCard({
   hasStarted,
   previousFocus,
   sessionTips = [],
+  lockedMessage,
 }: QuestionCardProps) {
   const focusMessage = previousFocus?.friendlyFeedback ?? previousFocus?.feedback;
   const showPreviousFocus = !hasStarted && Boolean(focusMessage);
@@ -53,13 +55,21 @@ export function QuestionCard({
         </div>
       ) : null}
       {!hasStarted ? (
-        <button
-          type="button"
-          onClick={onStart}
-          className="mt-6 inline-flex items-center justify-center rounded-full bg-emerald-500 px-6 py-3 text-base font-semibold text-white shadow-lg transition hover:bg-emerald-600"
-        >
-          Start Thinking
-        </button>
+        <div className="mt-6">
+          {lockedMessage ? (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900 shadow-sm dark:border-amber-600/40 dark:bg-amber-500/10 dark:text-amber-100">
+              {lockedMessage}
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={onStart}
+              className="inline-flex w-full items-center justify-center rounded-full bg-emerald-500 px-6 py-3 text-base font-semibold text-white shadow-lg transition hover:bg-emerald-600"
+            >
+              Start Thinking
+            </button>
+          )}
+        </div>
       ) : null}
       {hasSessionTips ? (
         <div className="mt-6 rounded-2xl border border-zinc-200 bg-zinc-50 p-5 text-sm text-zinc-600 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-200">

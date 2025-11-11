@@ -48,11 +48,13 @@ class QuestionService:
             "totalDays": self.WEEK_TOTAL_DAYS,
             "badgeEarned": False,
         }
+        has_answered_today = False
         if user_id:
             answers = self._answer_repository.answers_for_week(user_id, question.week_index)
             completed: Set[str] = {stored.question_id for stored in answers}
             week_progress["completedDays"] = min(len(completed), self.WEEK_TOTAL_DAYS)
             week_progress["badgeEarned"] = len(completed) >= self.WEEK_TOTAL_DAYS
+            has_answered_today = question.id in completed
 
         difficulty_meta = self._difficulty_meta(question.day_index)
 
@@ -68,6 +70,7 @@ class QuestionService:
             "streak": progress["streak"],
             "difficulty": difficulty_meta,
             "weekProgress": week_progress,
+            "hasAnsweredToday": has_answered_today,
         }
         response["previousFeedback"] = previous_feedback
         priming = self._priming_meta(

@@ -29,6 +29,7 @@ export type DailyQuestionResponse = {
     totalDays: number;
     badgeEarned: boolean;
   };
+  hasAnsweredToday?: boolean;
   dopamine?: {
     curiosityHook?: string;
     curiosityPrompts?: string[];
@@ -157,6 +158,7 @@ const mockDailyQuestion: DailyQuestionResponse = {
     totalDays: 7,
     badgeEarned: false,
   },
+  hasAnsweredToday: false,
   dopamine: {
     curiosityHook: "Prime your mind around truth vs. comfort today.",
     curiosityPrompts: [
