@@ -95,7 +95,7 @@ export default async function GrowthPage() {
   );
 }
 
-type LevelStats = {
+type GrowthLevelStats = {
   level: number;
   xpIntoLevel: number;
   xpToNextLevel: number;
@@ -105,7 +105,7 @@ type LevelStats = {
 
 const GROWTH_XP_PER_LEVEL = 120;
 
-function computeGrowthLevelStats(totalXp: number): LevelStats {
+function computeGrowthLevelStats(totalXp: number): GrowthLevelStats {
   if (totalXp < 0) {
     totalXp = 0;
   }
