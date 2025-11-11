@@ -11,9 +11,8 @@ import { PrimingCard } from '@/components/PrimingCard';
 import { PrimingModal } from '@/components/PrimingModal';
 import { AuthPanel } from '@/components/AuthPanel';
 import { Timer } from '@/components/Timer';
-import { XpMeter } from '@/components/XpMeter';
 import { EvaluatingInsight } from '@/components/EvaluatingInsight';
-import { StreakProgress } from '@/components/StreakProgress';
+import { FloatingAction } from '@/components/FloatingAction';
 import {
   AnswerResponse,
   DailyQuestionResponse,
@@ -588,47 +587,15 @@ export default function HomePage() {
                 )}
               </div>
 
-              <aside className="space-y-6 lg:sticky lg:top-8">
-                <div className="grid gap-6 lg:grid-cols-1 xl:grid-cols-2">
-                  <XpMeter
-                    totalXp={xpTotal}
-                    xpGain={lastGain}
-                    baseGain={baseGain}
-                    bonusGain={bonusGain}
-                    level={level}
-                    xpIntoLevel={xpIntoLevel}
-                    xpToNextLevel={xpToNextLevel}
-                    levelProgressPercent={levelProgressPercent}
-                    className="h-full"
-                  />
-                  <StreakProgress
-                    streak={streak}
-                    weekCompletedDays={weekProgress.completedDays}
-                    weekTotalDays={weekProgress.totalDays}
-                    badgeEarned={weekProgress.badgeEarned}
-                    badgeName={weekBadgeName}
-                    className="h-full"
-                  />
-                </div>
-              </aside>
             </div>
           </>
         ) : null}
       </div>
     </main>
-      <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3">
-        <Link
-          href="/focus-tools"
-          className="inline-flex items-center rounded-full border border-zinc-200/70 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-zinc-700 shadow transition hover:border-zinc-300 hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-100"
-        >
-          Focus tools
-        </Link>
-        <Link
-          href="/focus-tools#why"
-          className="inline-flex items-center rounded-full border border-transparent bg-transparent px-3 py-1 text-xs font-semibold text-zinc-500 underline-offset-4 hover:underline dark:text-zinc-300"
-        >
-          Why this works
-        </Link>
+      <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2 md:gap-3">
+        <FloatingAction href="/focus-tools" label="Focus tools" />
+        <FloatingAction href="/growth" label="Growth tree" />
+        <FloatingAction href="/why" label="Why you’ll love Deep" variant="ghost" />
       </div>
     </>
   );

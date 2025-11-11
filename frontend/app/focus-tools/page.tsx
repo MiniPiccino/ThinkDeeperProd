@@ -85,21 +85,6 @@ export default function FocusToolsPage() {
             </div>
           )
         )}
-
-        <section
-          id="why"
-          className="rounded-3xl border border-emerald-400/40 bg-emerald-500/10 p-6 text-left text-sm text-slate-100 shadow-lg"
-        >
-          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-200">
-            Why this is different
-          </p>
-          <ul className="mt-4 space-y-3 text-sm leading-relaxed">
-            <li>This loop trains anticipation for clarity, not endless scrolling.</li>
-            <li>Each session ends with a next-step plan instead of a cliffhanger feed.</li>
-            <li>You choose one deep hit per day, so your nervous system recovers between reps.</li>
-            <li>That’s how motivation stays aligned with growth instead of compulsion.</li>
-          </ul>
-        </section>
       </div>
     </main>
   );
@@ -171,3 +156,9 @@ function dopamineAnticipation(dopamine: DopaminePayload) {
       : null,
   };
 }
+          <Link
+            href="/why"
+            className="inline-flex gap-2 rounded-full border border-emerald-400/50 bg-transparent px-4 py-1.5 text-[12px] font-semibold uppercase tracking-wide text-emerald-200 transition hover:border-emerald-300 hover:text-emerald-100"
+          >
+            Read why Deep works
+          </Link>

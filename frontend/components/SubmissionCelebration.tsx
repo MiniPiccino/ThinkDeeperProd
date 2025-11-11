@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 type SubmissionCelebrationProps = {
@@ -483,6 +484,12 @@ export function SubmissionCelebration({
               >
                 {shareSupported ? 'Share your streak' : 'Share (copy unavailable)'}
               </button>
+              <Link
+                href="/growth"
+                className="inline-flex items-center justify-center rounded-full border border-emerald-400/50 px-5 py-2 text-sm font-semibold text-emerald-100 transition hover:border-emerald-300 hover:text-emerald-50"
+              >
+                See my Growth Tree →
+              </Link>
               {shareState === 'success' ? (
                 <p className="text-xs font-medium uppercase tracking-wide text-emerald-600 dark:text-emerald-300">
                   Shared! Spread the momentum.
