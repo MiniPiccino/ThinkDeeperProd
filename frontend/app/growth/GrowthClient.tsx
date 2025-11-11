@@ -117,17 +117,6 @@ export function GrowthClient() {
               </p>
             </section>
 
-            <section className="space-y-4 rounded-3xl border border-slate-800/50 bg-slate-950/40 p-6 text-sm text-slate-200 shadow-lg">
-              <h3 className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-200">How to share it</h3>
-              <p>
-                Tap “Share tree” inside the celebration modal or use your own screenshot. People see the leaves filling in and
-                instantly understand your progress—just like Wordle grids, but for mindful thinking.
-              </p>
-              <p className="text-xs text-slate-400">
-                Coming soon: animated exports + “invite a friend” links so you can grow branches together.
-              </p>
-            </section>
-
             <section className="rounded-3xl border border-emerald-400/40 bg-emerald-500/10 p-6 text-sm text-slate-100 shadow-lg">
               <h3 className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-200">Your level progress</h3>
               <p className="mt-3 text-xl font-semibold text-white">Level {levelStats.level}</p>
