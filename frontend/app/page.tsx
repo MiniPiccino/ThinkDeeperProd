@@ -1,9 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 
-import Link from 'next/link';
 import { AnswerForm } from '@/components/AnswerForm';
 import { QuestionCard } from '@/components/QuestionCard';
 import { SubmissionCelebration } from '@/components/SubmissionCelebration';
@@ -51,6 +50,198 @@ function computeLevelStats(totalXp: number): LevelStats {
   };
 }
 
+type WeekProgressState = {
+  completedDays: number;
+  totalDays: number;
+  badgeEarned: boolean;
+};
+
+type SessionState = {
+  hasStarted: boolean;
+  isSubmitted: boolean;
+  isEvaluating: boolean;
+  startTime: number | null;
+  secondsRemaining: number;
+  answer: string;
+  feedback?: string;
+  lastGain: number;
+  lastDuration: number;
+  xpTotal: number;
+  streak: number;
+  baseGain: number;
+  bonusGain: number;
+  levelStats: LevelStats;
+  weekProgress: WeekProgressState;
+  weekBadgeName: string | null;
+  activeDifficulty: { label: string; multiplier: number };
+  showCelebration: boolean;
+  showPrimingModal: boolean;
+  primingMode: 'intro' | 'reminder';
+};
+
+const initialSessionState: SessionState = {
+  hasStarted: false,
+  isSubmitted: false,
+  isEvaluating: false,
+  startTime: null,
+  secondsRemaining: 0,
+  answer: '',
+  feedback: undefined,
+  lastGain: 0,
+  lastDuration: 0,
+  xpTotal: 0,
+  streak: 0,
+  baseGain: 0,
+  bonusGain: 0,
+  levelStats: computeLevelStats(0),
+  weekProgress: { completedDays: 0, totalDays: 7, badgeEarned: false },
+  weekBadgeName: null,
+  activeDifficulty: { label: 'primer', multiplier: 1 },
+  showCelebration: false,
+  showPrimingModal: false,
+  primingMode: 'intro',
+};
+
+type LoadPayload = {
+  question: DailyQuestionResponse;
+  primingMode: 'intro' | 'reminder';
+  showPrimingModal: boolean;
+};
+
+type SessionAction =
+  | { type: 'LOAD_FROM_QUESTION'; payload: LoadPayload }
+  | { type: 'SET_ANSWER'; payload: string }
+  | { type: 'START_SESSION'; payload: { timestamp: number; timerSeconds: number } }
+  | { type: 'SET_SECONDS'; payload: number }
+  | { type: 'SUBMISSION_PENDING'; payload: { durationSeconds: number; timerSeconds: number } }
+  | { type: 'SUBMISSION_SUCCESS'; payload: AnswerResponse }
+  | { type: 'SUBMISSION_ERROR' }
+  | { type: 'DISMISS_CELEBRATION' }
+  | { type: 'DISMISS_PRIMING' };
+
+function sessionReducer(state: SessionState, action: SessionAction): SessionState {
+  switch (action.type) {
+    case 'LOAD_FROM_QUESTION': {
+      const { question, primingMode, showPrimingModal } = action.payload;
+      const weekProgress = normalizeWeekProgress(question.weekProgress);
+      const badgeName = computeBadgeName(question.theme, weekProgress.badgeEarned, state.weekBadgeName);
+      return {
+        ...state,
+        hasStarted: false,
+        isSubmitted: false,
+        isEvaluating: false,
+        startTime: null,
+        secondsRemaining: question.timerSeconds,
+        answer: '',
+        feedback: undefined,
+        lastGain: 0,
+        lastDuration: 0,
+        xpTotal: question.xpTotal,
+        streak: question.streak,
+        baseGain: 0,
+        bonusGain: 0,
+        levelStats: computeLevelStats(question.xpTotal),
+        weekProgress,
+        weekBadgeName: badgeName,
+        activeDifficulty: question.difficulty ?? state.activeDifficulty,
+        showCelebration: false,
+        showPrimingModal,
+        primingMode,
+      };
+    }
+    case 'SET_ANSWER':
+      return { ...state, answer: action.payload };
+    case 'START_SESSION':
+      return {
+        ...state,
+        hasStarted: true,
+        isSubmitted: false,
+        isEvaluating: false,
+        startTime: action.payload.timestamp,
+        secondsRemaining: action.payload.timerSeconds,
+        feedback: undefined,
+        lastGain: 0,
+        lastDuration: 0,
+        baseGain: 0,
+        bonusGain: 0,
+        showCelebration: false,
+        showPrimingModal: false,
+      };
+    case 'SET_SECONDS':
+      return { ...state, secondsRemaining: action.payload };
+    case 'SUBMISSION_PENDING':
+      return {
+        ...state,
+        isSubmitted: true,
+        isEvaluating: true,
+        lastDuration: action.payload.durationSeconds,
+        secondsRemaining: Math.max(0, action.payload.timerSeconds - action.payload.durationSeconds),
+        baseGain: 0,
+        bonusGain: 0,
+      };
+    case 'SUBMISSION_SUCCESS': {
+      const nextWeekProgress: WeekProgressState = {
+        completedDays: action.payload.weekCompletedDays,
+        totalDays: action.payload.weekTotalDays,
+        badgeEarned: action.payload.weekBadgeEarned,
+      };
+      const nextBadgeName = action.payload.badgeName ?? state.weekBadgeName;
+      return {
+        ...state,
+        feedback: action.payload.feedback,
+        xpTotal: action.payload.xpTotal,
+        streak: action.payload.streak,
+        baseGain: action.payload.baseXp,
+        bonusGain: action.payload.bonusXp,
+        lastGain: action.payload.xpAwarded,
+        levelStats: {
+          level: action.payload.level,
+          xpIntoLevel: action.payload.xpIntoLevel,
+          xpToNextLevel: action.payload.xpToNextLevel,
+          progressPercent: action.payload.levelProgressPercent,
+        },
+        weekProgress: nextWeekProgress,
+        weekBadgeName: nextBadgeName,
+        activeDifficulty: {
+          label: action.payload.difficultyLevel,
+          multiplier: action.payload.difficultyMultiplier,
+        },
+        answer: '',
+        isEvaluating: false,
+        showCelebration: true,
+      };
+    }
+    case 'SUBMISSION_ERROR':
+      return { ...state, isSubmitted: false, isEvaluating: false, baseGain: 0, bonusGain: 0, showCelebration: false };
+    case 'DISMISS_CELEBRATION':
+      return { ...state, showCelebration: false };
+    case 'DISMISS_PRIMING':
+      return { ...state, showPrimingModal: false };
+    default:
+      return state;
+  }
+}
+
+function normalizeWeekProgress(progress?: WeekProgressState | null): WeekProgressState {
+  if (!progress) {
+    return { completedDays: 0, totalDays: 7, badgeEarned: false };
+  }
+  return progress;
+}
+
+function computeBadgeName(theme: string, badgeEarned: boolean, current: string | null): string {
+  const parts = theme
+    .split('—')
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const badgeBase = parts[parts.length - 1] ?? theme ?? 'Weekly Insight';
+  const defaultName = `${badgeBase} Insight Badge`;
+  if (badgeEarned) {
+    return current ?? defaultName;
+  }
+  return defaultName;
+}
+
 function casualizeFeedback(message: string): string {
   let text = message.trim();
   if (!text) {
@@ -83,42 +274,36 @@ function casualizeFeedback(message: string): string {
 }
 
 export default function HomePage() {
-  const [userId, setUserId] = useState<string | null>(null);
-  const [guestId, setGuestId] = useState<string | null>(null);
-  const [hasStarted, setHasStarted] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [startTime, setStartTime] = useState<number | null>(null);
-  const [secondsRemaining, setSecondsRemaining] = useState<number>(0);
-  const [answer, setAnswer] = useState('');
-  const [feedback, setFeedback] = useState<string>();
-  const [lastGain, setLastGain] = useState(0);
-  const [lastDuration, setLastDuration] = useState(0);
-  const [xpTotal, setXpTotal] = useState(0);
-  const [streak, setStreak] = useState(0);
-  const [baseGain, setBaseGain] = useState(0);
-  const [bonusGain, setBonusGain] = useState(0);
-  const [level, setLevel] = useState(1);
-  const [xpIntoLevel, setXpIntoLevel] = useState(0);
-  const [xpToNextLevel, setXpToNextLevel] = useState(XP_PER_LEVEL);
-  const [levelProgressPercent, setLevelProgressPercent] = useState(0);
-  const [weekProgressState, setWeekProgressState] = useState({
-    completedDays: 0,
-    totalDays: 7,
-    badgeEarned: false,
-  });
-  const [weekBadgeName, setWeekBadgeName] = useState<string | null>(null);
-  const [isEvaluating, setIsEvaluating] = useState(false);
-  const [activeDifficulty, setActiveDifficulty] = useState<{ label: string; multiplier: number }>({
-    label: 'primer',
-    multiplier: 1,
-  });
-  const [showCelebration, setShowCelebration] = useState(false);
+  const [guestId, dispatchGuestId] = useReducer((_state: string | null, next: string | null) => next, null);
+  const [session, dispatchSession] = useReducer(sessionReducer, initialSessionState);
+  const {
+    hasStarted,
+    isSubmitted,
+    isEvaluating,
+    startTime,
+    secondsRemaining,
+    answer,
+    feedback,
+    lastGain,
+    lastDuration,
+    xpTotal,
+    streak,
+    baseGain,
+    bonusGain,
+    levelStats,
+    weekProgress,
+    weekBadgeName,
+    activeDifficulty,
+    showCelebration,
+    showPrimingModal,
+    primingMode,
+  } = session;
+  const { level, xpIntoLevel, xpToNextLevel, progressPercent: levelProgressPercent } = levelStats;
   const celebrationTriggerRef = useRef<HTMLDivElement | null>(null);
-  const [showPrimingModal, setShowPrimingModal] = useState(false);
-  const [primingMode, setPrimingMode] = useState<'intro' | 'reminder'>('intro');
   const answerRef = useRef<HTMLTextAreaElement | null>(null);
   const questionSectionRef = useRef<HTMLDivElement | null>(null);
   const writingSectionRef = useRef<HTMLDivElement | null>(null);
+  const previousQuestionIdRef = useRef<string | null>(null);
 
   const markPrimingSeen = useCallback(() => {
     if (typeof window === 'undefined') {
@@ -129,8 +314,8 @@ export default function HomePage() {
 
   const handleDismissPrimingModal = useCallback(() => {
     markPrimingSeen();
-    setShowPrimingModal(false);
-  }, [markPrimingSeen]);
+    dispatchSession({ type: 'DISMISS_PRIMING' });
+  }, [dispatchSession, markPrimingSeen]);
 
   const generateUserId = () => {
     if (typeof crypto !== 'undefined') {
@@ -154,30 +339,21 @@ export default function HomePage() {
   };
 
   const { user: authUser } = useAuth();
+  const resolvedUserId = authUser?.id ?? guestId;
 
   useEffect(() => {
     if (typeof window === 'undefined') {
       return;
     }
-    const existing = window.localStorage.getItem(USER_STORAGE_KEY);
-    if (existing) {
-      setGuestId(existing);
-      return;
+    let existing = window.localStorage.getItem(USER_STORAGE_KEY);
+    if (!existing) {
+      const generated = generateUserId();
+      window.localStorage.setItem(USER_STORAGE_KEY, generated);
+      existing = generated;
     }
-    const generated = generateUserId();
-    window.localStorage.setItem(USER_STORAGE_KEY, generated);
-    setGuestId(generated);
-  }, []);
+    dispatchGuestId(existing);
+  }, [dispatchGuestId]);
 
-  useEffect(() => {
-    if (authUser?.id) {
-      setUserId(authUser.id);
-      return;
-    }
-    if (guestId) {
-      setUserId(guestId);
-    }
-  }, [authUser?.id, guestId]);
 
   const {
     data: dailyQuestion,
@@ -185,9 +361,9 @@ export default function HomePage() {
     isError,
     refetch,
   } = useQuery<DailyQuestionResponse>({
-    queryKey: ['daily-question', userId],
-    queryFn: () => fetchDailyQuestion(userId ?? undefined),
-    enabled: Boolean(userId),
+    queryKey: ['daily-question', resolvedUserId],
+    queryFn: () => fetchDailyQuestion(resolvedUserId ?? undefined),
+    enabled: Boolean(resolvedUserId),
     staleTime: 1000 * 60 * 5,
   });
 
@@ -195,55 +371,29 @@ export default function HomePage() {
     if (!dailyQuestion) {
       return;
     }
-    setSecondsRemaining(dailyQuestion.timerSeconds);
-    setXpTotal(dailyQuestion.xpTotal);
-    setStreak(dailyQuestion.streak);
-    setFeedback(undefined);
-    setLastGain(0);
-    setLastDuration(0);
-    setBaseGain(0);
-    setBonusGain(0);
-    setHasStarted(false);
-    setIsSubmitted(false);
-    setStartTime(null);
-    setAnswer('');
-    setIsEvaluating(false);
-    if (dailyQuestion.difficulty) {
-      setActiveDifficulty(dailyQuestion.difficulty);
+    if (previousQuestionIdRef.current === dailyQuestion.id) {
+      return;
     }
-    if (dailyQuestion.weekProgress) {
-      setWeekProgressState(dailyQuestion.weekProgress);
-    } else {
-      setWeekProgressState({ completedDays: 0, totalDays: 7, badgeEarned: false });
+    previousQuestionIdRef.current = dailyQuestion.id;
+    const hasPriming = Boolean(dailyQuestion.priming);
+    let primingModeValue: 'intro' | 'reminder' = 'intro';
+    if (hasPriming && typeof window !== 'undefined') {
+      const seen = window.localStorage.getItem(PRIMING_MODAL_KEY);
+      primingModeValue = seen ? 'reminder' : 'intro';
     }
-    const badgeLabelParts = dailyQuestion.theme
-      .split('—')
-      .map((part) => part.trim())
-      .filter(Boolean);
-    const badgeBase = badgeLabelParts[badgeLabelParts.length - 1] ?? dailyQuestion.theme ?? 'Weekly Insight';
-    const defaultBadgeName = `${badgeBase} Insight Badge`;
-    setWeekBadgeName((current) =>
-      dailyQuestion.weekProgress?.badgeEarned ? current ?? defaultBadgeName : defaultBadgeName,
-    );
-    const levelStats = computeLevelStats(dailyQuestion.xpTotal);
-    setLevel(levelStats.level);
-    setXpIntoLevel(levelStats.xpIntoLevel);
-    setXpToNextLevel(levelStats.xpToNextLevel);
-    setLevelProgressPercent(levelStats.progressPercent);
-  }, [dailyQuestion?.id]);
+    dispatchSession({
+      type: 'LOAD_FROM_QUESTION',
+      payload: {
+        question: dailyQuestion,
+        primingMode: primingModeValue,
+        showPrimingModal: hasPriming,
+      },
+    });
+  }, [dailyQuestion, dispatchSession]);
 
   useEffect(() => {
-    if (!dailyQuestion?.priming) {
-      setShowPrimingModal(false);
-      return;
-    }
-    if (typeof window === 'undefined') {
-      return;
-    }
-    const seen = window.localStorage.getItem(PRIMING_MODAL_KEY);
-    setPrimingMode(seen ? 'reminder' : 'intro');
-    setShowPrimingModal(true);
-  }, [dailyQuestion?.id, dailyQuestion?.priming]);
+    previousQuestionIdRef.current = null;
+  }, [resolvedUserId]);
 
   useEffect(() => {
     if (!hasStarted || !startTime || !dailyQuestion || isSubmitted) {
@@ -252,12 +402,12 @@ export default function HomePage() {
     const tick = () => {
       const elapsed = (Date.now() - startTime) / 1000;
       const remaining = Math.max(0, Math.round(dailyQuestion.timerSeconds - elapsed));
-      setSecondsRemaining(remaining);
+      dispatchSession({ type: 'SET_SECONDS', payload: remaining });
     };
     tick();
     const interval = window.setInterval(tick, 1000);
     return () => window.clearInterval(interval);
-  }, [hasStarted, startTime, dailyQuestion, isSubmitted]);
+  }, [hasStarted, startTime, dailyQuestion, isSubmitted, dispatchSession]);
 
   const playRewardSound = useCallback(() => {
     if (typeof window === 'undefined') {
@@ -296,7 +446,7 @@ export default function HomePage() {
           /* ignore */
         });
       }, 800);
-    } catch (error) {
+    } catch {
       // ignore audio errors (e.g., autoplay restrictions)
     }
   }, []);
@@ -304,55 +454,23 @@ export default function HomePage() {
   const mutation = useMutation<AnswerResponse, Error, SubmitAnswerPayload>({
     mutationFn: submitAnswer,
     onSuccess: (result) => {
-      setFeedback(result.feedback);
-      setXpTotal(result.xpTotal);
-      setStreak(result.streak);
-      setLastGain(result.xpAwarded);
-      setBaseGain(result.baseXp);
-      setBonusGain(result.bonusXp);
-      setWeekProgressState({
-        completedDays: result.weekCompletedDays,
-        totalDays: result.weekTotalDays,
-        badgeEarned: result.weekBadgeEarned,
-      });
-      if (result.badgeName) {
-        setWeekBadgeName(result.badgeName);
-      }
-      setLevel(result.level);
-      setXpIntoLevel(result.xpIntoLevel);
-      setXpToNextLevel(result.xpToNextLevel);
-      setLevelProgressPercent(result.levelProgressPercent);
-      setActiveDifficulty({
-        label: result.difficultyLevel,
-        multiplier: result.difficultyMultiplier,
-      });
-      setAnswer('');
-      setIsSubmitted(true);
-      setIsEvaluating(false);
-      setShowCelebration(true);
+      dispatchSession({ type: 'SUBMISSION_SUCCESS', payload: result });
       playRewardSound();
     },
     onError: () => {
-      setIsSubmitted(false);
-      setShowCelebration(false);
-      setIsEvaluating(false);
-      setBaseGain(0);
-      setBonusGain(0);
+      dispatchSession({ type: 'SUBMISSION_ERROR' });
     },
   });
 
   const startSession = useCallback(() => {
-    setShowPrimingModal(false);
-    markPrimingSeen();
-    setHasStarted(true);
-    setIsSubmitted(false);
-    setStartTime(Date.now());
-    setFeedback(undefined);
-    setLastGain(0);
-    setLastDuration(0);
-    if (dailyQuestion) {
-      setSecondsRemaining(dailyQuestion.timerSeconds);
+    if (!dailyQuestion) {
+      return;
     }
+    markPrimingSeen();
+    dispatchSession({
+      type: 'START_SESSION',
+      payload: { timestamp: Date.now(), timerSeconds: dailyQuestion.timerSeconds },
+    });
     if (questionSectionRef.current) {
       questionSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -361,33 +479,33 @@ export default function HomePage() {
         answerRef.current.focus({ preventScroll: true });
       }
     });
-  }, [dailyQuestion, markPrimingSeen]);
+  }, [dailyQuestion, dispatchSession, markPrimingSeen]);
 
   const handleStart = () => {
     startSession();
   };
+
+  const handleAnswerChange = useCallback(
+    (value: string) => {
+      dispatchSession({ type: 'SET_ANSWER', payload: value });
+    },
+    [dispatchSession],
+  );
 
   const handleSubmit = () => {
     if (!dailyQuestion || answer.trim().length === 0) {
       return;
     }
     const elapsed = startTime ? Math.round((Date.now() - startTime) / 1000) : 0;
-    const durationSeconds = Math.max(
-      0,
-      Math.min(dailyQuestion.timerSeconds, elapsed),
-    );
-    setIsSubmitted(true);
-    setSecondsRemaining(
-      Math.max(0, dailyQuestion.timerSeconds - durationSeconds),
-    );
-    setLastDuration(durationSeconds);
-    setIsEvaluating(true);
-    setBonusGain(0);
-    setBaseGain(0);
+    const durationSeconds = Math.max(0, Math.min(dailyQuestion.timerSeconds, elapsed));
+    dispatchSession({
+      type: 'SUBMISSION_PENDING',
+      payload: { durationSeconds, timerSeconds: dailyQuestion.timerSeconds },
+    });
     mutation.mutate({
       questionId: dailyQuestion.id,
       answer,
-      userId: userId ?? undefined,
+      userId: resolvedUserId ?? undefined,
       durationSeconds,
     });
   };
@@ -415,8 +533,6 @@ export default function HomePage() {
     'Use concrete examples and personal insights.',
     'Revisit your answer tomorrow to grow your streak.',
   ];
-  const weekProgress = weekProgressState;
-  const difficulty = activeDifficulty;
 
   const previousFeedbackDate = useMemo(() => {
     if (!previousFeedback?.submittedAt) {
@@ -431,7 +547,7 @@ export default function HomePage() {
       day: 'numeric',
       year: 'numeric',
     });
-  }, [previousFeedback?.submittedAt]);
+  }, [previousFeedback]);
 
   const friendlyFeedback = useMemo(() => {
     if (!previousFeedback?.feedback) {
@@ -444,7 +560,7 @@ export default function HomePage() {
     }
     const casual = casualizeFeedback(previousFeedback.feedback);
     return casual || previousFeedback.feedback;
-  }, [previousFeedback?.feedback]);
+  }, [previousFeedback]);
 
   const previousFocus = previousFeedback
     ? {
@@ -551,7 +667,7 @@ export default function HomePage() {
                 {hasStarted && !isSubmitted ? (
                   <AnswerForm
                     answer={answer}
-                    onChange={setAnswer}
+                    onChange={handleAnswerChange}
                     onSubmit={handleSubmit}
                     isSubmitting={mutation.isPending}
                     disabled={isSubmitted}
@@ -582,7 +698,7 @@ export default function HomePage() {
                     weekTotalDays={weekProgress.totalDays}
                     weekBadgeEarned={weekProgress.badgeEarned}
                     badgeName={weekBadgeName}
-                    onClose={() => setShowCelebration(false)}
+                    onClose={() => dispatchSession({ type: 'DISMISS_CELEBRATION' })}
                   />
                 )}
               </div>

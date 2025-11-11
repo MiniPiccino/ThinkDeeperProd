@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useReducer } from 'react';
 
 const STORAGE_KEY = 'thinkdeeper-cookie-consent';
 
@@ -11,13 +11,16 @@ type ConsentState = 'unknown' | 'accepted' | 'declined';
  * exposes hooks for analytics / tracking vendors to read.
  */
 export function CookieBanner() {
-  const [state, setState] = useState<ConsentState>('unknown');
+  const [state, dispatch] = useReducer(
+    (_: ConsentState, next: ConsentState) => next,
+    'unknown',
+  );
 
   useEffect(() => {
     try {
       const stored = window.localStorage.getItem(STORAGE_KEY) as ConsentState | null;
       if (stored === 'accepted' || stored === 'declined') {
-        setState(stored);
+        dispatch(stored);
       }
     } catch {
       // Ignore storage errors (e.g., Safari private mode).
@@ -39,7 +42,7 @@ export function CookieBanner() {
     } catch {
       // Ignore storage errors.
     }
-    setState(value);
+    dispatch(value);
   };
 
   if (state !== 'unknown') return null;
@@ -74,4 +77,3 @@ export function CookieBanner() {
     </div>
   );
 }
-

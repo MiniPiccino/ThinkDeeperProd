@@ -162,7 +162,7 @@ export function SubmissionCelebration({
       return 'Solid reflections!';
     }
     return "You're building momentum!";
-  }, [parsedFeedback?.celebrate, xpGain]);
+  }, [parsedFeedback, xpGain]);
 
   const focusLine = useMemo(() => {
     if (durationSeconds >= 240) {
@@ -177,16 +177,20 @@ export function SubmissionCelebration({
     return 'A lightning strike of insight. Stretch it longer tomorrow.';
   }, [durationSeconds]);
 
-  const confettiPieces = useMemo(
-    () =>
-      Array.from({ length: 24 }, (_, index) => ({
-        key: `confetti-${index}`,
-        left: `${Math.random() * 100}%`,
-        animationDelay: `${Math.random() * 0.4}s`,
-        color: ['bg-emerald-500', 'bg-emerald-300', 'bg-sky-400', 'bg-amber-300', 'bg-violet-400'][index % 5],
-      })),
-    [],
+  const confettiSeed = useMemo(
+    () => level * 997 + xpGain * 37 + streak * 101 + Math.max(weekCompletedDays, 1),
+    [level, xpGain, streak, weekCompletedDays],
   );
+
+  const confettiPieces = useMemo(() => {
+    const rand = createSeededRandom(confettiSeed);
+    return Array.from({ length: 24 }, (_, index) => ({
+      key: `confetti-${index}`,
+      left: `${Math.round(rand() * 1000) / 10}%`,
+      animationDelay: `${(rand() * 0.4).toFixed(2)}s`,
+      color: ['bg-emerald-500', 'bg-emerald-300', 'bg-sky-400', 'bg-amber-300', 'bg-violet-400'][index % 5],
+    }));
+  }, [confettiSeed]);
 
   const difficultyTag = useMemo(() => {
     const capitalized = difficultyLevel.charAt(0).toUpperCase() + difficultyLevel.slice(1);
@@ -220,7 +224,6 @@ export function SubmissionCelebration({
     const rows = [];
     const totalWeeks = 52;
     for (let week = 0; week < totalWeeks; week++) {
-      const dayFilled = week === weekTotalDays ? weekCompletedDays : weekTotalDays;
       const row =
         week === weekTotalDays ? filled.repeat(weekCompletedDays) + empty.repeat(Math.max(weekTotalDays - weekCompletedDays, 0)) : empty.repeat(weekTotalDays);
       rows.push(`Week ${week + 1}: ${row}`);
@@ -550,4 +553,14 @@ export function SubmissionCelebration({
       />
     </div>
   );
+}
+
+function createSeededRandom(seed: number) {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) | 0;
+    let t = Math.imul(state ^ (state >>> 15), 1 | state);
+    t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }

@@ -6,6 +6,9 @@ import { useQuery } from '@tanstack/react-query';
 import { DopamineDrivers } from '@/components/DopamineDrivers';
 import { fetchDailyQuestion, type DailyQuestionResponse } from '@/lib/api';
 import { StreakTree } from '@/components/StreakTree';
+import { FloatingAction } from '@/components/FloatingAction';
+import { XpMeter } from '@/components/XpMeter';
+import { StreakProgress } from '@/components/StreakProgress';
 
 export default function FocusToolsPage() {
   const { data, isLoading, isError, refetch } = useQuery({
@@ -16,6 +19,18 @@ export default function FocusToolsPage() {
 
   const dopamine = data?.dopamine;
   const nextWeekTheme = data?.theme ? `Up next: ${data.theme}` : 'Next theme arrives soon';
+  const xpTotal = data?.xpTotal ?? 0;
+  const levelStats = computeLevelStats(xpTotal);
+  const streakCount = data?.streak ?? 0;
+  const weekProgress = data?.weekProgress ?? { completedDays: 0, totalDays: 7, badgeEarned: false };
+  const badgeName = data?.theme
+    ? (() => {
+        const badgeLabelParts = data.theme.split('—').map((part) => part.trim()).filter(Boolean);
+        const badgeBase = badgeLabelParts[badgeLabelParts.length - 1] ?? data.theme;
+        return `${badgeBase} Insight Badge`;
+      })()
+    : undefined;
+  const remainingDays = Math.max(0, weekProgress.totalDays - weekProgress.completedDays);
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 px-4 py-12 text-slate-100">
@@ -32,13 +47,13 @@ export default function FocusToolsPage() {
           <button
             type="button"
             onClick={() => refetch()}
-            className="inline-flex gap-2 rounded-full border border-emerald-400/50 bg-transparent px-4 py-1.5 text-[12px] font-semibold uppercase tracking-wide text-emerald-200 transition hover:border-emerald-300 hover:text-emerald-100"
+            className="inline-flex gap-2 rounded-full border border-white/20 bg-white/5 px-4 py-1.5 text-[12px] font-semibold uppercase tracking-wide text-emerald-50 shadow-lg shadow-emerald-900/60 backdrop-blur transition hover:-translate-y-0.5 hover:border-white/40 hover:bg-white/10"
           >
             Refresh focus tools
           </button>
           <Link
             href="/"
-            className="inline-flex gap-2 rounded-full border border-emerald-400/50 bg-transparent px-4 py-1.5 text-[12px] font-semibold uppercase tracking-wide text-emerald-200 transition hover:border-emerald-300 hover:text-emerald-100"
+            className="inline-flex gap-2 rounded-full border border-white/20 bg-white/5 px-4 py-1.5 text-[12px] font-semibold uppercase tracking-wide text-emerald-50 shadow-lg shadow-emerald-900/60 backdrop-blur transition hover:-translate-y-0.5 hover:border-white/40 hover:bg-white/10"
           >
             Back to session
           </Link>
@@ -48,6 +63,51 @@ export default function FocusToolsPage() {
             <p className="mt-1 text-xs text-slate-400">Invite someone to start this arc with you.</p>
           </div>
         </div>
+
+        {!isLoading && !isError ? (
+          <>
+            <section className="grid gap-4 lg:grid-cols-2">
+              <XpMeter
+                totalXp={xpTotal}
+                xpGain={0}
+                baseGain={0}
+                bonusGain={0}
+                level={levelStats.level}
+                xpIntoLevel={levelStats.xpIntoLevel}
+                xpToNextLevel={levelStats.xpToNextLevel}
+                levelProgressPercent={levelStats.progressPercent}
+              />
+              <StreakProgress
+                streak={streakCount}
+                weekCompletedDays={weekProgress.completedDays}
+                weekTotalDays={weekProgress.totalDays}
+                badgeEarned={weekProgress.badgeEarned}
+                badgeName={badgeName}
+              />
+            </section>
+
+            <section className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+              <div>
+                <StreakTree
+                  streak={streakCount}
+                  weekCompletedDays={weekProgress.completedDays}
+                  weekTotalDays={weekProgress.totalDays}
+                  currentWeekIndex={data?.weekIndex ?? 0}
+                />
+              </div>
+              <div className="rounded-3xl border border-emerald-500/25 bg-emerald-500/5 p-6 text-sm text-emerald-50 shadow-xl">
+                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-200">Streak intel</p>
+                <p className="mt-3 text-base text-white">Level {levelStats.level} | {streakCount} day streak</p>
+                <ul className="mt-4 space-y-2 text-sm text-emerald-100/80">
+                  <li>Leaves glow for completed days. {remainingDays === 0 ? 'This branch is fully lit.' : `${remainingDays} day${remainingDays === 1 ? '' : 's'} left to finish the branch.`}</li>
+                  <li>Badge unlock: {weekProgress.badgeEarned ? 'claimed for this arc.' : `${badgeName ?? 'Weekly Insight'} once you finish the week.`}</li>
+                  <li>XP pacing: {levelStats.xpToNextLevel > 0 ? `${levelStats.xpToNextLevel} XP until the next tier.` : 'Next tier unlocked—keep stacking.'}</li>
+                </ul>
+                <p className="mt-4 text-xs text-emerald-200/70">Visit the Growth page after writing to watch the tree animate in full.</p>
+              </div>
+            </section>
+          </>
+        ) : null}
 
         {isLoading ? (
           <div className="rounded-3xl border border-dashed border-slate-600 px-5 py-6 text-center text-slate-400">
@@ -70,12 +130,6 @@ export default function FocusToolsPage() {
               reward={dopamineReward(dopamine)}
               anticipation={dopamineAnticipation(dopamine)}
             />
-            <StreakTree
-              streak={data?.streak ?? 0}
-              weekCompletedDays={data?.weekProgress?.completedDays ?? 0}
-              weekTotalDays={data?.weekProgress?.totalDays ?? 7}
-              currentWeekIndex={data?.weekIndex ?? 0}
-            />
           </>
         ) : (
           !isLoading &&
@@ -86,11 +140,42 @@ export default function FocusToolsPage() {
           )
         )}
       </div>
+      <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2 md:gap-3">
+        <FloatingAction href="/" label="Back to prompt" />
+        <FloatingAction href="/growth" label="Growth tree" />
+        <FloatingAction href="/why" label="Why Deep" variant="ghost" />
+      </div>
     </main>
   );
 }
 
 type DopaminePayload = NonNullable<DailyQuestionResponse['dopamine']>;
+
+type LevelStats = {
+  level: number;
+  xpIntoLevel: number;
+  xpToNextLevel: number;
+  progressPercent: number;
+};
+
+const XP_PER_LEVEL = 120;
+
+function computeLevelStats(totalXp: number): LevelStats {
+  if (totalXp < 0) {
+    totalXp = 0;
+  }
+  const level = Math.floor(totalXp / XP_PER_LEVEL) + 1;
+  const previousThreshold = (level - 1) * XP_PER_LEVEL;
+  const xpIntoLevel = totalXp - previousThreshold;
+  const xpToNextLevel = Math.max(0, level * XP_PER_LEVEL - totalXp);
+  const progressPercent = Math.round((xpIntoLevel / XP_PER_LEVEL) * 100);
+  return {
+    level,
+    xpIntoLevel,
+    xpToNextLevel,
+    progressPercent: Math.max(0, Math.min(progressPercent, 100)),
+  };
+}
 
 function dopamineCuriosity(dopamine: DopaminePayload) {
   return {
@@ -156,9 +241,3 @@ function dopamineAnticipation(dopamine: DopaminePayload) {
       : null,
   };
 }
-          <Link
-            href="/why"
-            className="inline-flex gap-2 rounded-full border border-emerald-400/50 bg-transparent px-4 py-1.5 text-[12px] font-semibold uppercase tracking-wide text-emerald-200 transition hover:border-emerald-300 hover:text-emerald-100"
-          >
-            Read why Deep works
-          </Link>

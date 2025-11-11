@@ -75,7 +75,7 @@ export default async function GrowthPage() {
           <h3 className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-200">Your level progress</h3>
           <p className="mt-3 text-xl font-semibold text-white">Level {levelStats.level}</p>
           <p className="text-sm text-emerald-200/80">
-            {levelStats.progressPercent}% toward the next tier — {levelStats.xpIntoLevel}/{XP_PER_LEVEL} XP into this level.
+            {levelStats.progressPercent}% toward the next tier — {levelStats.xpIntoLevel}/{GROWTH_XP_PER_LEVEL} XP into this level.
           </p>
           <div className="mt-4 h-2 w-full rounded-full bg-emerald-900/50">
             <div
@@ -115,35 +115,6 @@ function computeGrowthLevelStats(totalXp: number): GrowthLevelStats {
   const xpIntoLevel = totalXp - previousThreshold;
   const xpToNextLevel = Math.max(0, nextThreshold - totalXp);
   const progressPercent = Math.round((xpIntoLevel / GROWTH_XP_PER_LEVEL) * 100);
-  return {
-    level,
-    xpIntoLevel,
-    xpToNextLevel,
-    nextLevelThreshold: nextThreshold,
-    progressPercent: Math.max(0, Math.min(progressPercent, 100)),
-  };
-}
-
-type LevelStats = {
-  level: number;
-  xpIntoLevel: number;
-  xpToNextLevel: number;
-  nextLevelThreshold: number;
-  progressPercent: number;
-};
-
-const XP_PER_LEVEL = 120;
-
-function computeLevelStats(totalXp: number): LevelStats {
-  if (totalXp < 0) {
-    totalXp = 0;
-  }
-  const level = Math.floor(totalXp / XP_PER_LEVEL) + 1;
-  const previousThreshold = (level - 1) * XP_PER_LEVEL;
-  const nextThreshold = level * XP_PER_LEVEL;
-  const xpIntoLevel = totalXp - previousThreshold;
-  const xpToNextLevel = Math.max(0, nextThreshold - totalXp);
-  const progressPercent = Math.round((xpIntoLevel / XP_PER_LEVEL) * 100);
   return {
     level,
     xpIntoLevel,
