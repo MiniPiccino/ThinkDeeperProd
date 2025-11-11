@@ -9,12 +9,15 @@ import { StreakTree } from '@/components/StreakTree';
 import { FloatingAction } from '@/components/FloatingAction';
 import { XpMeter } from '@/components/XpMeter';
 import { StreakProgress } from '@/components/StreakProgress';
+import { useUserIdentifier } from '@/hooks/useUserIdentifier';
 
 export default function FocusToolsPage() {
+  const userId = useUserIdentifier();
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['focus-tools'],
-    queryFn: () => fetchDailyQuestion(),
+    queryKey: ['focus-tools', userId],
+    queryFn: () => fetchDailyQuestion(userId ?? undefined),
     staleTime: 0,
+    enabled: Boolean(userId),
   });
 
   const dopamine = data?.dopamine;
@@ -64,7 +67,13 @@ export default function FocusToolsPage() {
           </div>
         </div>
 
-        {!isLoading && !isError ? (
+        {!userId ? (
+          <div className="rounded-3xl border border-dashed border-slate-600 px-5 py-6 text-center text-slate-400">
+            Connecting to your streak...
+          </div>
+        ) : null}
+
+        {!isLoading && !isError && userId ? (
           <>
             <section className="grid gap-4 lg:grid-cols-2">
               <XpMeter

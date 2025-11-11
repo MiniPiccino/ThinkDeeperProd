@@ -19,9 +19,7 @@ import {
   fetchDailyQuestion,
   submitAnswer,
 } from '@/lib/api';
-import { useAuth } from './providers';
-
-const USER_STORAGE_KEY = 'thinkdeeper.userId';
+import { useUserIdentifier } from '@/hooks/useUserIdentifier';
 const XP_PER_LEVEL = 120;
 const PRIMING_MODAL_KEY = 'thinkdeeper.priming-seen';
 
@@ -274,7 +272,6 @@ function casualizeFeedback(message: string): string {
 }
 
 export default function HomePage() {
-  const [guestId, dispatchGuestId] = useReducer((_state: string | null, next: string | null) => next, null);
   const [session, dispatchSession] = useReducer(sessionReducer, initialSessionState);
   const {
     hasStarted,
@@ -317,42 +314,7 @@ export default function HomePage() {
     dispatchSession({ type: 'DISMISS_PRIMING' });
   }, [dispatchSession, markPrimingSeen]);
 
-  const generateUserId = () => {
-    if (typeof crypto !== 'undefined') {
-      if (typeof crypto.randomUUID === 'function') {
-        return crypto.randomUUID();
-      }
-      if (typeof crypto.getRandomValues === 'function') {
-        const buffer = new Uint8Array(16);
-        crypto.getRandomValues(buffer);
-        // RFC4122 version 4 compliant random UUID fallback
-        buffer[6] = (buffer[6] & 0x0f) | 0x40;
-        buffer[8] = (buffer[8] & 0x3f) | 0x80;
-        const hex = [...buffer].map((b) => b.toString(16).padStart(2, '0'));
-        return `${hex.slice(0, 4).join('')}-${hex.slice(4, 6).join('')}-${hex
-          .slice(6, 8)
-          .join('')}-${hex.slice(8, 10).join('')}-${hex.slice(10, 16).join('')}`;
-      }
-    }
-    // Last-resort fallback; not cryptographically strong but avoids crashes.
-    return `user-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  };
-
-  const { user: authUser } = useAuth();
-  const resolvedUserId = authUser?.id ?? guestId;
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-    let existing = window.localStorage.getItem(USER_STORAGE_KEY);
-    if (!existing) {
-      const generated = generateUserId();
-      window.localStorage.setItem(USER_STORAGE_KEY, generated);
-      existing = generated;
-    }
-    dispatchGuestId(existing);
-  }, [dispatchGuestId]);
+  const resolvedUserId = useUserIdentifier();
 
 
   const {
