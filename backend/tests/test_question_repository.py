@@ -26,3 +26,9 @@ def test_get_by_id(question_repository: QuestionRepository) -> None:
 def test_get_by_id_invalid(question_repository: QuestionRepository) -> None:
     with pytest.raises(KeyError):
         question_repository.get_by_id("missing-question")
+
+
+def test_questions_align_to_monday_weeks(question_repository: QuestionRepository) -> None:
+    # Jan 1, 2025 lands on Wednesday, so it should be the third prompt of the first week.
+    jan_first = question_repository.get_daily_question(date(2025, 1, 1))
+    assert jan_first.prompt == "Q3"

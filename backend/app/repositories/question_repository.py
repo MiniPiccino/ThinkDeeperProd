@@ -1,6 +1,6 @@
 import json
 import bisect
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Iterator, List, Optional
 
@@ -55,7 +55,7 @@ class QuestionRepository:
             if start_str:
                 try:
                     start_dt = datetime.strptime(start_str, "%Y-%m-%d").date()
-                    week_start_day = start_dt.timetuple().tm_yday
+                    week_start_day = self._monday_aligned_day_number(start_dt)
                 except ValueError:
                     week_start_day = sequential_day
             else:
@@ -93,14 +93,22 @@ class QuestionRepository:
         if not offsets:
             raise RuntimeError("Question schedule is empty")
 
-        day_of_year = target_date.timetuple().tm_yday
-        insert_pos = bisect.bisect_right(offsets, day_of_year)
+        day_marker = self._monday_aligned_day_number(target_date)
+        insert_pos = bisect.bisect_right(offsets, day_marker)
         if insert_pos == 0:
             index = len(offsets) - 1
-        elif insert_pos == len(offsets) and day_of_year > offsets[-1]:
+        elif insert_pos == len(offsets) and day_marker > offsets[-1]:
             index = 0
         else:
             index = insert_pos - 1
 
         index = min(max(index, 0), len(questions) - 1)
         return questions[index]
+
+    @staticmethod
+    def _monday_aligned_day_number(target_date: date) -> int:
+        """Return the day count where each week starts on Monday, never January 1 by default."""
+
+        first_day = date(target_date.year, 1, 1)
+        first_monday = first_day - timedelta(days=first_day.weekday())
+        return (target_date - first_monday).days + 1
