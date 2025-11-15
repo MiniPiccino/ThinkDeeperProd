@@ -30,3 +30,35 @@ def test_progress_streak_resets_after_gap(progress_repository: ProgressRepositor
 
     assert result["xp_total"] == 15
     assert result["streak"] == 1
+
+
+def test_progress_recovers_only_with_consecutive_days(progress_repository: ProgressRepository) -> None:
+    first = datetime.now(tz=timezone.utc)
+    progress_repository.update("user-4", 5, first)
+
+    missed = first + timedelta(days=3)
+    progress_repository.update("user-4", 5, missed)
+
+    comeback = missed + timedelta(days=1)
+    result = progress_repository.update("user-4", 5, comeback)
+
+    assert result["streak"] == 2
+
+
+def test_progress_handles_invalid_last_answered(progress_repository: ProgressRepository) -> None:
+    # Manually seed an invalid date to ensure we recover without raising.
+    progress_repository._write(  # type: ignore[attr-defined]
+        {
+            "user-5": {
+                "xp_total": 20,
+                "streak": 7,
+                "last_answered_on": "not-a-date",
+            }
+        }
+    )
+
+    now = datetime.now(tz=timezone.utc)
+    result = progress_repository.update("user-5", 5, now)
+
+    assert result["xp_total"] == 25
+    assert result["streak"] == 1

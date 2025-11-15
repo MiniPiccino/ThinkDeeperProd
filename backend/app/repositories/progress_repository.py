@@ -1,6 +1,6 @@
 import json
 import logging
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -59,17 +59,21 @@ class ProgressRepository:
         streak = int(existing.get("streak", 0) or 0)
 
         today = submitted_at.date()
-        if last_answered_on:
-            last_date = datetime.fromisoformat(last_answered_on).date()
-            if (today - last_date).days == 1:
-                streak += 1
-            elif (today - last_date).days == 0:
-                # same day submission does not break streak
+        last_answer_date = self._parse_last_answer_date(last_answered_on)
+
+        if last_answer_date is None:
+            # first tracked answer always starts a fresh streak
+            streak = 1
+        else:
+            day_gap = (today - last_answer_date).days
+            if day_gap == 1:
+                streak = max(streak, 1) + 1
+            elif day_gap == 0:
+                # multiple submissions in the same day shouldn't inflate streaks
                 streak = max(streak, 1)
             else:
+                # any missed day wipes the streak; today becomes day one again
                 streak = 1
-        else:
-            streak = 1
 
         updated = {
             "xp_total": xp_total,
@@ -104,3 +108,13 @@ class ProgressRepository:
     def _disable_supabase(self) -> None:
         self._supabase = None
         self._supabase_table = None
+
+    @staticmethod
+    def _parse_last_answer_date(last_answered_on: Optional[str]) -> Optional[date]:
+        if not last_answered_on:
+            return None
+        try:
+            return datetime.fromisoformat(last_answered_on).date()
+        except ValueError:
+            logger.warning("Invalid last_answered_on value '%s' – resetting streak.", last_answered_on)
+            return None
