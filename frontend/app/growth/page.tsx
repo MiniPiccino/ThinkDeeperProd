@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 
 import { GrowthClient } from "./GrowthClient";
@@ -8,5 +9,9 @@ export const metadata: Metadata = {
 };
 
 export default function GrowthPage() {
-  return <GrowthClient />;
+  return (
+    <Suspense fallback={null}>
+      <GrowthClient />
+    </Suspense>
+  );
 }
