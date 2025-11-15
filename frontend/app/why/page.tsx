@@ -10,15 +10,15 @@ export default function WhyPage() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 px-4 py-16 text-slate-100">
       <article className="mx-auto flex max-w-3xl flex-col gap-10 leading-relaxed">
-        <header className="space-y-3 text-center">
-          <p className="text-xs uppercase tracking-[0.4em] text-emerald-300">Why Use Deep</p>
-          <h1 className="text-3xl font-semibold">Five minutes to train your brain to think, not scroll.</h1>
-          <p className="text-sm text-slate-300">
+        <header className="space-y-4 text-center">
+          <p className="text-sm uppercase tracking-[0.5em] text-emerald-300">Why Use Deep</p>
+          <h1 className="text-4xl font-semibold">Five minutes to train your brain to think, not scroll.</h1>
+          <p className="text-base text-slate-200">
             Modern life rewards reaction over reflection. Deep gives you a daily pause that keeps your mind sharp, curious, and human.
           </p>
         </header>
 
-        <section className="space-y-4 text-sm">
+        <section className="space-y-5 text-base text-slate-100">
           <p>
             We’re surrounded by endless content loops that spike dopamine with every swipe. Deep was built as a small rebellion:
             one thoughtful question every day—a five-minute pause that engages the same mental muscles used for journaling,
@@ -27,11 +27,11 @@ export default function WhyPage() {
           </p>
         </section>
 
-        <section className="space-y-4 text-sm">
-          <h2 className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-200">
+        <section className="space-y-4 text-base text-slate-100">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.35em] text-emerald-200">
             What happens when you think deeply
           </h2>
-          <ul className="space-y-3">
+          <ul className="space-y-3 text-base">
             <li>
               <strong>Neural activation.</strong> Reflecting on abstract or moral questions engages the prefrontal cortex—the
               region responsible for reasoning, empathy, and long-term planning.
@@ -51,8 +51,8 @@ export default function WhyPage() {
           </ul>
         </section>
 
-        <section className="space-y-4 text-sm">
-          <h2 className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-200">
+        <section className="space-y-4 text-base text-slate-100">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.35em] text-emerald-200">
             Why five minutes is enough
           </h2>
           <p>
@@ -62,8 +62,8 @@ export default function WhyPage() {
           </p>
         </section>
 
-        <section className="space-y-4 text-sm">
-          <h2 className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-200">
+        <section className="space-y-4 text-base text-slate-100">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.35em] text-emerald-200">
             Deep is not another feed
           </h2>
           <p>
@@ -79,7 +79,7 @@ export default function WhyPage() {
       <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2 md:gap-3">
         <FloatingAction href="/" label="Back to prompt" />
         <FloatingAction href="/focus-tools" label="Focus tools" />
-        <FloatingAction href="/growth" label="Growth tree" />
+        <FloatingAction href="/growth" label="Growth check-in" />
       </div>
     </main>
   );

@@ -1,0 +1,1 @@
+export const TREE_ANIMATION_UNLOCK_STREAK = 30;

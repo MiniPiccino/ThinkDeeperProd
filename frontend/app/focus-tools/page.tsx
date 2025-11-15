@@ -5,7 +5,6 @@ import { useQuery } from '@tanstack/react-query';
 
 import { DopamineDrivers } from '@/components/DopamineDrivers';
 import { fetchDailyQuestion, type DailyQuestionResponse } from '@/lib/api';
-import { StreakTree } from '@/components/StreakTree';
 import { FloatingAction } from '@/components/FloatingAction';
 import { XpMeter } from '@/components/XpMeter';
 import { StreakProgress } from '@/components/StreakProgress';
@@ -95,25 +94,15 @@ export default function FocusToolsPage() {
               />
             </section>
 
-            <section className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-              <div>
-                <StreakTree
-                  streak={streakCount}
-                  weekCompletedDays={weekProgress.completedDays}
-                  weekTotalDays={weekProgress.totalDays}
-                  currentWeekIndex={data?.weekIndex ?? 0}
-                />
-              </div>
-              <div className="rounded-3xl border border-emerald-500/25 bg-emerald-500/5 p-6 text-sm text-emerald-50 shadow-xl">
-                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-200">Streak intel</p>
-                <p className="mt-3 text-base text-white">Level {levelStats.level} | {streakCount} day streak</p>
-                <ul className="mt-4 space-y-2 text-sm text-emerald-100/80">
-                  <li>Leaves glow for completed days. {remainingDays === 0 ? 'This branch is fully lit.' : `${remainingDays} day${remainingDays === 1 ? '' : 's'} left to finish the branch.`}</li>
-                  <li>Badge unlock: {weekProgress.badgeEarned ? 'claimed for this arc.' : `${badgeName ?? 'Weekly Insight'} once you finish the week.`}</li>
-                  <li>XP pacing: {levelStats.xpToNextLevel > 0 ? `${levelStats.xpToNextLevel} XP until the next tier.` : 'Next tier unlocked—keep stacking.'}</li>
-                </ul>
-                <p className="mt-4 text-xs text-emerald-200/70">Visit the Growth page after writing to watch the tree animate in full.</p>
-              </div>
+            <section className="rounded-3xl border border-emerald-500/25 bg-emerald-500/5 p-6 text-sm text-emerald-50 shadow-xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-200">Streak intel</p>
+              <p className="mt-3 text-base text-white">Level {levelStats.level} | {streakCount} day streak</p>
+              <ul className="mt-4 space-y-2 text-sm text-emerald-100/80">
+                <li>Completed days glow. {remainingDays === 0 ? 'This loop is fully lit.' : `${remainingDays} day${remainingDays === 1 ? '' : 's'} left to close the loop.`}</li>
+                <li>Badge unlock: {weekProgress.badgeEarned ? 'claimed for this arc.' : `${badgeName ?? 'Weekly Insight'} once you finish the week.`}</li>
+                <li>XP pacing: {levelStats.xpToNextLevel > 0 ? `${levelStats.xpToNextLevel} XP until the next tier.` : 'Next tier unlocked—keep stacking.'}</li>
+              </ul>
+              <p className="mt-4 text-xs text-emerald-200/70">Visit the Growth page after writing to replay your streak.</p>
             </section>
           </>
         ) : null}
@@ -151,7 +140,7 @@ export default function FocusToolsPage() {
       </div>
       <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2 md:gap-3">
         <FloatingAction href="/" label="Back to prompt" />
-        <FloatingAction href="/growth" label="Growth tree" />
+        <FloatingAction href="/growth" label="Growth check-in" />
         <FloatingAction href="/why" label="Why Deep" variant="ghost" />
       </div>
     </main>

@@ -4,7 +4,7 @@ import { GrowthClient } from "./GrowthClient";
 
 export const metadata: Metadata = {
   title: "Growth — Deep",
-  description: "See your streak tree grow and share it with friends.",
+  description: "Replay your yearly streak timeline and share it with friends.",
 };
 
 export default function GrowthPage() {

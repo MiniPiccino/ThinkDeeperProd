@@ -6,7 +6,6 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { AnswerForm } from '@/components/AnswerForm';
 import { QuestionCard } from '@/components/QuestionCard';
 import { SubmissionCelebration } from '@/components/SubmissionCelebration';
-import { PrimingCard } from '@/components/PrimingCard';
 import { PrimingModal } from '@/components/PrimingModal';
 import { AuthPanel } from '@/components/AuthPanel';
 import { Timer } from '@/components/Timer';
@@ -602,48 +601,44 @@ export default function HomePage() {
       ) : null}
       <main className="relative flex min-h-screen w-full justify-center bg-gradient-to-br from-emerald-50 via-white to-emerald-100 px-4 py-16 dark:from-zinc-950 dark:via-zinc-950 dark:to-zinc-900">
         <div className="flex w-full max-w-4xl flex-col gap-8">
-        <header className="flex flex-col items-center gap-3 text-center">
-          <span className="rounded-full bg-emerald-100 px-4 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200">
-            Deep daily
-          </span>
+        <header className="flex flex-col items-center gap-2 text-center">
           <h1 className="text-4xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
-            One question. Five minutes. Zero noise.
+            Think deeper. Feel sharper.
           </h1>
-          <p className="max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">
-            Drop in, write, and get feedback that compounds. Everything else lives off to the side until you ask for it.
-          </p>
+          <p className="text-sm uppercase tracking-[0.4em] text-zinc-600 dark:text-zinc-400">Breathe. Begin.</p>
         </header>
-
-        <AuthPanel />
-
-        {streak > 0 ? (
-          <div className="flex justify-center">
-            <div className="inline-flex items-center gap-3 rounded-full border border-amber-200 bg-amber-50 px-5 py-2 text-sm font-semibold text-amber-900 shadow-sm dark:border-amber-600/50 dark:bg-amber-500/10 dark:text-amber-100">
-              <span className="text-lg">🔥</span>
-              <span>{streak}-day streak alive</span>
-              <span className="text-xs font-medium uppercase tracking-widest text-amber-500">
-                {weekProgress.completedDays}/{weekProgress.totalDays} this week
-              </span>
-            </div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200/60 bg-white/70 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-zinc-500 shadow-sm dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-300">
+            {streak > 0 ? (
+              <>
+                <span>{streak} days lit</span>
+                <span>·</span>
+                <span>
+                  {weekProgress.completedDays}/{weekProgress.totalDays}
+                </span>
+              </>
+            ) : (
+              <span>Day one mindset</span>
+            )}
           </div>
-        ) : null}
+          <div className="w-full max-w-md">
+            <AuthPanel />
+          </div>
+        </div>
 
         {status === 'loading' ? (
           <div className="flex h-64 w-full items-center justify-center rounded-3xl border border-dashed border-zinc-300 text-zinc-500">
-            Loading today&apos;s prompt...
+            Quietly loading today&apos;s prompt...
           </div>
         ) : null}
 
         {status === 'error' ? (
           <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-red-900">
-            <p className="font-semibold">We couldn&apos;t load today&apos;s prompt.</p>
-            <p className="mt-2 text-sm">
-              Please check your network connection or try again later.
-            </p>
+            <p className="font-semibold">Signal dropped.</p>
             <button
               type="button"
               onClick={() => refetch()}
-              className="mt-4 inline-flex items-center rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white"
+              className="mt-3 inline-flex items-center rounded-full border border-red-400 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em]"
             >
               Retry
             </button>
@@ -652,14 +647,7 @@ export default function HomePage() {
 
         {dailyQuestion && status === 'ready' ? (
           <>
-            {priming ? (
-              <PrimingCard
-                emotionalHook={priming.emotionalHook}
-                teaserQuestion={priming.teaserQuestion}
-                somaticCue={priming.somaticCue}
-                cognitiveCue={priming.cognitiveCue}
-              />
-            ) : null}
+            {/* Stoic minimal mode: skip priming copy */}
 
             <div ref={questionSectionRef}>
               <QuestionCard
@@ -676,10 +664,7 @@ export default function HomePage() {
             <div className="grid gap-8 lg:grid-cols-[1.7fr,1fr]">
               <div className="flex flex-col gap-6" ref={writingSectionRef}>
                 <div ref={celebrationTriggerRef} />
-                <Timer
-                  remainingSeconds={secondsRemaining}
-                  totalSeconds={dailyQuestion.timerSeconds}
-                />
+                <Timer remainingSeconds={secondsRemaining} totalSeconds={dailyQuestion.timerSeconds} />
 
                 {submissionError ? (
                   <div className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm dark:border-amber-600/40 dark:bg-amber-500/10 dark:text-amber-100">
@@ -733,7 +718,7 @@ export default function HomePage() {
     </main>
       <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2 md:gap-3">
         <FloatingAction href="/focus-tools" label="Focus tools" />
-        <FloatingAction href="/growth" label="Growth tree" />
+        <FloatingAction href="/growth" label="Growth check-in" />
         <FloatingAction href="/why" label="Why you’ll love Deep" variant="ghost" />
       </div>
     </>

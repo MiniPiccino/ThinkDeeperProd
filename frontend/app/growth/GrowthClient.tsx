@@ -1,13 +1,15 @@
 'use client';
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 
-import { StreakTree } from "@/components/StreakTree";
+import { StreakReplay } from "@/components/StreakTree";
 import { FloatingAction } from "@/components/FloatingAction";
 import { fetchDailyQuestion } from "@/lib/api";
 import { useUserIdentifier } from "@/hooks/useUserIdentifier";
+import { TREE_ANIMATION_UNLOCK_STREAK } from "@/constants/experience";
 
 type GrowthLevelStats = {
   level: number;
@@ -18,6 +20,58 @@ type GrowthLevelStats = {
 };
 
 const GROWTH_XP_PER_LEVEL = 120;
+
+type TreeAnimationFrame = {
+  key: string;
+  duration: number;
+  label: string;
+  description: string;
+  transform: string;
+  focusMode: "none" | "focus" | "bloom";
+};
+
+const TREE_ANIMATION_FRAMES: TreeAnimationFrame[] = [
+  {
+    key: "wide",
+    duration: 1400,
+    label: "Frame 1 · Year view",
+    description: "Take in the full streak timeline you’ve built.",
+    transform: "scale(1) translate3d(0,0,0)",
+    focusMode: "none",
+  },
+  {
+    key: "branch",
+    duration: 1200,
+    label: "Frame 2 · Zoom toward week",
+    description: "Dialing into this week’s circuit.",
+    transform: "scale(1.12) translate3d(0,-14px,0)",
+    focusMode: "focus",
+  },
+  {
+    key: "leaf",
+    duration: 1100,
+    label: "Frame 3 · Focus on day",
+    description: "Landing on the day you just lit up.",
+    transform: "scale(1.2) translate3d(0,-20px,0)",
+    focusMode: "focus",
+  },
+  {
+    key: "bloom",
+    duration: 1200,
+    label: "Frame 4 · Day pulse + XP",
+    description: "Square pulses as XP locks in.",
+    transform: "scale(1.25) translate3d(0,-16px,0)",
+    focusMode: "bloom",
+  },
+  {
+    key: "return",
+    duration: 1400,
+    label: "Frame 5 · Zoom out",
+    description: "Zooming back out so you see the full record.",
+    transform: "scale(1) translate3d(0,0,0)",
+    focusMode: "none",
+  },
+];
 
 function computeGrowthLevelStats(totalXp: number): GrowthLevelStats {
   if (totalXp < 0) {
@@ -40,6 +94,8 @@ function computeGrowthLevelStats(totalXp: number): GrowthLevelStats {
 
 export function GrowthClient() {
   const userId = useUserIdentifier();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { data, isLoading, isError } = useQuery({
     queryKey: ["growth", userId],
     queryFn: () => fetchDailyQuestion(userId ?? undefined),
@@ -49,16 +105,87 @@ export function GrowthClient() {
 
   const xpTotal = data?.xpTotal ?? 0;
   const levelStats = useMemo(() => computeGrowthLevelStats(xpTotal), [xpTotal]);
+  const streakCount = data?.streak ?? 0;
+  const wantsTreeAnimation = searchParams?.get("treeAnimation") === "celebration";
+  const animationConsumedRef = useRef(false);
+  const animationUnlocked = streakCount >= TREE_ANIMATION_UNLOCK_STREAK;
+  const [treeAnimationActive, setTreeAnimationActive] = useState(false);
+  const [activeFrameIndex, setActiveFrameIndex] = useState(-1);
+
+  const startTreeAnimation = useCallback(() => {
+    setTreeAnimationActive(true);
+    setActiveFrameIndex(0);
+  }, []);
+
+  useEffect(() => {
+    if (!data || !wantsTreeAnimation || animationConsumedRef.current || typeof window === "undefined") {
+      return;
+    }
+    if (!animationUnlocked) {
+      router.replace("/growth", { scroll: false });
+      return;
+    }
+    animationConsumedRef.current = true;
+    const timer = window.setTimeout(() => {
+      startTreeAnimation();
+    }, 0);
+    router.replace("/growth", { scroll: false });
+    return () => window.clearTimeout(timer);
+  }, [data, wantsTreeAnimation, router, startTreeAnimation, animationUnlocked]);
+
+  useEffect(() => {
+    if (!treeAnimationActive || activeFrameIndex < 0 || typeof window === "undefined") {
+      return;
+    }
+    let cancelled = false;
+    const frame = TREE_ANIMATION_FRAMES[activeFrameIndex];
+    const timer = window.setTimeout(() => {
+      if (cancelled) {
+        return;
+      }
+      if (activeFrameIndex >= TREE_ANIMATION_FRAMES.length - 1) {
+        setTreeAnimationActive(false);
+        setActiveFrameIndex(-1);
+      } else {
+        setActiveFrameIndex((prev) => prev + 1);
+      }
+    }, frame.duration);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [treeAnimationActive, activeFrameIndex]);
+
+  const handleSkipAnimation = useCallback(() => {
+    setTreeAnimationActive(false);
+    setActiveFrameIndex(-1);
+    animationConsumedRef.current = true;
+  }, []);
+
+  const activeFrame =
+    treeAnimationActive && activeFrameIndex >= 0 ? TREE_ANIMATION_FRAMES[activeFrameIndex] : null;
+  const treeTransform =
+    animationUnlocked && activeFrame ? activeFrame.transform : "scale(1) translate3d(0,0,0)";
+  const treeFocusMode = animationUnlocked && activeFrame ? activeFrame.focusMode : "none";
+  const completedDays = data?.weekProgress?.completedDays ?? 0;
+  const totalWeekDays = data?.weekProgress?.totalDays ?? 7;
+  const focusableDay = Math.min(
+    Math.max((completedDays === 0 ? 1 : completedDays) - 1, 0),
+    Math.max(totalWeekDays - 1, 0),
+  );
+  const focusDayIndex = treeFocusMode === "none" ? null : focusableDay;
+  const treeTransformDuration = animationUnlocked && activeFrame ? activeFrame.duration : 1000;
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-900 px-4 py-16 text-slate-100">
       <div className="mx-auto flex max-w-4xl flex-col gap-8">
         <header className="space-y-3 text-center">
           <p className="text-xs uppercase tracking-[0.4em] text-emerald-300">Growth</p>
-          <h1 className="text-3xl font-semibold">Watch your reflection tree grow</h1>
+          <h1 className="text-3xl font-semibold">Watch your streak replay</h1>
           <p className="text-sm text-slate-300">
-            Every streak day becomes a leaf. Each week is a new branch. Come here after writing to see the forest you’re
-            building.
+            Every streak day lights up this grid. Each week becomes a new band of color. Come here after writing to watch the
+            timeline you’re building.
           </p>
         </header>
 
@@ -83,12 +210,47 @@ export function GrowthClient() {
         {userId && !isLoading && !isError && data ? (
           <>
             <section className="rounded-3xl border border-emerald-400/40 bg-gradient-to-br from-zinc-950 via-zinc-900 to-emerald-950 p-6 shadow-2xl">
-              <StreakTree
-                streak={data?.streak ?? 0}
-                weekCompletedDays={data?.weekProgress?.completedDays ?? 0}
-                weekTotalDays={data?.weekProgress?.totalDays ?? 7}
-                currentWeekIndex={data?.weekIndex ?? 0}
-              />
+              <div className="relative">
+                <div
+                  className={`transition-transform ease-[cubic-bezier(0.19,1,0.22,1)] ${
+                    treeAnimationActive ? "will-change-transform" : ""
+                  }`}
+                  style={{
+                    transform: treeTransform,
+                    transformOrigin: "50% 85%",
+                    transitionDuration: `${treeTransformDuration}ms`,
+                  }}
+                >
+                  <StreakReplay
+                    streak={streakCount}
+                    weekCompletedDays={data?.weekProgress?.completedDays ?? 0}
+                    weekTotalDays={data?.weekProgress?.totalDays ?? 7}
+                    currentWeekIndex={data?.weekIndex ?? 0}
+                    focusDayIndex={focusDayIndex}
+                    focusMode={treeFocusMode}
+                  />
+                </div>
+                {treeAnimationActive && activeFrame ? (
+                  <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-start gap-3 pt-4">
+                    <div className="rounded-full bg-emerald-950/70 px-4 py-1 text-[10px] font-semibold uppercase tracking-[0.35em] text-emerald-100 shadow-lg shadow-emerald-900/60">
+                      {activeFrame.label}
+                    </div>
+                    <p className="rounded-2xl bg-black/60 px-4 py-2 text-center text-sm text-emerald-50 shadow-lg shadow-black/40">
+                      {activeFrame.description}
+                    </p>
+                  </div>
+                ) : null}
+                {treeAnimationActive ? (
+                  <button
+                    type="button"
+                    onClick={handleSkipAnimation}
+                    className="pointer-events-auto absolute right-4 top-4 rounded-full border border-emerald-400/40 bg-black/50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-100 shadow-lg transition hover:bg-black/70"
+                  >
+                    Skip
+                  </button>
+                ) : null}
+              </div>
+              {/* replay handled inside StreakForest */}
               <div className="mt-6 flex flex-wrap gap-3 text-xs text-slate-300">
                 <Link
                   href="/why"
@@ -103,18 +265,6 @@ export function GrowthClient() {
                   Back to today&apos;s prompt
                 </Link>
               </div>
-            </section>
-
-            <section className="space-y-4 rounded-3xl border border-emerald-400/30 bg-emerald-500/10 p-6 text-sm leading-relaxed text-slate-100 shadow-lg">
-              <h2 className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-200">Why we built the tree</h2>
-              <p>
-                After you write, you need a reward that feels earned—not more noise. The Tree is that reward: a soft animation
-                that celebrates progress, gives your brain a dopamine win, and reminds you your effort compounds.
-              </p>
-              <p>
-                New leaves glow when the limbic system gets its “well done,” while the weekly branches and quotes engage the
-                prefrontal cortex with anticipation of what’s next. That emotional + rational pairing is what keeps habits sticky.
-              </p>
             </section>
 
             <section className="rounded-3xl border border-emerald-400/40 bg-emerald-500/10 p-6 text-sm text-slate-100 shadow-lg">

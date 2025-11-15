@@ -127,7 +127,7 @@ export function submitAnswer(payload: SubmitAnswerPayload): Promise<AnswerRespon
   });
 }
 
-const mockDailyQuestion: DailyQuestionResponse = {
+const baselineMockDailyQuestion: DailyQuestionResponse = {
   id: "week-5-day-3",
   prompt: "Is comfort a distraction from purpose?",
   theme: "Week 5 — Truth and Lies",
@@ -181,6 +181,8 @@ const mockDailyQuestion: DailyQuestionResponse = {
     nextPromptAvailableAt: new Date(Date.now() + 86400000).toISOString(),
   },
 };
+
+const mockDailyQuestion: DailyQuestionResponse = baselineMockDailyQuestion;
 
 const mockAnswerResponse: AnswerResponse = {
   feedback: "Loved the honesty. Improve: add a concrete scenario.",

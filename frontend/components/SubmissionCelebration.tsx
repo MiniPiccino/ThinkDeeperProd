@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { TREE_ANIMATION_UNLOCK_STREAK } from '@/constants/experience';
+
 type SubmissionCelebrationProps = {
   feedback?: string;
   xpGain: number;
@@ -273,6 +275,7 @@ export function SubmissionCelebration({
     }
     return typeof navigator.share === 'function' || typeof navigator.clipboard?.writeText === 'function';
   }, []);
+  const animationUnlocked = streak >= TREE_ANIMATION_UNLOCK_STREAK;
 
   const handleShare = useCallback(async () => {
     if (typeof navigator === 'undefined') {
@@ -487,12 +490,19 @@ export function SubmissionCelebration({
               >
                 {shareSupported ? 'Share your streak' : 'Share (copy unavailable)'}
               </button>
-              <Link
-                href="/growth"
-                className="inline-flex items-center justify-center rounded-full border border-emerald-400/50 px-5 py-2 text-sm font-semibold text-emerald-100 transition hover:border-emerald-300 hover:text-emerald-50"
-              >
-                See my Growth Tree →
-              </Link>
+              {animationUnlocked ? (
+                <Link
+                  href="/growth?treeAnimation=celebration"
+                  prefetch={false}
+                  className="inline-flex items-center justify-center rounded-full border border-emerald-400/50 px-5 py-2 text-sm font-semibold text-emerald-100 transition hover:border-emerald-300 hover:text-emerald-50"
+                >
+                  Replay the yearly streak →
+                </Link>
+              ) : (
+                <p className="inline-flex items-center justify-center rounded-full border border-emerald-400/40 px-5 py-2 text-center text-xs font-semibold uppercase tracking-wide text-emerald-500/80">
+                  {TREE_ANIMATION_UNLOCK_STREAK}-day surprise: keep the streak alive to see the tree transform.
+                </p>
+              )}
               {shareState === 'success' ? (
                 <p className="text-xs font-medium uppercase tracking-wide text-emerald-600 dark:text-emerald-300">
                   Shared! Spread the momentum.
