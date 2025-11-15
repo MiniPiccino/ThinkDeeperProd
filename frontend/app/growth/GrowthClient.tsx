@@ -11,6 +11,8 @@ import { fetchDailyQuestion } from "@/lib/api";
 import { useUserIdentifier } from "@/hooks/useUserIdentifier";
 import { TREE_ANIMATION_UNLOCK_STREAK } from "@/constants/experience";
 
+const MS_IN_DAY = 86_400_000;
+
 type GrowthLevelStats = {
   level: number;
   xpIntoLevel: number;
@@ -72,6 +74,23 @@ const TREE_ANIMATION_FRAMES: TreeAnimationFrame[] = [
     focusMode: "none",
   },
 ];
+
+function mondayAlignedWeekIndex(target: Date): number {
+  const year = target.getUTCFullYear();
+  const firstDay = new Date(Date.UTC(year, 0, 1));
+  const offsetToMonday = (firstDay.getUTCDay() + 6) % 7; // Monday => 0
+  const firstMondayTime = firstDay.getTime() - offsetToMonday * MS_IN_DAY;
+  const targetMidnight = Date.UTC(year, target.getUTCMonth(), target.getUTCDate());
+  const diffDays = Math.floor((targetMidnight - firstMondayTime) / MS_IN_DAY);
+  const weekIndex = Math.floor(diffDays / 7);
+  const normalized = ((weekIndex % 52) + 52) % 52;
+  return normalized;
+}
+
+function mondayAlignedDayIndex(target: Date): number {
+  const utcDay = target.getUTCDay(); // Sunday 0 … Saturday 6
+  return (utcDay + 6) % 7; // Monday 0
+}
 
 function computeGrowthLevelStats(totalXp: number): GrowthLevelStats {
   if (totalXp < 0) {
@@ -176,6 +195,10 @@ export function GrowthClient() {
   );
   const focusDayIndex = treeFocusMode === "none" ? null : focusableDay;
   const treeTransformDuration = animationUnlocked && activeFrame ? activeFrame.duration : 1000;
+  const availableOnDate = data?.availableOn ? new Date(data.availableOn) : new Date();
+  const hasValidDate = !Number.isNaN(availableOnDate.getTime());
+  const mondayWeekIndex = hasValidDate ? mondayAlignedWeekIndex(availableOnDate) : 0;
+  const mondayDayIndex = hasValidDate ? mondayAlignedDayIndex(availableOnDate) : null;
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-900 px-4 py-16 text-slate-100">
@@ -225,7 +248,8 @@ export function GrowthClient() {
                     streak={streakCount}
                     weekCompletedDays={data?.weekProgress?.completedDays ?? 0}
                     weekTotalDays={data?.weekProgress?.totalDays ?? 7}
-                    currentWeekIndex={data?.weekIndex ?? 0}
+                    currentWeekIndex={mondayWeekIndex}
+                    dayOfWeekIndex={mondayDayIndex}
                     focusDayIndex={focusDayIndex}
                     focusMode={treeFocusMode}
                   />

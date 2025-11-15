@@ -7,6 +7,7 @@ type StreakReplayProps = {
   weekCompletedDays: number;
   weekTotalDays: number;
   currentWeekIndex: number;
+  dayOfWeekIndex?: number | null;
   focusDayIndex?: number | null;
   focusMode?: 'none' | 'focus' | 'bloom';
 };
@@ -24,14 +25,21 @@ export function StreakReplay({
   weekCompletedDays,
   weekTotalDays,
   currentWeekIndex,
+  dayOfWeekIndex,
   focusDayIndex,
   focusMode,
 }: StreakReplayProps) {
   const normalizedWeekIndex = ((currentWeekIndex % TOTAL_WEEKS) + TOTAL_WEEKS) % TOTAL_WEEKS;
   const cappedWeekDays = Math.max(Math.min(weekCompletedDays, DAYS_PER_WEEK), 0);
+  const baseDayPointer =
+    dayOfWeekIndex == null
+      ? cappedWeekDays > 0
+        ? cappedWeekDays - 1
+        : 0
+      : Math.max(Math.min(dayOfWeekIndex, DAYS_PER_WEEK - 1), 0);
   const clampedFocusDay =
     focusDayIndex == null ? null : Math.max(Math.min(focusDayIndex, DAYS_PER_WEEK - 1), 0);
-  const dayPointer = clampedFocusDay ?? (cappedWeekDays > 0 ? cappedWeekDays - 1 : 0);
+  const dayPointer = clampedFocusDay ?? baseDayPointer;
 
   const totalDays = TOTAL_WEEKS * DAYS_PER_WEEK;
   const streakClamped = Math.min(Math.max(streak, 0), totalDays);
