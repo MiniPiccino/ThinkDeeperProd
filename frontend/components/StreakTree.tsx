@@ -7,6 +7,8 @@ type StreakReplayProps = {
   weekCompletedDays: number;
   weekTotalDays: number;
   currentWeekIndex: number;
+  focusDayIndex?: number | null;
+  focusMode?: 'none' | 'focus' | 'bloom';
 };
 
 const TOTAL_WEEKS = 52;
@@ -17,10 +19,19 @@ const GRID_GAP = 4;
 const GRID_MAX_HEIGHT = 320;
 const OVERVIEW_DURATION_MS = 2700;
 
-export function StreakReplay({ streak, weekCompletedDays, weekTotalDays, currentWeekIndex }: StreakReplayProps) {
+export function StreakReplay({
+  streak,
+  weekCompletedDays,
+  weekTotalDays,
+  currentWeekIndex,
+  focusDayIndex,
+  focusMode,
+}: StreakReplayProps) {
   const normalizedWeekIndex = ((currentWeekIndex % TOTAL_WEEKS) + TOTAL_WEEKS) % TOTAL_WEEKS;
   const cappedWeekDays = Math.max(Math.min(weekCompletedDays, DAYS_PER_WEEK), 0);
-  const dayPointer = cappedWeekDays > 0 ? cappedWeekDays - 1 : 0;
+  const clampedFocusDay =
+    focusDayIndex == null ? null : Math.max(Math.min(focusDayIndex, DAYS_PER_WEEK - 1), 0);
+  const dayPointer = clampedFocusDay ?? (cappedWeekDays > 0 ? cappedWeekDays - 1 : 0);
 
   const totalDays = TOTAL_WEEKS * DAYS_PER_WEEK;
   const streakClamped = Math.min(Math.max(streak, 0), totalDays);
@@ -28,6 +39,9 @@ export function StreakReplay({ streak, weekCompletedDays, weekTotalDays, current
   const rangeStart = streakClamped > 0 ? Math.max(rangeEnd - streakClamped + 1, 0) : -1;
 
   const [stage, setStage] = useState<'overview' | 'closeup'>('overview');
+  const stageOverride =
+    typeof focusMode === 'undefined' ? null : focusMode === 'none' ? 'overview' : 'closeup';
+  const displayStage = stageOverride ?? stage;
   const [cycleKey, setCycleKey] = useState(0);
 
   const restartJourney = useCallback(() => {
@@ -41,12 +55,15 @@ export function StreakReplay({ streak, weekCompletedDays, weekTotalDays, current
   }, [restartJourney, normalizedWeekIndex, streakClamped]);
 
   useEffect(() => {
+    if (stageOverride !== null) {
+      return;
+    }
     if (stage !== 'overview') {
       return;
     }
     const timer = window.setTimeout(() => setStage('closeup'), OVERVIEW_DURATION_MS);
     return () => window.clearTimeout(timer);
-  }, [stage, cycleKey]);
+  }, [stage, cycleKey, stageOverride]);
 
   const tiles = useMemo<TileState[]>(() => {
     return Array.from({ length: totalDays }, (_, index) => {
@@ -62,7 +79,7 @@ export function StreakReplay({ streak, weekCompletedDays, weekTotalDays, current
 
   const overviewRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
-    if (stage !== 'overview') {
+    if (displayStage !== 'overview') {
       return;
     }
     const container = overviewRef.current;
@@ -90,7 +107,7 @@ export function StreakReplay({ streak, weekCompletedDays, weekTotalDays, current
     };
 
     requestAnimationFrame(step);
-  }, [stage, normalizedWeekIndex]);
+  }, [displayStage, normalizedWeekIndex]);
 
   return (
     <div className="rounded-3xl border border-emerald-300/40 bg-gradient-to-br from-zinc-950 via-zinc-900 to-emerald-950 p-6 text-sm text-emerald-100 shadow-lg">
@@ -104,7 +121,7 @@ export function StreakReplay({ streak, weekCompletedDays, weekTotalDays, current
       <div className="mt-6 flex flex-col gap-4">
         <div className="rounded-[36px] border border-emerald-500/30 bg-gradient-to-b from-emerald-950/70 via-emerald-950 to-zinc-950 p-6">
           <div className="space-y-4">
-            {stage === 'overview' ? (
+            {displayStage === 'overview' ? (
               <div className="transition-opacity duration-500 opacity-100">
                 <p className="text-center text-xs uppercase tracking-[0.35em] text-emerald-200/70">
                   52 weeks × 7 days. Square = day. Row = week.
@@ -132,7 +149,7 @@ export function StreakReplay({ streak, weekCompletedDays, weekTotalDays, current
               </div>
             ) : null}
 
-            {stage === 'closeup' ? (
+            {displayStage === 'closeup' ? (
               <div className="transition duration-500">
                 <CloseupWeek
                   weekIndex={normalizedWeekIndex}
