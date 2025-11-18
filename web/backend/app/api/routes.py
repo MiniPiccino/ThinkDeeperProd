@@ -4,7 +4,8 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 
 from ..models.answer import AnswerCreate, AnswerResult
-from .deps import get_answer_service, get_question_service
+from ..models.reflection import ReflectionOverview
+from .deps import get_answer_service, get_question_service, get_reflection_service
 from ..services.answer_service import DuplicateAnswerError
 
 router = APIRouter(prefix="/v1", tags=["v1"])
@@ -37,3 +38,15 @@ async def submit_answer(
             status_code=status.HTTP_409_CONFLICT,
             detail="You already answered today's prompt. Come back tomorrow for a new question.",
         ) from exc
+
+
+@router.get("/reflections/overview", response_model=ReflectionOverview)
+async def reflections_overview(
+    reflection_service=Depends(get_reflection_service),
+    user_id: Optional[str] = Query(default=None, alias="userId"),
+    x_user_id: Optional[str] = Header(default=None, alias="X-User-Id"),
+) -> ReflectionOverview:
+    resolved_user = user_id or x_user_id
+    if not resolved_user:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User identifier required.")
+    return reflection_service.overview(resolved_user)

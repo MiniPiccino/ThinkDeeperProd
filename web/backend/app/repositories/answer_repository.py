@@ -109,6 +109,33 @@ class AnswerRepository:
             matches.append(stored)
         return matches
 
+    def recent_answers(
+        self,
+        user_id: str,
+        limit: Optional[int] = None,
+    ) -> List[StoredAnswer]:
+        """Return recent answers for a user ordered by newest first."""
+
+        if self._supabase:
+            try:
+                rows = self._supabase.select(
+                    self._supabase_table,
+                    filters={"user_id": user_id},
+                    order=("created_at", "desc"),
+                    limit=limit,
+                )
+                answers = [stored for stored in (self._from_record(row) for row in rows) if stored is not None]
+                return answers
+            except RuntimeError as exc:
+                logger.warning("Supabase recent_answers failed; falling back to file store: %s", exc)
+                self._disable_supabase()
+
+        answers = [stored for stored in self._iter_answers() if stored.user_id == user_id]
+        answers.sort(key=lambda record: record.created_at, reverse=True)
+        if limit is not None:
+            return answers[:limit]
+        return answers
+
     def _iter_answers(self) -> Iterable[StoredAnswer]:
         if not self._storage_path.exists():
             return iter(())

@@ -3,16 +3,18 @@ from openai import OpenAI
 
 from ..config import Settings, get_settings
 from ..integrations.supabase_client import SupabaseClient
-from ..repositories import AnswerRepository, ProgressRepository, QuestionRepository
-from ..services import AnswerService, EvaluationService, QuestionService
+from ..repositories import AnswerRepository, ProgressRepository, QuestionRepository, UserRepository
+from ..services import AnswerService, EvaluationService, QuestionService, ReflectionService
 
 _QUESTION_REPOSITORY: QuestionRepository | None = None
 _PROGRESS_REPOSITORY: ProgressRepository | None = None
 _ANSWER_REPOSITORY: AnswerRepository | None = None
+_USER_REPOSITORY: UserRepository | None = None
 _OPENAI_CLIENT: OpenAI | None = None
 _EVALUATION_SERVICE: EvaluationService | None = None
 _QUESTION_SERVICE: QuestionService | None = None
 _ANSWER_SERVICE: AnswerService | None = None
+_REFLECTION_SERVICE: ReflectionService | None = None
 _SUPABASE_CLIENT: SupabaseClient | None = None
 
 
@@ -58,6 +60,13 @@ def _answer_repository(settings: Settings) -> AnswerRepository:
     return _ANSWER_REPOSITORY
 
 
+def _user_repository(settings: Settings) -> UserRepository:
+    global _USER_REPOSITORY
+    if _USER_REPOSITORY is None:
+        _USER_REPOSITORY = UserRepository(settings.user_metadata_path)
+    return _USER_REPOSITORY
+
+
 def _openai_client(settings: Settings) -> OpenAI:
     global _OPENAI_CLIENT
     if _OPENAI_CLIENT is None:
@@ -98,6 +107,17 @@ def _answer_service(settings: Settings) -> AnswerService:
     return _ANSWER_SERVICE
 
 
+def _reflection_service(settings: Settings) -> ReflectionService:
+    global _REFLECTION_SERVICE
+    if _REFLECTION_SERVICE is None:
+        _REFLECTION_SERVICE = ReflectionService(
+            _answer_repository(settings),
+            _question_repository(settings),
+            _user_repository(settings),
+        )
+    return _REFLECTION_SERVICE
+
+
 def get_settings_dependency() -> Settings:
     return get_settings()
 
@@ -108,3 +128,7 @@ def get_question_service(settings: Settings = Depends(get_settings_dependency)) 
 
 def get_answer_service(settings: Settings = Depends(get_settings_dependency)) -> AnswerService:
     return _answer_service(settings)
+
+
+def get_reflection_service(settings: Settings = Depends(get_settings_dependency)) -> ReflectionService:
+    return _reflection_service(settings)

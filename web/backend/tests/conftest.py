@@ -10,8 +10,8 @@ from fastapi.testclient import TestClient
 from app.api.routes import router as api_router
 from app.api.deps import get_answer_service, get_question_service
 from app.config import Settings
-from app.repositories import AnswerRepository, ProgressRepository, QuestionRepository
-from app.services import AnswerService, EvaluationService, QuestionService
+from app.repositories import AnswerRepository, ProgressRepository, QuestionRepository, UserRepository
+from app.services import AnswerService, EvaluationService, QuestionService, ReflectionService
 
 
 @pytest.fixture
@@ -37,6 +37,7 @@ def tmp_settings(tmp_path: Path) -> Settings:
         QUESTION_SOURCE=question_source,
         ANSWERS_STORE_PATH=data_dir / "answers.jsonl",
         PROGRESS_STORE_PATH=data_dir / "progress.json",
+        USER_METADATA_PATH=data_dir / "users.json",
         ALLOWED_ORIGINS=["http://testserver"],
     )
 
@@ -54,6 +55,11 @@ def progress_repository(tmp_settings: Settings) -> ProgressRepository:
 @pytest.fixture
 def answer_repository(tmp_settings: Settings) -> AnswerRepository:
     return AnswerRepository(tmp_settings.answers_store_path)
+
+
+@pytest.fixture
+def user_repository(tmp_settings: Settings) -> UserRepository:
+    return UserRepository(tmp_settings.user_metadata_path)
 
 
 class DummyCompletionResponse:
@@ -125,6 +131,15 @@ def answer_service(
         answer_repository,
         progress_repository,
     )
+
+
+@pytest.fixture
+def reflection_service(
+    answer_repository: AnswerRepository,
+    question_repository: QuestionRepository,
+    user_repository: UserRepository,
+) -> ReflectionService:
+    return ReflectionService(answer_repository, question_repository, user_repository)
 
 
 @pytest.fixture

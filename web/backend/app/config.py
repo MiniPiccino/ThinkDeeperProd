@@ -29,6 +29,10 @@ class Settings(BaseSettings):
         default=_DATA_DIR / "progress.json",
         alias="PROGRESS_STORE_PATH",
     )
+    user_metadata_path: Path = Field(
+        default=_DATA_DIR / "users.json",
+        alias="USER_METADATA_PATH",
+    )
     supabase_url: Optional[str] = Field(default=None, alias="SUPABASE_URL")
     supabase_service_key: Optional[str] = Field(default=None, alias="SUPABASE_SERVICE_KEY")
     supabase_answers_table: str = Field(default="answers", alias="SUPABASE_ANSWERS_TABLE")
