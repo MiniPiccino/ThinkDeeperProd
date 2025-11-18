@@ -78,6 +78,41 @@ export type AnswerResponse = {
   levelProgressPercent: number;
 };
 
+export type ReflectionEntry = {
+  questionId: string;
+  prompt: string;
+  theme: string;
+  answeredAt: string;
+  xpAwarded: number;
+  durationSeconds: number;
+  excerpt: string;
+  answer: string;
+  feedback?: string | null;
+};
+
+export type ReflectionDaySummary = {
+  date: string;
+  weekday: string;
+  hasEntry: boolean;
+  entry?: ReflectionEntry | null;
+};
+
+export type ReflectionTeaser = {
+  questionId: string;
+  prompt: string;
+  answeredAt: string;
+  snippet: string;
+};
+
+export type ReflectionOverview = {
+  plan: string;
+  today?: ReflectionEntry | null;
+  todayLocked: boolean;
+  week: ReflectionDaySummary[];
+  teasers: ReflectionTeaser[];
+  timelineUnlocked: boolean;
+};
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS === "true";
@@ -124,6 +159,16 @@ export function submitAnswer(payload: SubmitAnswerPayload): Promise<AnswerRespon
       userId: payload.userId,
       durationSeconds: payload.durationSeconds,
     }),
+  });
+}
+
+export function fetchReflectionOverview(userId: string): Promise<ReflectionOverview> {
+  if (!userId) {
+    return Promise.reject(new Error("User ID required for reflections"));
+  }
+  const search = `?userId=${encodeURIComponent(userId)}`;
+  return request<ReflectionOverview>(`/v1/reflections/overview${search}`, {
+    cache: "no-store",
   });
 }
 

@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { StreakReplay } from "@/components/StreakTree";
 import { FloatingAction } from "@/components/FloatingAction";
-import { fetchDailyQuestion } from "@/lib/api";
+import { fetchDailyQuestion, fetchReflectionOverview } from "@/lib/api";
 import { useUserIdentifier } from "@/hooks/useUserIdentifier";
 import { TREE_ANIMATION_UNLOCK_STREAK } from "@/constants/experience";
 
@@ -123,6 +123,18 @@ export function GrowthClient() {
     staleTime: 0,
   });
 
+  const {
+    data: reflectionData,
+    isLoading: reflectionsLoading,
+    isError: reflectionsError,
+  } = useQuery({
+    queryKey: ["reflections", userId],
+    queryFn: () => fetchReflectionOverview(userId ?? ""),
+    enabled: Boolean(userId),
+    staleTime: 0,
+    retry: false,
+  });
+
   const xpTotal = data?.xpTotal ?? 0;
   const levelStats = useMemo(() => computeGrowthLevelStats(xpTotal), [xpTotal]);
   const streakCount = data?.streak ?? 0;
@@ -206,55 +218,62 @@ export function GrowthClient() {
   const hasValidDate = !Number.isNaN(availableOnDate.getTime());
   const mondayWeekIndex = hasValidDate ? mondayAlignedWeekIndex(availableOnDate) : 0;
   const mondayDayIndex = hasValidDate ? mondayAlignedDayIndex(availableOnDate) : null;
-  const isPremiumUser = Boolean(
-    data?.dopamine?.rewardHighlights?.some((highlight) =>
-      highlight.title?.toLowerCase().includes("premium"),
-    ),
-  );
-  const todayReflection = useMemo(() => {
-    const formatter = new Intl.DateTimeFormat("en-US", {
+  const reflectionPlan = reflectionData?.plan ?? "free";
+  const timelineUnlocked = reflectionData?.timelineUnlocked ?? reflectionPlan === "premium";
+  const isPremiumUser = timelineUnlocked;
+  const fallbackWeeklySummary = useMemo(() => {
+    const total = data?.weekProgress?.totalDays ?? 7;
+    const completed = data?.weekProgress?.completedDays ?? 0;
+    const startOfWeek = new Date(availableOnDate);
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay() + 1); // align to Monday
+    return Array.from({ length: total }, (_, index) => {
+      const dayDate = new Date(startOfWeek);
+      dayDate.setDate(startOfWeek.getDate() + index);
+      const captured = index < completed;
+      return {
+        date: dayDate.toISOString(),
+        weekday: dayDate.toLocaleDateString(undefined, { weekday: "long" }),
+        hasEntry: captured,
+        entry: captured
+          ? {
+              questionId: data?.id ?? `week-${data?.weekIndex ?? 0}-day-${index + 1}`,
+              prompt: data?.prompt ?? "Reflection",
+              theme: data?.theme ?? "Current arc",
+              answeredAt: dayDate.toISOString(),
+              xpAwarded: 0,
+              durationSeconds: 0,
+              excerpt: "Reflection saved.",
+              answer: "",
+              feedback: null,
+            }
+          : null,
+      };
+    });
+  }, [availableOnDate, data]);
+  const weeklyReflectionSummary = reflectionData?.week ?? fallbackWeeklySummary;
+  const todayReflectionEntry = reflectionData?.today ?? null;
+  const todayLocked = reflectionData?.todayLocked ?? !todayReflectionEntry;
+  const todayTeasers = reflectionData?.teasers ?? [];
+  const todayDateLabel = useMemo(() => {
+    const source = todayReflectionEntry?.answeredAt
+      ? new Date(todayReflectionEntry.answeredAt)
+      : availableOnDate;
+    return new Intl.DateTimeFormat("en-US", {
       weekday: "long",
       month: "long",
       day: "numeric",
-    });
-    const dateLabel = formatter.format(availableOnDate);
-    const snippet = data?.previousFeedback
-      ? data.previousFeedback.feedback.split(/Improve:/i)[0].trim()
-      : "Your full reflection will appear here once you submit today’s answer.";
-    return {
-      dateLabel,
-      prompt: data?.prompt ?? "Today’s reflection unlocks when the session starts.",
-      snippet,
-      locked: !data?.previousFeedback,
-    };
-  }, [availableOnDate, data]);
-  const weeklyReflectionSummary = useMemo(() => {
-    const total = data?.weekProgress?.totalDays ?? 7;
-    const completed = data?.weekProgress?.completedDays ?? 0;
-    return Array.from({ length: total }, (_, index) => {
-      const captured = index < completed;
-      return {
-        dayLabel: `Day ${index + 1}`,
-        status: captured ? "saved" : "locked",
-        description: captured
-          ? "Reflection saved. Tap soon to revisit."
-          : "Write that day to unlock the entry.",
-      };
-    });
-  }, [data]);
-  const teaserReflections = useMemo(
-    () => [
-      {
-        title: "Week 18 · Pattern Interrupts",
-        snippet: "A locked glimpse from May. Upgrade to reopen it anytime.",
-      },
-      {
-        title: "Week 09 · Stillness Drill",
-        snippet: "Premium unlock shows how your tone shifted mid-March.",
-      },
-    ],
-    [],
-  );
+    }).format(source);
+  }, [todayReflectionEntry, availableOnDate]);
+  const todayPromptText = todayReflectionEntry?.prompt ?? data?.prompt ?? "Today’s reflection unlocks when the session starts.";
+  const todayAnswerText = todayReflectionEntry?.answer?.trim();
+  const todayExcerpt = todayReflectionEntry?.excerpt?.trim();
+  const todayDisplayText = todayAnswerText || todayExcerpt || "Reflection saved.";
+  const todayDurationLabel = todayReflectionEntry
+    ? todayReflectionEntry.durationSeconds >= 60
+      ? `${(todayReflectionEntry.durationSeconds / 60).toFixed(1)} min`
+      : `${todayReflectionEntry.durationSeconds}s`
+    : "";
+  const showReflectionLoading = Boolean(userId && reflectionsLoading && !reflectionData);
   const premiumHighlights = [
     { title: "Timeline view", detail: "Scroll every answer you’ve written, grouped by week and month." },
     { title: "Search + tags", detail: "Filter by emotion, theme, or keyword to find exactly what you wrote." },
@@ -385,6 +404,9 @@ export function GrowthClient() {
                   <p className="text-sm text-slate-300">
                     Return to today’s words, scan this week’s arc, and unlock your full timeline when you upgrade.
                   </p>
+                  {reflectionsError ? (
+                    <p className="mt-2 text-xs text-red-300">Couldn’t load your reflections. Showing placeholders.</p>
+                  ) : null}
                 </div>
                 {!isPremiumUser ? (
                   <button
@@ -401,41 +423,68 @@ export function GrowthClient() {
                   <div className="rounded-2xl border border-emerald-400/30 bg-emerald-500/5 p-5 shadow-inner">
                     <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-emerald-200">
                       <span>Today</span>
-                      <span>{todayReflection.dateLabel}</span>
+                      <span>{todayDateLabel}</span>
                     </div>
-                    <p className="mt-3 text-sm text-emerald-100/80">{todayReflection.prompt}</p>
-                    <p className="mt-4 text-base italic text-white">
-                      {todayReflection.locked ? "“Your reflection lands here once you finish writing.”" : `“${todayReflection.snippet}”`}
-                    </p>
+                    <p className="mt-3 text-sm text-emerald-100/80">{todayPromptText}</p>
+                    {showReflectionLoading ? (
+                      <p className="mt-4 text-sm text-emerald-200/70">Linking today’s reflection…</p>
+                    ) : todayLocked ? (
+                      <p className="mt-4 text-base italic text-white">
+                        “Your reflection lands here once you finish writing.”
+                      </p>
+                    ) : (
+                      <div className="mt-4 space-y-3 text-sm text-white">
+                        <p className="whitespace-pre-line leading-relaxed">{todayDisplayText}</p>
+                        {todayReflectionEntry ? (
+                          <p className="text-xs uppercase tracking-[0.25em] text-emerald-300">
+                            +{todayReflectionEntry.xpAwarded} XP · {todayDurationLabel} focused
+                          </p>
+                        ) : null}
+                      </div>
+                    )}
                     <p className="mt-4 text-xs text-emerald-200/70">Auto-saves when you submit.</p>
                   </div>
 
                   <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 p-5">
                     <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-300">
                       <span>This week</span>
-                      <span>{data.weekProgress?.completedDays ?? 0}/{data.weekProgress?.totalDays ?? 7} captured</span>
+                      <span>
+                        {weeklyReflectionSummary.filter((day) => day.hasEntry).length}/{weeklyReflectionSummary.length} captured
+                      </span>
                     </div>
                     <ul className="mt-4 space-y-3">
-                      {weeklyReflectionSummary.map((day) => (
-                        <li
-                          key={day.dayLabel}
-                          className="flex items-start justify-between gap-4 rounded-xl border border-white/5 bg-white/5 px-3 py-2"
-                        >
-                          <div>
-                            <p className="text-sm font-semibold text-white">{day.dayLabel}</p>
-                            <p className="text-xs text-slate-300">{day.description}</p>
+                      {weeklyReflectionSummary.map((day, idx) => {
+                        const hasEntry = day.hasEntry;
+                        const summaryDate = new Date(day.date);
+                        const label = day.weekday || `Day ${idx + 1}`;
+                        const description = hasEntry
+                          ? day.entry?.excerpt || "Reflection saved."
+                          : "Write that day to unlock the entry.";
+                        const statusLabel = hasEntry ? "Saved" : "Locked";
+                        return (
+                          <li
+                            key={`${day.date}-${idx}`}
+                            className="flex items-start justify-between gap-4 rounded-xl border border-white/5 bg-white/5 px-3 py-2"
+                          >
+                            <div>
+                              <p className="text-sm font-semibold text-white">{label}</p>
+                              <p className="text-xs text-slate-400">
+                                {summaryDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                              </p>
+                            <p className="text-xs text-slate-300">{description}</p>
                           </div>
                           <span
                             className={`mt-1 inline-flex items-center rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider ${
-                              day.status === "saved"
+                              hasEntry
                                 ? "bg-emerald-500/20 text-emerald-200"
                                 : "bg-slate-800 text-slate-400"
                             }`}
                           >
-                            {day.status === "saved" ? "Saved" : "Locked"}
+                            {statusLabel}
                           </span>
                         </li>
-                      ))}
+                        );
+                      })}
                     </ul>
                   </div>
                 </div>
@@ -464,9 +513,15 @@ export function GrowthClient() {
                       <div>
                         <p className="text-xs uppercase tracking-[0.3em] text-slate-300">Earlier glimpses</p>
                         <div className="mt-3 space-y-3">
-                          {teaserReflections.map((teaser) => (
-                            <div key={teaser.title} className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                              <p className="text-sm font-semibold text-white">{teaser.title}</p>
+                          {todayTeasers.length === 0 ? (
+                            <p className="text-xs text-slate-400">Unlock premium to browse your earlier reflections.</p>
+                          ) : null}
+                          {todayTeasers.map((teaser) => (
+                            <div key={teaser.questionId} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                              <p className="text-sm font-semibold text-white">{teaser.prompt}</p>
+                              <p className="mt-1 text-xs text-slate-400">
+                                {new Date(teaser.answeredAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                              </p>
                               <p className="mt-1 text-xs text-slate-300">{teaser.snippet}</p>
                               <p className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-400">
                                 Locked
