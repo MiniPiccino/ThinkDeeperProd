@@ -22,6 +22,7 @@ type GrowthLevelStats = {
 };
 
 const GROWTH_XP_PER_LEVEL = 120;
+const DAYS_PER_WEEK_TOTAL = 7;
 
 type TreeAnimationFrame = {
   key: string;
@@ -260,6 +261,14 @@ export function GrowthClient() {
     { title: "Insights", detail: "See how your voice evolves (“Your thinking is more analytical this month”)." },
     { title: "Exports & yearly recap", detail: "Download PDFs/CSV or replay your Deep Tree for any year." },
   ];
+  const answeredDayIndices = useMemo(() => {
+    if (!hasValidDate) {
+      return [];
+    }
+    const clamped = Math.max(Math.min(completedDays, totalWeekDays), 0);
+    const startIndex = mondayWeekIndex * DAYS_PER_WEEK_TOTAL;
+    return Array.from({ length: clamped }, (_, index) => startIndex + index);
+  }, [completedDays, totalWeekDays, mondayWeekIndex, hasValidDate]);
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-900 px-4 py-16 text-slate-100">
@@ -311,6 +320,7 @@ export function GrowthClient() {
                     weekTotalDays={data?.weekProgress?.totalDays ?? 7}
                     currentWeekIndex={mondayWeekIndex}
                     dayOfWeekIndex={mondayDayIndex}
+                    answeredIndices={answeredDayIndices}
                     focusDayIndex={focusDayIndex}
                     focusMode={treeFocusMode}
                   />

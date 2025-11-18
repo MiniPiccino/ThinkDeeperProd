@@ -8,6 +8,7 @@ type StreakReplayProps = {
   weekTotalDays: number;
   currentWeekIndex: number;
   dayOfWeekIndex?: number | null;
+  answeredIndices?: number[];
   focusDayIndex?: number | null;
   focusMode?: 'none' | 'focus' | 'bloom';
 };
@@ -26,6 +27,7 @@ export function StreakReplay({
   weekTotalDays,
   currentWeekIndex,
   dayOfWeekIndex,
+  answeredIndices = [],
   focusDayIndex,
   focusMode,
 }: StreakReplayProps) {
@@ -81,9 +83,21 @@ export function StreakReplay({
       const palette = paletteForWeek(weekIndex);
       const isCurrentWeek = weekIndex === normalizedWeekIndex;
       const isCurrentDay = isCurrentWeek && dayIndex === dayPointer;
-      return { ...palette, filled, isCurrentWeek, isCurrentDay, weekIndex, dayIndex };
+      const answered = isCurrentWeek && dayIndex < weekCompletedDays;
+      const answeredHistoric =
+        !isCurrentWeek && answeredIndices.includes(index);
+      return {
+        ...palette,
+        filled,
+        isCurrentWeek,
+        isCurrentDay,
+        weekIndex,
+        dayIndex,
+        answered,
+        answeredHistoric,
+      };
     });
-  }, [rangeStart, rangeEnd, streakClamped, normalizedWeekIndex, dayPointer, totalDays]);
+  }, [rangeStart, rangeEnd, streakClamped, normalizedWeekIndex, dayPointer, totalDays, weekCompletedDays, answeredIndices]);
 
   const overviewRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -229,20 +243,36 @@ type TileState = ReturnType<typeof paletteForWeek> & {
   isCurrentDay: boolean;
   weekIndex: number;
   dayIndex: number;
+  answered: boolean;
+  answeredHistoric: boolean;
 };
 
 function Tile({ tile }: { tile: TileState }) {
+  let backgroundColor = tile.filledColor;
+  let borderColor = tile.filledBorder;
+  if (!tile.filled) {
+    if (tile.answered || tile.answeredHistoric) {
+      backgroundColor = tile.filledColor;
+      borderColor = tile.filledBorder;
+    } else {
+      backgroundColor = tile.emptyColor;
+      borderColor = tile.emptyBorder;
+    }
+  }
+  const outlineClass =
+    tile.answered || tile.answeredHistoric ? 'outline outline-1 outline-emerald-200/70' : '';
+
   return (
     <div
       className={`relative overflow-hidden rounded-sm transition duration-300 ${
         tile.filled ? 'shadow-[0_0_12px_rgba(16,185,129,0.55)] animate-[pulse_1.5s_ease-in-out]' : ''
-      }`}
+      } ${outlineClass}`}
       style={{
         width: TILE_SIZE,
         height: TILE_SIZE,
-        backgroundColor: tile.filled ? tile.filledColor : tile.emptyColor,
-        border: `1px solid ${tile.filled ? tile.filledBorder : tile.emptyBorder}`,
-        opacity: tile.isCurrentWeek || tile.filled ? 1 : 0.35,
+        backgroundColor,
+        border: `1px solid ${borderColor}`,
+        opacity: tile.isCurrentWeek || tile.filled || tile.answered || tile.answeredHistoric ? 1 : 0.35,
       }}
       title={`Week ${tile.weekIndex + 1}, Day ${tile.dayIndex + 1}`}
     >
