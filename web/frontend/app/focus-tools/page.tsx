@@ -98,7 +98,7 @@ export default function FocusToolsPage() {
               <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-200">Streak intel</p>
               <p className="mt-3 text-base text-white">Level {levelStats.level} | {streakCount} day streak</p>
               <ul className="mt-4 space-y-2 text-sm text-emerald-100/80">
-                <li>Completed days glow. {remainingDays === 0 ? 'This loop is fully lit.' : `${remainingDays} day${remainingDays === 1 ? '' : 's'} left to close the loop.`}</li>
+                <li>Completed days leaf out. {remainingDays === 0 ? 'This loop is in full bloom.' : `${remainingDays} day${remainingDays === 1 ? '' : 's'} left to close the loop.`}</li>
                 <li>Badge unlock: {weekProgress.badgeEarned ? 'claimed for this arc.' : `${badgeName ?? 'Weekly Insight'} once you finish the week.`}</li>
                 <li>XP pacing: {levelStats.xpToNextLevel > 0 ? `${levelStats.xpToNextLevel} XP until the next tier.` : 'Next tier unlocked—keep stacking.'}</li>
               </ul>

@@ -53,7 +53,7 @@ const TREE_ANIMATION_FRAMES: TreeAnimationFrame[] = [
     key: "leaf",
     duration: 1100,
     label: "Frame 3 · Focus on day",
-    description: "Landing on the day you just lit up.",
+    description: "Landing on the day you just brought to bloom.",
     transform: "scale(1.2) translate3d(0,-20px,0)",
     focusMode: "focus",
   },

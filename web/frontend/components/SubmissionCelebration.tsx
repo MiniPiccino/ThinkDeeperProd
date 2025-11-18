@@ -376,7 +376,7 @@ export function SubmissionCelebration({
                   Streak
                 </div>
                 <div className="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-200">
-                  {animatedStreak} 🔥
+                  {animatedStreak} 🍃
                 </div>
                 <div className="mt-1 text-xs text-emerald-600/80 dark:text-emerald-200/70">
                   {weekBadgeEarned

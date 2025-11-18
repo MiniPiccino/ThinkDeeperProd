@@ -283,7 +283,7 @@ function CloseupWeek({
     <div className="mx-auto w-full max-w-md rounded-2xl border border-emerald-400/40 bg-emerald-500/10 p-4 text-emerald-100 shadow-inner">
       <p className="text-[0.65rem] uppercase tracking-[0.35em] text-emerald-200/80">Close up</p>
       <p className="mt-2 text-sm font-semibold text-center">
-        Week {weekIndex + 1} · {weekCompletedDays}/{weekTotalDays} days lit
+        Week {weekIndex + 1} · {weekCompletedDays}/{weekTotalDays} days in bloom
       </p>
       <div className="mt-3 flex items-center justify-center gap-3">
         {tiles.map((tile, index) => (
