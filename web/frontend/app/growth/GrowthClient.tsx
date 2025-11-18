@@ -195,10 +195,71 @@ export function GrowthClient() {
   );
   const focusDayIndex = treeFocusMode === "none" ? null : focusableDay;
   const treeTransformDuration = animationUnlocked && activeFrame ? activeFrame.duration : 1000;
-  const availableOnDate = data?.availableOn ? new Date(data.availableOn) : new Date();
+  const availableOnDate = useMemo(() => {
+    const base = data?.availableOn ? new Date(data.availableOn) : new Date();
+    if (Number.isNaN(base.getTime())) {
+      return new Date();
+    }
+    return base;
+  }, [data]);
   const hasValidDate = !Number.isNaN(availableOnDate.getTime());
   const mondayWeekIndex = hasValidDate ? mondayAlignedWeekIndex(availableOnDate) : 0;
   const mondayDayIndex = hasValidDate ? mondayAlignedDayIndex(availableOnDate) : null;
+  const isPremiumUser = Boolean(
+    data?.dopamine?.rewardHighlights?.some((highlight) =>
+      highlight.title?.toLowerCase().includes("premium"),
+    ),
+  );
+  const todayReflection = useMemo(() => {
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+    });
+    const dateLabel = formatter.format(availableOnDate);
+    const snippet = data?.previousFeedback
+      ? data.previousFeedback.feedback.split(/Improve:/i)[0].trim()
+      : "Your full reflection will appear here once you submit today’s answer.";
+    return {
+      dateLabel,
+      prompt: data?.prompt ?? "Today’s prompt unlocks when the session starts.",
+      snippet,
+      locked: !data?.previousFeedback,
+    };
+  }, [availableOnDate, data]);
+  const weeklyReflectionSummary = useMemo(() => {
+    const total = data?.weekProgress?.totalDays ?? 7;
+    const completed = data?.weekProgress?.completedDays ?? 0;
+    return Array.from({ length: total }, (_, index) => {
+      const captured = index < completed;
+      return {
+        dayLabel: `Day ${index + 1}`,
+        status: captured ? "saved" : "locked",
+        description: captured
+          ? "Reflection saved. Tap soon to revisit."
+          : "Write that day to unlock the entry.",
+      };
+    });
+  }, [data]);
+  const teaserReflections = useMemo(
+    () => [
+      {
+        title: "Week 18 · Pattern Interrupts",
+        snippet: "A locked glimpse from May. Upgrade to reopen it anytime.",
+      },
+      {
+        title: "Week 09 · Stillness Drill",
+        snippet: "Premium unlock shows how your tone shifted mid-March.",
+      },
+    ],
+    [],
+  );
+  const premiumHighlights = [
+    { title: "Timeline view", detail: "Scroll every answer you’ve written, grouped by week and month." },
+    { title: "Search + tags", detail: "Filter by emotion, theme, or keyword to find exactly what you wrote." },
+    { title: "Insights", detail: "See how your voice evolves (“Your thinking is more analytical this month”)." },
+    { title: "Exports & yearly recap", detail: "Download PDFs/CSV or replay your Deep Tree for any year." },
+  ];
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-900 px-4 py-16 text-slate-100">
@@ -304,6 +365,126 @@ export function GrowthClient() {
                 />
               </div>
               <p className="mt-2 text-xs text-emerald-200/70">Keep writing daily to push the bar forward.</p>
+            </section>
+
+            <section className="rounded-3xl border border-emerald-400/40 bg-slate-900/40 p-6 text-sm text-slate-100 shadow-2xl">
+              <div className="flex flex-col gap-2 border-b border-white/5 pb-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.35em] text-emerald-200">Reflections</p>
+                  <h3 className="mt-1 text-2xl font-semibold text-white">Replay what you wrote</h3>
+                  <p className="text-sm text-slate-300">
+                    Return to today’s words, scan this week’s arc, and unlock your full timeline when you upgrade.
+                  </p>
+                </div>
+                {!isPremiumUser ? (
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center rounded-full border border-emerald-400/50 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-emerald-200 transition hover:border-emerald-300 hover:text-emerald-50"
+                  >
+                    Upgrade for unlimited
+                  </button>
+                ) : null}
+              </div>
+
+              <div className="mt-5 grid gap-4 lg:grid-cols-2">
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-emerald-400/30 bg-emerald-500/5 p-5 shadow-inner">
+                    <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-emerald-200">
+                      <span>Today</span>
+                      <span>{todayReflection.dateLabel}</span>
+                    </div>
+                    <p className="mt-3 text-sm text-emerald-100/80">{todayReflection.prompt}</p>
+                    <p className="mt-4 text-base italic text-white">
+                      {todayReflection.locked ? "“Your reflection lands here once you finish writing.”" : `“${todayReflection.snippet}”`}
+                    </p>
+                    <p className="mt-4 text-xs text-emerald-200/70">Auto-saves when you submit.</p>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 p-5">
+                    <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-300">
+                      <span>This week</span>
+                      <span>{data.weekProgress?.completedDays ?? 0}/{data.weekProgress?.totalDays ?? 7} captured</span>
+                    </div>
+                    <ul className="mt-4 space-y-3">
+                      {weeklyReflectionSummary.map((day) => (
+                        <li
+                          key={day.dayLabel}
+                          className="flex items-start justify-between gap-4 rounded-xl border border-white/5 bg-white/5 px-3 py-2"
+                        >
+                          <div>
+                            <p className="text-sm font-semibold text-white">{day.dayLabel}</p>
+                            <p className="text-xs text-slate-300">{day.description}</p>
+                          </div>
+                          <span
+                            className={`mt-1 inline-flex items-center rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider ${
+                              day.status === "saved"
+                                ? "bg-emerald-500/20 text-emerald-200"
+                                : "bg-slate-800 text-slate-400"
+                            }`}
+                          >
+                            {day.status === "saved" ? "Saved" : "Locked"}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-5">
+                  {isPremiumUser ? (
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.3em] text-emerald-200">Timeline</p>
+                        <p className="mt-2 text-lg font-semibold text-white">Every reflection, searchable.</p>
+                        <p className="text-sm text-slate-300">
+                          Scroll your entire archive, filter by tags, and pin insights as you grow.
+                        </p>
+                      </div>
+                      <div className="space-y-3">
+                        {premiumHighlights.map((item) => (
+                          <div key={item.title} className="rounded-xl border border-emerald-400/20 bg-emerald-500/5 p-3">
+                            <p className="text-sm font-semibold text-white">{item.title}</p>
+                            <p className="text-xs text-emerald-100/80">{item.detail}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex h-full flex-col justify-between gap-4">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.3em] text-slate-300">Earlier glimpses</p>
+                        <div className="mt-3 space-y-3">
+                          {teaserReflections.map((teaser) => (
+                            <div key={teaser.title} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                              <p className="text-sm font-semibold text-white">{teaser.title}</p>
+                              <p className="mt-1 text-xs text-slate-300">{teaser.snippet}</p>
+                              <p className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-400">
+                                Locked
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="space-y-3 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 p-4">
+                        <p className="text-sm font-semibold text-white">Premium unlocks</p>
+                        <ul className="text-xs text-emerald-100/80">
+                          {premiumHighlights.map((item) => (
+                            <li key={item.title} className="mt-1">
+                              <span className="font-semibold">{item.title}:</span> {item.detail}
+                            </li>
+                          ))}
+                        </ul>
+                        <button
+                          type="button"
+                          className="mt-3 w-full rounded-full bg-emerald-500/90 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-400"
+                        >
+                          Unlock reflections
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </section>
           </>
         ) : null}
