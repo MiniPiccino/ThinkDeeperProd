@@ -21,7 +21,7 @@ import {
 import { useUserIdentifier } from '@/hooks/useUserIdentifier';
 const XP_PER_LEVEL = 120;
 const PRIMING_MODAL_KEY = 'thinkdeeper.priming-seen';
-const ALREADY_ANSWERED_MESSAGE = "You've already completed today's prompt. Come back tomorrow for a fresh one.";
+const ALREADY_ANSWERED_MESSAGE = "You've already completed today's reflection. Come back tomorrow for a fresh one.";
 
 type LevelStats = {
   level: number;
@@ -628,7 +628,7 @@ export default function HomePage() {
 
         {status === 'loading' ? (
           <div className="flex h-64 w-full items-center justify-center rounded-3xl border border-dashed border-zinc-300 text-zinc-500">
-            Quietly loading today&apos;s prompt...
+            Quietly loading today&apos;s reflection...
           </div>
         ) : null}
 

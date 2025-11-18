@@ -39,7 +39,7 @@ export default function AIDisclaimerPage() {
       <section className="space-y-3">
         <h2 className="text-2xl font-semibold">Model Transparency</h2>
         <p>
-          ThinkDeeper relies on third-party AI providers (such as OpenAI) to process prompt content.
+          ThinkDeeper relies on third-party AI providers (such as OpenAI) to process reflection content.
           These models may retain aggregated telemetry to improve their services. See our Privacy
           Policy and Data Processing Addendum for details about data handling.
         </p>
@@ -66,4 +66,3 @@ export default function AIDisclaimerPage() {
     </section>
   );
 }
-

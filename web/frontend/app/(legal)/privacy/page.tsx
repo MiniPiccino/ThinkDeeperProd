@@ -17,7 +17,7 @@ export default function PrivacyPage() {
         <p className="text-sm text-foreground/70">Effective date: March 1, 2025</p>
         <p>
           ThinkDeeper (&ldquo;Company,&rdquo; &ldquo;we,&rdquo; &ldquo;us,&rdquo; or &ldquo;our&rdquo;)
-          provides a daily thinking trainer that delivers prompts, evaluates responses with AI, and
+          provides a daily thinking trainer that delivers reflections, evaluates responses with AI, and
           tracks personal progress. This Privacy Policy explains how we collect, use, share, and
           protect information when you use our website, mobile experiences, or FastAPI backend
           (collectively, the &ldquo;Services&rdquo;).
@@ -32,7 +32,7 @@ export default function PrivacyPage() {
             and learning goals that you choose to provide.
           </li>
           <li>
-            <strong>Content submissions.</strong> Answers to prompts, reflections, attachments, and
+            <strong>Content submissions.</strong> Answers to guided reflections, attachments, and
             feedback you generate through the Services. We treat this as user-generated content.
           </li>
           <li>
@@ -55,7 +55,7 @@ export default function PrivacyPage() {
         <h2 className="text-2xl font-semibold">How We Use Information</h2>
         <ul className="list-disc space-y-3 pl-6">
           <li>Authenticate you and deliver core product functionality.</li>
-          <li>Generate prompts, evaluate answers, and serve personalized insights.</li>
+          <li>Generate guided reflections, evaluate answers, and serve personalized insights.</li>
           <li>Improve the effectiveness, safety, and reliability of the Services.</li>
           <li>Provide customer support and respond to requests.</li>
           <li>Monitor for fraud, abuse, and violations of our Terms of Service.</li>
@@ -82,7 +82,7 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>AI model providers.</strong> Third-party LLM vendors (such as OpenAI) process
-            prompt/response content to deliver feedback and scoring.
+            reflection/response content to deliver feedback and scoring.
           </li>
           <li>
             <strong>Business transfers.</strong> In connection with a merger, acquisition, financing,
@@ -173,4 +173,3 @@ export default function PrivacyPage() {
     </section>
   );
 }
-

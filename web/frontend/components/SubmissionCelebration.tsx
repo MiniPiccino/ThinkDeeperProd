@@ -153,7 +153,7 @@ export function SubmissionCelebration({
       return parsedFeedback.celebrate;
     }
     if (xpGain <= 2) {
-      return 'We couldn’t read much. Give the prompt a real attempt.';
+      return 'We couldn’t read much. Give the reflection a real attempt.';
     }
     if (xpGain <= 5) {
       return 'Keep it honest—try slowing down and actually answering.';
@@ -465,7 +465,7 @@ export function SubmissionCelebration({
                   {focusLine}
                 </div>
                 <div className="mt-3 text-xs uppercase tracking-[0.25em] text-emerald-600 dark:text-emerald-300">
-                  Next question unlocks tomorrow.
+                  Next reflection unlocks tomorrow.
                 </div>
               </div>
               <div className="rounded-2xl bg-amber-100/80 p-4 text-amber-900 shadow dark:bg-amber-400/15 dark:text-amber-100">

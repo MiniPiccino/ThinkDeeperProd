@@ -1,6 +1,6 @@
 # ThinkDeeper Frontend
 
-Next.js application that delivers the Thinkle experience in production. It consumes the FastAPI backend to serve daily prompts, capture answers, and display progress.
+Next.js application that delivers the Thinkle experience in production. It consumes the FastAPI backend to serve daily reflections, capture answers, and display progress.
 
 ## Getting started
 
@@ -23,7 +23,7 @@ npm test
 
 ### Key features
 
-- Daily prompt retrieval with React Query caching.
+- Daily reflection retrieval with React Query caching.
 - Five-minute timer with local persistence per session.
 - Answer submission routed to the FastAPI evaluator.
 - XP meter, streak tracking, and feedback surfaces mirroring the MVP.

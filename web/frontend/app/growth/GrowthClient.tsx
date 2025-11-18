@@ -222,7 +222,7 @@ export function GrowthClient() {
       : "Your full reflection will appear here once you submit today’s answer.";
     return {
       dateLabel,
-      prompt: data?.prompt ?? "Today’s prompt unlocks when the session starts.",
+      prompt: data?.prompt ?? "Today’s reflection unlocks when the session starts.",
       snippet,
       locked: !data?.previousFeedback,
     };
@@ -347,7 +347,7 @@ export function GrowthClient() {
                   href="/"
                   className="inline-flex items-center gap-2 rounded-full border border-emerald-400/60 px-4 py-1.5 text-[12px] font-semibold uppercase tracking-wide text-emerald-200 hover:border-emerald-300 hover:text-emerald-100"
                 >
-                  Back to today&apos;s prompt
+                  Back to today&apos;s reflection
                 </Link>
               </div>
             </section>
@@ -490,7 +490,7 @@ export function GrowthClient() {
         ) : null}
       </div>
       <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2 md:gap-3">
-        <FloatingAction href="/" label="Back to prompt" />
+        <FloatingAction href="/" label="Back to reflection" />
         <FloatingAction href="/focus-tools" label="Focus tools" />
         <FloatingAction href="/why" label="Why Deep" variant="ghost" />
       </div>

@@ -139,7 +139,7 @@ export default function FocusToolsPage() {
         )}
       </div>
       <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2 md:gap-3">
-        <FloatingAction href="/" label="Back to prompt" />
+        <FloatingAction href="/" label="Back to reflection" />
         <FloatingAction href="/growth" label="Growth check-in" />
         <FloatingAction href="/why" label="Why Deep" variant="ghost" />
       </div>
@@ -180,7 +180,7 @@ function dopamineCuriosity(dopamine: DopaminePayload) {
     title: dopamine.curiosityHook ? 'Curiosity spark' : 'Curiosity spark',
     description:
       dopamine.curiosityHook ??
-      'Prime your mind for today’s theme. Use the prompts that resonate most.',
+      'Prime your mind for today’s theme. Use the reflections that resonate most.',
     points: dopamine.curiosityPrompts?.filter(Boolean) ?? [
       'Notice the bias that keeps resurfacing.',
       'Name one assumption you can test today.',

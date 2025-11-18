@@ -18,7 +18,7 @@ const MODE_COPY: Record<PrimingModalProps['mode'], { title: string; lead: ReactN
     lead: (
       <>
         ThinkDeeper sessions work best when feeling leads and thinking follows. Take 30 seconds to let
-        today&apos;s theme hit your body before you open the prompt.
+        today&apos;s theme hit your body before you open the reflection.
       </>
     ),
   },
@@ -27,7 +27,7 @@ const MODE_COPY: Record<PrimingModalProps['mode'], { title: string; lead: ReactN
     lead: (
       <>
         Quick reset: surface the emotion first, then convert it into deliberate reasoning when you
-        unlock the prompt.
+        unlock the reflection.
       </>
     ),
   },

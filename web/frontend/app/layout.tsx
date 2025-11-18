@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Deep — Deep Thinking Trainer",
-  description: "Daily prompts and feedback to level up your reasoning.",
+  description: "Daily reflections and feedback to level up your reasoning.",
 };
 
 export default function RootLayout({

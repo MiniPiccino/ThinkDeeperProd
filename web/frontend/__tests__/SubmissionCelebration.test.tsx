@@ -35,6 +35,6 @@ describe("SubmissionCelebration", () => {
       screen.getByText(/Great pacing\. You made space for nuance\./),
     ).toBeInTheDocument();
     expect(screen.getByText(/3m 05s/)).toBeInTheDocument();
-    expect(screen.getByText(/Next question unlocks tomorrow/i)).toBeInTheDocument();
+    expect(screen.getByText(/Next reflection unlocks tomorrow/i)).toBeInTheDocument();
   });
 });

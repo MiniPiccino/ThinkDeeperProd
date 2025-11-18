@@ -54,18 +54,18 @@ export default function CookiePolicyPage() {
             <tr>
               <td className="border border-foreground/10 px-3 py-2 font-medium">Functional</td>
               <td className="border border-foreground/10 px-3 py-2">
-                Remember timers, streaks, UI preferences, and last-viewed prompts to personalize your
+                Remember timers, streaks, UI preferences, and last-viewed reflections to personalize your
                 experience.
               </td>
               <td className="border border-foreground/10 px-3 py-2">
-                `timer_state`, `prompt_history`, `theme`
+                `timer_state`, `reflection_history`, `theme`
               </td>
               <td className="border border-foreground/10 px-3 py-2">Up to 12 months</td>
             </tr>
             <tr>
               <td className="border border-foreground/10 px-3 py-2 font-medium">Analytics</td>
               <td className="border border-foreground/10 px-3 py-2">
-                Measure product usage, identify popular prompts, and guide product improvements.
+                Measure product usage, identify popular reflections, and guide product improvements.
               </td>
               <td className="border border-foreground/10 px-3 py-2">
                 `analytics_id`, `feature_flags`, `ab_test_group`
@@ -135,4 +135,3 @@ export default function CookiePolicyPage() {
     </section>
   );
 }
-

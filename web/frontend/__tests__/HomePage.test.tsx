@@ -97,7 +97,7 @@ describe("HomePage", () => {
     vi.unstubAllGlobals();
   });
 
-  it("renders daily prompt and handles submission flow", async () => {
+  it("renders daily reflection and handles submission flow", async () => {
     renderWithClient(<HomePage />);
 
     const startButton = await screen.findByRole("button", { name: /start thinking/i });

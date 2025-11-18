@@ -147,7 +147,7 @@ export function DopamineDrivers({
           </h2>
           {anticipation.nextPrompt ? (
             <p className="text-xs text-sky-600 dark:text-sky-200/80">
-              Next prompt unlocks {anticipation.nextPrompt}
+              Next reflection unlocks {anticipation.nextPrompt}
             </p>
           ) : null}
         </header>

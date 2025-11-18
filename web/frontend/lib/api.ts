@@ -146,7 +146,7 @@ const baselineMockDailyQuestion: DailyQuestionResponse = {
     emotionalHook: "Let today’s question nudge the gut feeling that shows up when you think about distraction versus purpose.",
     teaserQuestion: "What does that feeling ask before your rational mind edits it?",
     somaticCue: "Take one 4-6 breath and name the feeling out loud.",
-    cognitiveCue: "When the prompt unlocks, turn the feeling into one bold claim you can test.",
+    cognitiveCue: "When the reflection unlocks, turn the feeling into one bold claim you can test.",
   },
   difficulty: {
     label: "deepening",
