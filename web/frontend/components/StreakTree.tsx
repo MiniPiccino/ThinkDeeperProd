@@ -75,17 +75,19 @@ export function StreakReplay({
     return () => window.clearTimeout(timer);
   }, [stage, cycleKey, stageOverride]);
 
+  const answeredSet = useMemo(() => new Set(answeredIndices), [answeredIndices]);
+
   const tiles = useMemo<TileState[]>(() => {
     return Array.from({ length: totalDays }, (_, index) => {
-      const filled = index >= rangeStart && index <= rangeEnd && streakClamped > 0;
+      const defaultFilled = index >= rangeStart && index <= rangeEnd && streakClamped > 0;
+      const filled = answeredSet.size > 0 ? answeredSet.has(index) : defaultFilled;
       const weekIndex = Math.floor(index / DAYS_PER_WEEK);
       const dayIndex = index % DAYS_PER_WEEK;
       const palette = paletteForWeek(weekIndex);
       const isCurrentWeek = weekIndex === normalizedWeekIndex;
       const isCurrentDay = isCurrentWeek && dayIndex === dayPointer;
-      const answered = isCurrentWeek && dayIndex < weekCompletedDays;
-      const answeredHistoric =
-        !isCurrentWeek && answeredIndices.includes(index);
+      const answered = (isCurrentWeek && dayIndex < weekCompletedDays) || answeredSet.has(index);
+      const answeredHistoric = !isCurrentWeek && answeredSet.has(index);
       return {
         ...palette,
         filled,
@@ -97,7 +99,16 @@ export function StreakReplay({
         answeredHistoric,
       };
     });
-  }, [rangeStart, rangeEnd, streakClamped, normalizedWeekIndex, dayPointer, totalDays, weekCompletedDays, answeredIndices]);
+  }, [
+    rangeStart,
+    rangeEnd,
+    streakClamped,
+    normalizedWeekIndex,
+    dayPointer,
+    totalDays,
+    weekCompletedDays,
+    answeredSet,
+  ]);
 
   const overviewRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
