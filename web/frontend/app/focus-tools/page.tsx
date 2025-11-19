@@ -138,7 +138,7 @@ export default function FocusToolsPage() {
           )
         )}
       </div>
-      <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2 md:gap-3">
+      <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2 md:gap-3 lg:hidden">
         <FloatingAction href="/" label="Back to reflection" />
         <FloatingAction href="/growth" label="Growth check-in" />
         <FloatingAction href="/why" label="Why Deep" variant="ghost" />

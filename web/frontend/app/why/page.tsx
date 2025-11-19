@@ -76,7 +76,7 @@ export default function WhyPage() {
           </p>
         </section>
       </article>
-      <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2 md:gap-3">
+      <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2 md:gap-3 lg:hidden">
         <FloatingAction href="/" label="Back to reflection" />
         <FloatingAction href="/focus-tools" label="Focus tools" />
         <FloatingAction href="/growth" label="Growth check-in" />
