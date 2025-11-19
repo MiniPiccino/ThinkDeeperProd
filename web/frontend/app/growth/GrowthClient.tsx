@@ -221,37 +221,6 @@ export function GrowthClient() {
   const reflectionPlan = reflectionData?.plan ?? "free";
   const timelineUnlocked = reflectionData?.timelineUnlocked ?? reflectionPlan === "premium";
   const isPremiumUser = timelineUnlocked;
-  const fallbackWeeklySummary = useMemo(() => {
-    const total = data?.weekProgress?.totalDays ?? 7;
-    const completed = data?.weekProgress?.completedDays ?? 0;
-    const startOfWeek = new Date(availableOnDate);
-    const dayIndex = (startOfWeek.getDay() + 6) % 7; // Monday = 0
-    startOfWeek.setDate(startOfWeek.getDate() - dayIndex);
-    return Array.from({ length: total }, (_, index) => {
-      const dayDate = new Date(startOfWeek);
-      dayDate.setDate(startOfWeek.getDate() + index);
-      const captured = index < completed;
-      return {
-        date: dayDate.toISOString(),
-        weekday: dayDate.toLocaleDateString(undefined, { weekday: "long" }),
-        hasEntry: captured,
-        entry: captured
-          ? {
-              questionId: data?.id ?? `week-${data?.weekIndex ?? 0}-day-${index + 1}`,
-              prompt: data?.prompt ?? "Reflection",
-              theme: data?.theme ?? "Current arc",
-              answeredAt: dayDate.toISOString(),
-              xpAwarded: 0,
-              durationSeconds: 0,
-              excerpt: "Reflection saved.",
-              answer: "",
-              feedback: null,
-            }
-          : null,
-      };
-    });
-  }, [availableOnDate, data]);
-  const weeklyReflectionSummary = reflectionData?.week ?? fallbackWeeklySummary;
   const todayReflectionEntry = reflectionData?.today ?? null;
   const todayLocked = reflectionData?.todayLocked ?? !todayReflectionEntry;
   const todayTeasers = reflectionData?.teasers ?? [];
@@ -282,6 +251,37 @@ export function GrowthClient() {
     : "";
   const todayDateKey = todayLocalDate.toDateString();
   const showReflectionLoading = Boolean(userId && reflectionsLoading && !reflectionData);
+  const fallbackWeeklySummary = useMemo(() => {
+    const total = data?.weekProgress?.totalDays ?? 7;
+    const completed = data?.weekProgress?.completedDays ?? 0;
+    const startOfWeek = new Date(todayLocalDate);
+    const dayIndex = (startOfWeek.getDay() + 6) % 7;
+    startOfWeek.setDate(startOfWeek.getDate() - dayIndex);
+    return Array.from({ length: total }, (_, index) => {
+      const dayDate = new Date(startOfWeek);
+      dayDate.setDate(startOfWeek.getDate() + index);
+      const captured = index < completed;
+      return {
+        date: dayDate.toISOString(),
+        weekday: dayDate.toLocaleDateString(undefined, { weekday: "long" }),
+        hasEntry: captured,
+        entry: captured
+          ? {
+              questionId: data?.id ?? `week-${data?.weekIndex ?? 0}-day-${index + 1}`,
+              prompt: data?.prompt ?? "Reflection",
+              theme: data?.theme ?? "Current arc",
+              answeredAt: dayDate.toISOString(),
+              xpAwarded: 0,
+              durationSeconds: 0,
+              excerpt: "Reflection saved.",
+              answer: "",
+              feedback: null,
+            }
+          : null,
+      };
+    });
+  }, [todayLocalDate, data]);
+  const weeklyReflectionSummary = reflectionData?.week ?? fallbackWeeklySummary;
   const premiumHighlights = [
     { title: "Timeline view", detail: "Scroll every answer you’ve written, grouped by week and month." },
     { title: "Search + tags", detail: "Filter by emotion, theme, or keyword to find exactly what you wrote." },
@@ -289,16 +289,30 @@ export function GrowthClient() {
     { title: "Exports & yearly recap", detail: "Download PDFs/CSV or replay your Deep Tree for any year." },
   ];
   const reflectionAnsweredIndices = useMemo(() => {
-    const startIndex = mondayWeekIndex * DAYS_PER_WEEK_TOTAL;
     const indices = weeklyReflectionSummary
-      .map((day, idx) => (day.hasEntry ? startIndex + idx : null))
+      .map((day) => {
+        if (!day.hasEntry || !day.entry) {
+          return null;
+        }
+        const parsed = new Date(day.date);
+        if (Number.isNaN(parsed.getTime())) {
+          return null;
+        }
+        const weekIdx = mondayAlignedWeekIndex(parsed);
+        const dayIdx = mondayAlignedDayIndex(parsed);
+        return weekIdx * DAYS_PER_WEEK_TOTAL + dayIdx;
+      })
       .filter((value): value is number => value !== null);
     if (indices.length > 0) {
       return indices;
     }
+    if (!hasValidDate) {
+      return [];
+    }
     const clamped = Math.max(Math.min(completedDays, totalWeekDays), 0);
+    const startIndex = mondayWeekIndex * DAYS_PER_WEEK_TOTAL;
     return Array.from({ length: clamped }, (_, index) => startIndex + index);
-  }, [weeklyReflectionSummary, mondayWeekIndex, completedDays, totalWeekDays]);
+  }, [weeklyReflectionSummary, hasValidDate, completedDays, totalWeekDays, mondayWeekIndex]);
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-900 px-4 py-16 text-slate-100">
