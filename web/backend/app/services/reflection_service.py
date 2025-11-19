@@ -40,7 +40,7 @@ class ReflectionService:
                 answers_by_date[day] = stored
 
         today_entry = answers_by_date.get(today)
-        weekly_blocks = self._weekly_summaries(today, answers_by_date, tz_offset_minutes)
+        weekly_blocks = self._weekly_summaries(today, answers_by_date, tz_offset_minutes, allow_history=is_premium)
         teasers = []
         if not is_premium:
             week_start = today - timedelta(days=today.weekday())
@@ -62,18 +62,22 @@ class ReflectionService:
         reference_day: date,
         answers_by_date: Dict[date, StoredAnswer],
         tz_offset_minutes: int,
+        allow_history: bool,
     ) -> List[ReflectionDaySummary]:
         start_of_week = reference_day - timedelta(days=reference_day.weekday())
         days = []
         for offset in range(self.WEEK_DAYS):
             current = start_of_week + timedelta(days=offset)
             stored = answers_by_date.get(current)
+            entry_payload = self._entry_payload(stored) if stored else None
+            if not allow_history and current != reference_day:
+                entry_payload = None
             days.append(
                 ReflectionDaySummary(
                     date=current,
                     weekday=current.strftime("%A"),
                     hasEntry=stored is not None,
-                    entry=self._entry_payload(stored) if stored else None,
+                    entry=entry_payload,
                 )
             )
         return days

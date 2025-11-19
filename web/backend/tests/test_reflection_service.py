@@ -47,6 +47,11 @@ def test_reflection_overview_for_free_user(
     assert overview.today_locked is False
     assert overview.timeline_unlocked is False
     assert overview.week[0].weekday
+    # Free plan should not expose earlier entries
+    assert overview.today is not None
+    today_date = overview.today.answered_at.date()
+    locked_days = [day for day in overview.week if day.date != today_date]
+    assert all(day.entry is None for day in locked_days)
 
 
 def test_reflection_overview_marks_premium_and_teasers(
@@ -73,3 +78,4 @@ def test_reflection_overview_marks_premium_and_teasers(
     assert overview.timeline_unlocked is True
     assert overview.teasers == []
     assert len(overview.week) == 7
+    assert any(day.entry is not None for day in overview.week)

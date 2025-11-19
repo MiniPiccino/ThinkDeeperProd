@@ -225,7 +225,8 @@ export function GrowthClient() {
     const total = data?.weekProgress?.totalDays ?? 7;
     const completed = data?.weekProgress?.completedDays ?? 0;
     const startOfWeek = new Date(availableOnDate);
-    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay() + 1); // align to Monday
+    const dayIndex = (startOfWeek.getDay() + 6) % 7; // Monday = 0
+    startOfWeek.setDate(startOfWeek.getDate() - dayIndex);
     return Array.from({ length: total }, (_, index) => {
       const dayDate = new Date(startOfWeek);
       dayDate.setDate(startOfWeek.getDate() + index);
@@ -254,16 +255,22 @@ export function GrowthClient() {
   const todayReflectionEntry = reflectionData?.today ?? null;
   const todayLocked = reflectionData?.todayLocked ?? !todayReflectionEntry;
   const todayTeasers = reflectionData?.teasers ?? [];
+  const todayLocalDate = useMemo(() => {
+    if (todayReflectionEntry?.answeredAt) {
+      const parsed = new Date(todayReflectionEntry.answeredAt);
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed;
+      }
+    }
+    return availableOnDate;
+  }, [todayReflectionEntry, availableOnDate]);
   const todayDateLabel = useMemo(() => {
-    const source = todayReflectionEntry?.answeredAt
-      ? new Date(todayReflectionEntry.answeredAt)
-      : availableOnDate;
     return new Intl.DateTimeFormat("en-US", {
       weekday: "long",
       month: "long",
       day: "numeric",
-    }).format(source);
-  }, [todayReflectionEntry, availableOnDate]);
+    }).format(todayLocalDate);
+  }, [todayLocalDate]);
   const todayPromptText = todayReflectionEntry?.prompt ?? data?.prompt ?? "Today’s reflection unlocks when the session starts.";
   const todayAnswerText = todayReflectionEntry?.answer?.trim();
   const todayExcerpt = todayReflectionEntry?.excerpt?.trim();
@@ -273,6 +280,7 @@ export function GrowthClient() {
       ? `${(todayReflectionEntry.durationSeconds / 60).toFixed(1)} min`
       : `${todayReflectionEntry.durationSeconds}s`
     : "";
+  const todayDateKey = todayLocalDate.toDateString();
   const showReflectionLoading = Boolean(userId && reflectionsLoading && !reflectionData);
   const premiumHighlights = [
     { title: "Timeline view", detail: "Scroll every answer you’ve written, grouped by week and month." },
@@ -280,14 +288,17 @@ export function GrowthClient() {
     { title: "Insights", detail: "See how your voice evolves (“Your thinking is more analytical this month”)." },
     { title: "Exports & yearly recap", detail: "Download PDFs/CSV or replay your Deep Tree for any year." },
   ];
-  const answeredDayIndices = useMemo(() => {
-    if (!hasValidDate) {
-      return [];
+  const reflectionAnsweredIndices = useMemo(() => {
+    const startIndex = mondayWeekIndex * DAYS_PER_WEEK_TOTAL;
+    const indices = weeklyReflectionSummary
+      .map((day, idx) => (day.hasEntry ? startIndex + idx : null))
+      .filter((value): value is number => value !== null);
+    if (indices.length > 0) {
+      return indices;
     }
     const clamped = Math.max(Math.min(completedDays, totalWeekDays), 0);
-    const startIndex = mondayWeekIndex * DAYS_PER_WEEK_TOTAL;
     return Array.from({ length: clamped }, (_, index) => startIndex + index);
-  }, [completedDays, totalWeekDays, mondayWeekIndex, hasValidDate]);
+  }, [weeklyReflectionSummary, mondayWeekIndex, completedDays, totalWeekDays]);
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-900 px-4 py-16 text-slate-100">
@@ -339,7 +350,7 @@ export function GrowthClient() {
                     weekTotalDays={data?.weekProgress?.totalDays ?? 7}
                     currentWeekIndex={mondayWeekIndex}
                     dayOfWeekIndex={mondayDayIndex}
-                    answeredIndices={answeredDayIndices}
+                    answeredIndices={reflectionAnsweredIndices}
                     focusDayIndex={focusDayIndex}
                     focusMode={treeFocusMode}
                   />
@@ -457,10 +468,14 @@ export function GrowthClient() {
                         const hasEntry = day.hasEntry;
                         const summaryDate = new Date(day.date);
                         const label = day.weekday || `Day ${idx + 1}`;
+                        const isToday = summaryDate.toDateString() === todayDateKey;
+                        const canShowEntry = isPremiumUser || isToday;
                         const description = hasEntry
-                          ? day.entry?.excerpt || "Reflection saved."
+                          ? canShowEntry && day.entry?.excerpt
+                            ? day.entry.excerpt
+                            : "Reflection saved."
                           : "Write that day to unlock the entry.";
-                        const statusLabel = hasEntry ? "Saved" : "Locked";
+                        const statusLabel = hasEntry ? (canShowEntry ? "Saved" : "Locked") : "Locked";
                         return (
                           <li
                             key={`${day.date}-${idx}`}
