@@ -40,7 +40,7 @@ def test_reflection_overview_for_free_user(
         days_ago=0,
     )
 
-    overview = reflection_service.overview(user_id)
+    overview = reflection_service.overview(user_id, tz_offset_minutes=-120)
 
     assert overview.plan == "free"
     assert overview.today is not None
@@ -67,7 +67,7 @@ def test_reflection_overview_marks_premium_and_teasers(
             days_ago=days_ago,
         )
 
-    overview = reflection_service.overview(user_id)
+    overview = reflection_service.overview(user_id, tz_offset_minutes=0)
 
     assert overview.plan == "premium"
     assert overview.timeline_unlocked is True

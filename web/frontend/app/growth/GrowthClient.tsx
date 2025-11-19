@@ -129,7 +129,7 @@ export function GrowthClient() {
     isError: reflectionsError,
   } = useQuery({
     queryKey: ["reflections", userId],
-    queryFn: () => fetchReflectionOverview(userId ?? ""),
+    queryFn: () => fetchReflectionOverview(userId ?? "", new Date().getTimezoneOffset()),
     enabled: Boolean(userId),
     staleTime: 0,
     retry: false,

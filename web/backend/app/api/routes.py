@@ -45,8 +45,9 @@ async def reflections_overview(
     reflection_service=Depends(get_reflection_service),
     user_id: Optional[str] = Query(default=None, alias="userId"),
     x_user_id: Optional[str] = Header(default=None, alias="X-User-Id"),
+    timezone_offset_minutes: int = Query(default=0, alias="timezoneOffsetMinutes"),
 ) -> ReflectionOverview:
     resolved_user = user_id or x_user_id
     if not resolved_user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User identifier required.")
-    return reflection_service.overview(resolved_user)
+    return reflection_service.overview(resolved_user, timezone_offset_minutes)

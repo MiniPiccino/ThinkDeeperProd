@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Dict, List, Optional
 
 from ..models.reflection import (
@@ -28,19 +28,19 @@ class ReflectionService:
         self._questions = question_repository
         self._users = user_repository
 
-    def overview(self, user_id: str) -> ReflectionOverview:
+    def overview(self, user_id: str, tz_offset_minutes: int = 0) -> ReflectionOverview:
         plan = self._users.get_plan(user_id)
         is_premium = plan == "premium"
-        today = date.today()
+        today = self._local_date(tz_offset_minutes)
         recent_answers = self._answers.recent_answers(user_id, limit=self.MAX_RECENT_FETCH)
         answers_by_date: Dict[date, StoredAnswer] = {}
         for stored in recent_answers:
-            day = stored.created_at.date()
+            day = self._local_date_from_timestamp(stored.created_at, tz_offset_minutes)
             if day not in answers_by_date:
                 answers_by_date[day] = stored
 
         today_entry = answers_by_date.get(today)
-        weekly_blocks = self._weekly_summaries(today, answers_by_date)
+        weekly_blocks = self._weekly_summaries(today, answers_by_date, tz_offset_minutes)
         teasers = []
         if not is_premium:
             week_start = today - timedelta(days=today.weekday())
@@ -61,6 +61,7 @@ class ReflectionService:
         self,
         reference_day: date,
         answers_by_date: Dict[date, StoredAnswer],
+        tz_offset_minutes: int,
     ) -> List[ReflectionDaySummary]:
         start_of_week = reference_day - timedelta(days=reference_day.weekday())
         days = []
@@ -116,3 +117,17 @@ class ReflectionService:
         if len(text) <= limit:
             return text
         return text[: limit - 1].rstrip() + "…"
+
+    @staticmethod
+    def _local_date_from_timestamp(timestamp: datetime, tz_offset_minutes: int) -> date:
+        aware = timestamp
+        if timestamp.tzinfo is None:
+            aware = timestamp.replace(tzinfo=timezone.utc)
+        utc_value = aware.astimezone(timezone.utc)
+        local_dt = utc_value - timedelta(minutes=tz_offset_minutes)
+        return local_dt.date()
+
+    @staticmethod
+    def _local_date(tz_offset_minutes: int) -> date:
+        now_utc = datetime.now(timezone.utc)
+        return (now_utc - timedelta(minutes=tz_offset_minutes)).date()

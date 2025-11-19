@@ -162,12 +162,12 @@ export function submitAnswer(payload: SubmitAnswerPayload): Promise<AnswerRespon
   });
 }
 
-export function fetchReflectionOverview(userId: string): Promise<ReflectionOverview> {
+export function fetchReflectionOverview(userId: string, timezoneOffsetMinutes: number): Promise<ReflectionOverview> {
   if (!userId) {
     return Promise.reject(new Error("User ID required for reflections"));
   }
-  const search = `?userId=${encodeURIComponent(userId)}`;
-  return request<ReflectionOverview>(`/v1/reflections/overview${search}`, {
+  const params = new URLSearchParams({ userId, timezoneOffsetMinutes: timezoneOffsetMinutes.toString() });
+  return request<ReflectionOverview>(`/v1/reflections/overview?${params.toString()}`, {
     cache: "no-store",
   });
 }
