@@ -146,6 +146,16 @@ export function GrowthClient() {
   const [treeAnimationActive, setTreeAnimationActive] = useState(false);
   const [activeFrameIndex, setActiveFrameIndex] = useState(-1);
 
+  const scrollTreeIntoView = useCallback(() => {
+    if (typeof window === "undefined" || !treeSectionRef.current) {
+      return;
+    }
+    const navOffset = 120;
+    const rect = treeSectionRef.current.getBoundingClientRect();
+    const target = rect.top + window.scrollY - navOffset;
+    window.scrollTo({ top: Math.max(target, 0), behavior: "smooth" });
+  }, []);
+
   const startTreeAnimation = useCallback(() => {
     setTreeAnimationActive(true);
     setActiveFrameIndex(0);
@@ -165,15 +175,13 @@ export function GrowthClient() {
     }, 0);
     router.replace("/growth", { scroll: false });
     const scrollTimer = window.setTimeout(() => {
-      if (treeSectionRef.current) {
-        treeSectionRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
+      scrollTreeIntoView();
     }, 300);
     return () => {
       window.clearTimeout(timer);
       window.clearTimeout(scrollTimer);
     };
-  }, [data, wantsTreeAnimation, router, startTreeAnimation, animationUnlocked]);
+  }, [data, wantsTreeAnimation, router, startTreeAnimation, animationUnlocked, scrollTreeIntoView]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -187,10 +195,8 @@ export function GrowthClient() {
       return;
     }
     autoScrollRef.current = true;
-    window.requestAnimationFrame(() => {
-      treeSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-    });
-  }, [data, isLoading, isError]);
+    window.requestAnimationFrame(scrollTreeIntoView);
+  }, [data, isLoading, isError, scrollTreeIntoView]);
 
   useEffect(() => {
     if (!treeAnimationActive || activeFrameIndex < 0 || typeof window === "undefined") {
