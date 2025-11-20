@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Data Processing Addendum — ThinkDeeper",
+  title: "Data Processing Addendum — Thinkle",
   description:
-    "Supplemental terms governing ThinkDeeper's processing of personal data as a processor for customers.",
+    "Supplemental terms governing Thinkle (operated by 3RZ d.o.o.) processing personal data as a processor for customers.",
 };
 
 const dpaVersion = "1.0";
@@ -18,7 +18,8 @@ export default function DataProcessingAddendumPage() {
         </p>
         <p>
           This Data Processing Addendum (&ldquo;DPA&rdquo;) supplements the Terms of Service (the
-          &ldquo;Agreement&rdquo;) between ThinkDeeper (&ldquo;Processor&rdquo;) and the customer
+          &ldquo;Agreement&rdquo;) between Thinkle (&ldquo;Processor&rdquo;), operated by 3RZ d.o.o.,
+          and the customer
           subscribing to the Services (&ldquo;Controller&rdquo;). Capitalized terms have the meanings
           set out in the Agreement unless otherwise defined in this DPA.
         </p>
@@ -27,7 +28,7 @@ export default function DataProcessingAddendumPage() {
       <section className="space-y-3">
         <h2 className="text-2xl font-semibold">1. Scope</h2>
         <p>
-          This DPA applies to the extent ThinkDeeper processes Personal Data subject to the General
+          This DPA applies to the extent Thinkle processes Personal Data subject to the General
           Data Protection Regulation (EU) 2016/679 (&ldquo;GDPR&rdquo;), the UK GDPR, the California
           Consumer Privacy Act (CCPA), or other similar privacy laws on behalf of the Controller.
         </p>
@@ -150,8 +151,8 @@ export default function DataProcessingAddendumPage() {
         <h2 className="text-2xl font-semibold">14. Contact</h2>
         <p>
           Data protection inquiries should be directed to{" "}
-          <a className="underline" href="mailto:privacy@thinkdeeper.app">
-            privacy@thinkdeeper.app
+          <a className="underline" href="mailto:rene@3rz.eu">
+            rene@3rz.eu
           </a>
           .
         </p>

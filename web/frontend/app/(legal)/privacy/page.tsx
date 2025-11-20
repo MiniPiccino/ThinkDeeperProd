@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — ThinkDeeper",
+  title: "Privacy Policy — Thinkle",
   description:
-    "Learn how ThinkDeeper collects, uses, and protects your personal information across the app and API.",
+    "Learn how Thinkle, operated by 3RZ d.o.o., collects, uses, and protects your personal information across the app and API.",
 };
 
-const supportEmail = "privacy@thinkdeeper.app";
-const mailingAddress = "ThinkDeeper, 123 Market Street, San Francisco, CA 94103";
+const supportEmail = "rene@3rz.eu";
+const mailingAddress = "3RZ d.o.o., Suzanicev put 35, 51221 Kostrena, Croatia";
 
 export default function PrivacyPage() {
   return (
@@ -16,9 +16,9 @@ export default function PrivacyPage() {
         <h1 className="text-3xl font-semibold">Privacy Policy</h1>
         <p className="text-sm text-foreground/70">Effective date: March 1, 2025</p>
         <p>
-          ThinkDeeper (&ldquo;Company,&rdquo; &ldquo;we,&rdquo; &ldquo;us,&rdquo; or &ldquo;our&rdquo;)
-          provides a daily thinking trainer that delivers reflections, evaluates responses with AI, and
-          tracks personal progress. This Privacy Policy explains how we collect, use, share, and
+          Thinkle (&ldquo;Thinkle,&rdquo; &ldquo;we,&rdquo; &ldquo;us,&rdquo; or &ldquo;our&rdquo;), operated by
+          3RZ d.o.o., provides a daily thinking trainer that delivers reflections, evaluates responses with
+          AI, and tracks personal progress. This Privacy Policy explains how we collect, use, share, and
           protect information when you use our website, mobile experiences, or FastAPI backend
           (collectively, the &ldquo;Services&rdquo;).
         </p>

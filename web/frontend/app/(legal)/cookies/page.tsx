@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Cookie Policy — ThinkDeeper",
+  title: "Cookie Policy — Thinkle",
   description:
-    "Understand how ThinkDeeper uses cookies, tracking technologies, and your consent choices.",
+    "Understand how Thinkle, operated by 3RZ d.o.o., uses cookies, tracking technologies, and your consent choices.",
 };
 
 export default function CookiePolicyPage() {
@@ -13,9 +13,9 @@ export default function CookiePolicyPage() {
         <h1 className="text-3xl font-semibold">Cookie Policy</h1>
         <p className="text-sm text-foreground/70">Effective date: March 1, 2025</p>
         <p>
-          This Cookie Policy explains how ThinkDeeper (&ldquo;we,&rdquo; &ldquo;our,&rdquo;) uses
-          cookies, local storage, and similar technologies when you visit our website or use the
-          Services. It should be read together with our Privacy Policy.
+          This Cookie Policy explains how Thinkle (&ldquo;we,&rdquo; &ldquo;our&rdquo;), the brand created by
+          3RZ d.o.o., uses cookies, local storage, and similar technologies when you visit our website
+          or use the Services. It should be read together with our Privacy Policy.
         </p>
       </header>
 
@@ -126,8 +126,8 @@ export default function CookiePolicyPage() {
         <h2 className="text-2xl font-semibold">Contact</h2>
         <p>
           Questions about this Cookie Policy can be directed to{" "}
-          <a className="underline" href="mailto:privacy@thinkdeeper.app">
-            privacy@thinkdeeper.app
+          <a className="underline" href="mailto:rene@3rz.eu">
+            rene@3rz.eu
           </a>
           .
         </p>

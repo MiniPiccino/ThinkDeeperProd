@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "AI & Content Disclaimer — ThinkDeeper",
-  description: "Important information about AI-generated content and responsibility when using ThinkDeeper.",
+  title: "AI & Content Disclaimer — Thinkle",
+  description: "Important information about AI-generated content and responsibility when using Thinkle by 3RZ d.o.o.",
 };
 
 export default function AIDisclaimerPage() {
@@ -12,7 +12,7 @@ export default function AIDisclaimerPage() {
         <h1 className="text-3xl font-semibold">AI &amp; Content Disclaimer</h1>
         <p className="text-sm text-foreground/70">Effective date: March 1, 2025</p>
         <p>
-          ThinkDeeper uses large language models and other machine learning techniques to deliver
+          Thinkle uses large language models and other machine learning techniques to deliver
           feedback, reflections, and guidance. We strive to provide accurate and supportive insights,
           but AI-generated output can contain errors, omissions, or biased results.
         </p>
@@ -39,7 +39,7 @@ export default function AIDisclaimerPage() {
       <section className="space-y-3">
         <h2 className="text-2xl font-semibold">Model Transparency</h2>
         <p>
-          ThinkDeeper relies on third-party AI providers (such as OpenAI) to process reflection content.
+          Thinkle relies on third-party AI providers (such as OpenAI) to process reflection content.
           These models may retain aggregated telemetry to improve their services. See our Privacy
           Policy and Data Processing Addendum for details about data handling.
         </p>
@@ -48,7 +48,7 @@ export default function AIDisclaimerPage() {
       <section className="space-y-3">
         <h2 className="text-2xl font-semibold">Limitation of Liability</h2>
         <p>
-          ThinkDeeper is not liable for harm or losses resulting from reliance on AI-generated
+          Thinkle is not liable for harm or losses resulting from reliance on AI-generated
           content. Use the Services at your own discretion and risk.
         </p>
       </section>
@@ -57,8 +57,8 @@ export default function AIDisclaimerPage() {
         <h2 className="text-2xl font-semibold">Report Issues</h2>
         <p>
           If you encounter problematic output or suspect an error, contact us at{" "}
-          <a className="underline" href="mailto:support@thinkdeeper.app">
-            support@thinkdeeper.app
+          <a className="underline" href="mailto:rene@3rz.eu">
+            rene@3rz.eu
           </a>{" "}
           so we can investigate and improve the experience.
         </p>
