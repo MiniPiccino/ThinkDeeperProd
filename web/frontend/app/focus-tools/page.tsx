@@ -20,7 +20,23 @@ export default function FocusToolsPage() {
   });
 
   const dopamine = data?.dopamine;
-  const nextWeekTheme = data?.theme ? `Up next: ${data.theme}` : 'Next theme arrives soon';
+  const nextWeekLabel = useMemo(() => {
+    if (!data?.availableOn) {
+      return 'Next arc arrives soon';
+    }
+    const currentDate = new Date(data.availableOn);
+    const startOfWeek = new Date(currentDate);
+    const dayIndex = (startOfWeek.getDay() + 6) % 7;
+    startOfWeek.setDate(startOfWeek.getDate() - dayIndex);
+    const nextWeekStart = new Date(startOfWeek);
+    nextWeekStart.setDate(startOfWeek.getDate() + 7);
+    const formattedWeek = nextWeekStart.toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+    });
+    const previewTheme = data.nextTheme ?? data.theme ?? 'Your next arc';
+    return `${formattedWeek} — ${previewTheme}`;
+  }, [data]);
   const xpTotal = data?.xpTotal ?? 0;
   const levelStats = computeLevelStats(xpTotal);
   const streakCount = data?.streak ?? 0;
@@ -61,7 +77,7 @@ export default function FocusToolsPage() {
           </Link>
           <div className="flex-1 rounded-2xl border border-slate-800/50 bg-slate-950/40 px-4 py-3 text-left text-[11px] text-slate-200">
             <p className="font-semibold uppercase tracking-[0.35em] text-slate-500">Next week</p>
-            <p className="mt-1 text-base text-white">{nextWeekTheme}</p>
+            <p className="mt-1 text-base text-white">{nextWeekLabel}</p>
             <p className="mt-1 text-xs text-slate-400">Invite someone to start this arc with you.</p>
           </div>
         </div>
