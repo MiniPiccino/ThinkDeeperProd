@@ -7,7 +7,7 @@ type EvaluatingInsightProps = {
 
 const DOTS = Array.from({ length: 3 });
 
-export function EvaluatingInsight({ message = '🧠 Evaluating your insight...', className }: EvaluatingInsightProps) {
+export function EvaluatingInsight({ message = 'Evaluating your reflection...', className }: EvaluatingInsightProps) {
   return (
     <div
       className={`flex items-center justify-between rounded-2xl border border-sky-500/40 bg-gradient-to-r from-sky-900/60 via-sky-900/40 to-emerald-900/40 px-4 py-3 text-sky-100 shadow-inner ${className ?? ''}`.trim()}

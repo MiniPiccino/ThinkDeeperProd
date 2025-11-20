@@ -684,7 +684,9 @@ export default function HomePage() {
                 ) : null}
 
                 {isEvaluating ? (
-                  <EvaluatingInsight className="shadow-lg" />
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                    <EvaluatingInsight className="shadow-2xl" />
+                  </div>
                 ) : null}
 
                 {isSubmitted && showCelebration && (
