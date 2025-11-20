@@ -3,7 +3,7 @@ export function SiteFooter() {
     <footer className="border-t border-white/10 bg-black/5 px-6 py-8 text-sm text-foreground/80">
       <div className="mx-auto flex max-w-5xl flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <p className="text-xs text-foreground/70">
-          &copy; {new Date().getFullYear()} ThinkDeeper. All rights reserved.
+          &copy; {new Date().getFullYear()} Thinkle. All rights reserved.
         </p>
         <nav className="flex flex-wrap items-center gap-4">
           <a className="underline-offset-4 hover:underline" href="/privacy">
