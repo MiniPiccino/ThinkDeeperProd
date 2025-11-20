@@ -141,20 +141,8 @@ export function GrowthClient() {
   const wantsTreeAnimation = searchParams?.get("treeAnimation") === "celebration";
   const animationConsumedRef = useRef(false);
   const animationUnlocked = streakCount >= TREE_ANIMATION_UNLOCK_STREAK;
-  const treeSectionRef = useRef<HTMLDivElement | null>(null);
-  const autoScrollRef = useRef(false);
   const [treeAnimationActive, setTreeAnimationActive] = useState(false);
   const [activeFrameIndex, setActiveFrameIndex] = useState(-1);
-
-  const scrollTreeIntoView = useCallback(() => {
-    if (typeof window === "undefined" || !treeSectionRef.current) {
-      return;
-    }
-    const navOffset = 120;
-    const rect = treeSectionRef.current.getBoundingClientRect();
-    const target = rect.top + window.scrollY - navOffset;
-    window.scrollTo({ top: Math.max(target, 0), behavior: "smooth" });
-  }, []);
 
   const startTreeAnimation = useCallback(() => {
     setTreeAnimationActive(true);
@@ -174,29 +162,10 @@ export function GrowthClient() {
       startTreeAnimation();
     }, 0);
     router.replace("/growth", { scroll: false });
-    const scrollTimer = window.setTimeout(() => {
-      scrollTreeIntoView();
-    }, 300);
     return () => {
       window.clearTimeout(timer);
-      window.clearTimeout(scrollTimer);
     };
-  }, [data, wantsTreeAnimation, router, startTreeAnimation, animationUnlocked, scrollTreeIntoView]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    if (autoScrollRef.current || !treeSectionRef.current || isLoading || isError || !data) {
-      return;
-    }
-    const isDesktop = window.innerWidth >= 1024;
-    if (!isDesktop) {
-      return;
-    }
-    autoScrollRef.current = true;
-    window.requestAnimationFrame(scrollTreeIntoView);
-  }, [data, isLoading, isError, scrollTreeIntoView]);
+  }, [data, wantsTreeAnimation, router, startTreeAnimation, animationUnlocked]);
 
   useEffect(() => {
     if (!treeAnimationActive || activeFrameIndex < 0 || typeof window === "undefined") {
@@ -348,8 +317,8 @@ export function GrowthClient() {
   }, [weeklyReflectionSummary, hasValidDate, completedDays, totalWeekDays, mondayWeekIndex]);
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-900 px-4 py-16 text-slate-100">
-      <div className="mx-auto flex max-w-4xl flex-col gap-8 pb-24">
+    <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-900 px-4 py-12 text-slate-100 lg:py-10">
+      <div className="mx-auto flex max-w-4xl flex-col gap-8 pb-16">
         <header className="space-y-3 text-center">
           <p className="text-xs uppercase tracking-[0.4em] text-emerald-300">Growth</p>
           <h1 className="text-3xl font-semibold">Watch your streak replay</h1>
@@ -379,10 +348,7 @@ export function GrowthClient() {
 
         {userId && !isLoading && !isError && data ? (
           <>
-            <section
-              ref={treeSectionRef}
-              className="scroll-mt-24 rounded-3xl border border-emerald-400/40 bg-gradient-to-br from-zinc-950 via-zinc-900 to-emerald-950 p-6 shadow-2xl"
-            >
+            <section className="rounded-3xl border border-emerald-400/40 bg-gradient-to-br from-zinc-950 via-zinc-900 to-emerald-950 p-6 shadow-2xl">
               <div className="relative">
                 <div
                   className={`transition-transform ease-[cubic-bezier(0.19,1,0.22,1)] ${

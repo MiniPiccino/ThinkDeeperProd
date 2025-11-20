@@ -22,21 +22,10 @@ export default function FocusToolsPage() {
 
   const dopamine = data?.dopamine;
   const nextWeekLabel = useMemo(() => {
-    if (!data?.availableOn) {
+    if (!data) {
       return 'Next arc arrives soon';
     }
-    const currentDate = new Date(data.availableOn);
-    const startOfWeek = new Date(currentDate);
-    const dayIndex = (startOfWeek.getDay() + 6) % 7;
-    startOfWeek.setDate(startOfWeek.getDate() - dayIndex);
-    const nextWeekStart = new Date(startOfWeek);
-    nextWeekStart.setDate(startOfWeek.getDate() + 7);
-    const formattedWeek = nextWeekStart.toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric',
-    });
-    const previewTheme = data.nextTheme ?? data.theme ?? 'Your next arc';
-    return previewTheme;
+    return data.nextTheme ?? data.theme ?? 'Your next arc';
   }, [data]);
   const xpTotal = data?.xpTotal ?? 0;
   const levelStats = computeLevelStats(xpTotal);
