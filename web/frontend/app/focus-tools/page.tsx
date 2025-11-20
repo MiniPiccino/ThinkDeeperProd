@@ -36,7 +36,7 @@ export default function FocusToolsPage() {
       day: 'numeric',
     });
     const previewTheme = data.nextTheme ?? data.theme ?? 'Your next arc';
-    return `${formattedWeek} — ${previewTheme}`;
+    return previewTheme;
   }, [data]);
   const xpTotal = data?.xpTotal ?? 0;
   const levelStats = computeLevelStats(xpTotal);
