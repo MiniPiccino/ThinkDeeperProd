@@ -142,6 +142,7 @@ export function GrowthClient() {
   const animationConsumedRef = useRef(false);
   const animationUnlocked = streakCount >= TREE_ANIMATION_UNLOCK_STREAK;
   const treeSectionRef = useRef<HTMLDivElement | null>(null);
+  const autoScrollRef = useRef(false);
   const [treeAnimationActive, setTreeAnimationActive] = useState(false);
   const [activeFrameIndex, setActiveFrameIndex] = useState(-1);
 
@@ -173,6 +174,23 @@ export function GrowthClient() {
       window.clearTimeout(scrollTimer);
     };
   }, [data, wantsTreeAnimation, router, startTreeAnimation, animationUnlocked]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    if (autoScrollRef.current || !treeSectionRef.current || isLoading || isError || !data) {
+      return;
+    }
+    const isDesktop = window.innerWidth >= 1024;
+    if (!isDesktop) {
+      return;
+    }
+    autoScrollRef.current = true;
+    window.requestAnimationFrame(() => {
+      treeSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }, [data, isLoading, isError]);
 
   useEffect(() => {
     if (!treeAnimationActive || activeFrameIndex < 0 || typeof window === "undefined") {
@@ -325,7 +343,7 @@ export function GrowthClient() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-900 px-4 py-16 text-slate-100">
-      <div className="mx-auto flex max-w-4xl flex-col gap-8">
+      <div className="mx-auto flex max-w-4xl flex-col gap-8 pb-24">
         <header className="space-y-3 text-center">
           <p className="text-xs uppercase tracking-[0.4em] text-emerald-300">Growth</p>
           <h1 className="text-3xl font-semibold">Watch your streak replay</h1>
@@ -357,7 +375,7 @@ export function GrowthClient() {
           <>
             <section
               ref={treeSectionRef}
-              className="rounded-3xl border border-emerald-400/40 bg-gradient-to-br from-zinc-950 via-zinc-900 to-emerald-950 p-6 shadow-2xl"
+              className="scroll-mt-24 rounded-3xl border border-emerald-400/40 bg-gradient-to-br from-zinc-950 via-zinc-900 to-emerald-950 p-6 shadow-2xl"
             >
               <div className="relative">
                 <div
