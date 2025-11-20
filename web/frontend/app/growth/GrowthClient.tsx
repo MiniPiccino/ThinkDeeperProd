@@ -141,6 +141,7 @@ export function GrowthClient() {
   const wantsTreeAnimation = searchParams?.get("treeAnimation") === "celebration";
   const animationConsumedRef = useRef(false);
   const animationUnlocked = streakCount >= TREE_ANIMATION_UNLOCK_STREAK;
+  const treeSectionRef = useRef<HTMLDivElement | null>(null);
   const [treeAnimationActive, setTreeAnimationActive] = useState(false);
   const [activeFrameIndex, setActiveFrameIndex] = useState(-1);
 
@@ -162,7 +163,15 @@ export function GrowthClient() {
       startTreeAnimation();
     }, 0);
     router.replace("/growth", { scroll: false });
-    return () => window.clearTimeout(timer);
+    const scrollTimer = window.setTimeout(() => {
+      if (treeSectionRef.current) {
+        treeSectionRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 300);
+    return () => {
+      window.clearTimeout(timer);
+      window.clearTimeout(scrollTimer);
+    };
   }, [data, wantsTreeAnimation, router, startTreeAnimation, animationUnlocked]);
 
   useEffect(() => {
@@ -346,7 +355,10 @@ export function GrowthClient() {
 
         {userId && !isLoading && !isError && data ? (
           <>
-            <section className="rounded-3xl border border-emerald-400/40 bg-gradient-to-br from-zinc-950 via-zinc-900 to-emerald-950 p-6 shadow-2xl">
+            <section
+              ref={treeSectionRef}
+              className="rounded-3xl border border-emerald-400/40 bg-gradient-to-br from-zinc-950 via-zinc-900 to-emerald-950 p-6 shadow-2xl"
+            >
               <div className="relative">
                 <div
                   className={`transition-transform ease-[cubic-bezier(0.19,1,0.22,1)] ${
