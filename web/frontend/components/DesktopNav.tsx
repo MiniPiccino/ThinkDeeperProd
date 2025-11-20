@@ -17,7 +17,7 @@ export function DesktopNav() {
     <nav className="sticky top-0 z-50 hidden border-b border-zinc-800/70 bg-zinc-950/80 backdrop-blur-md lg:block">
       <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between px-6">
         <Link href="/" className="text-lg font-semibold tracking-tight text-emerald-200">
-          Deep Ritual
+          Thinkle
         </Link>
         <div className="flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.2em]">
           {NAV_LINKS.map((link) => {
