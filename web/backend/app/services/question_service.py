@@ -19,6 +19,7 @@ class QuestionService:
         settings: Settings,
     ) -> None:
         self._repository = repository
+        self._question_repository = repository
         self._progress_repository = progress_repository
         self._answer_repository = answer_repository
         self._settings = settings
