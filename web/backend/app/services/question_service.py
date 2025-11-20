@@ -58,6 +58,11 @@ class QuestionService:
 
         difficulty_meta = self._difficulty_meta(question.day_index)
 
+        next_theme: str | None = None
+        total_weeks = self._question_repository.total_weeks()
+        if total_weeks and question.week_index + 1 < total_weeks:
+            next_theme = self._question_repository.week_theme(question.week_index + 1)
+
         response: Dict[str, object] = {
             "id": question.id,
             "prompt": question.prompt,
@@ -72,6 +77,8 @@ class QuestionService:
             "weekProgress": week_progress,
             "hasAnsweredToday": has_answered_today,
         }
+        if next_theme:
+            response["nextTheme"] = next_theme
         response["previousFeedback"] = previous_feedback
         priming = self._priming_meta(
             question=question,

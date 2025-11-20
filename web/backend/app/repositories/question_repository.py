@@ -14,6 +14,7 @@ class QuestionRepository:
         self._source_path = source_path
         self._cache: List[Question] | None = None
         self._offsets: List[int] | None = None
+        self._week_themes: List[str] | None = None
 
     def get_daily_question(self, target_date: date) -> Question:
         """Return the question assigned for the provided date."""
@@ -47,10 +48,12 @@ class QuestionRepository:
         weeks = data.get("weeks", [])
         questions: List[Question] = []
         offsets: List[int] = []
+        week_themes: List[str] = []
         sequential_day = 1
 
         for week_index, week in enumerate(weeks):
             theme = week.get("theme", f"Week {week_index + 1}")
+            week_themes.append(theme)
             start_str = week.get("startDate")
             if start_str:
                 try:
@@ -79,12 +82,25 @@ class QuestionRepository:
 
         self._cache = questions
         self._offsets = offsets
+        self._week_themes = week_themes
         return questions
 
     def iter_all(self) -> Iterator[Question]:
         """Yield every question in the bank."""
 
         yield from self._load_questions()
+
+    def total_weeks(self) -> int:
+        self._load_questions()
+        return len(self._week_themes or [])
+
+    def week_theme(self, week_index: int) -> str:
+        self._load_questions()
+        if not self._week_themes:
+            raise IndexError("No week themes configured")
+        if 0 <= week_index < len(self._week_themes):
+            return self._week_themes[week_index]
+        raise IndexError("Week index out of range")
 
     def _question_for_date(self, target_date: date, questions: List[Question]) -> Question:
         """Map the requested date to the correct week/day entry based on configured start dates."""
