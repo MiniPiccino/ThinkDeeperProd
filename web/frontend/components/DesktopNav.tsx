@@ -15,7 +15,7 @@ export function DesktopNav() {
 
   return (
     <nav className="sticky top-0 z-50 hidden border-b border-zinc-800/70 bg-zinc-950/80 backdrop-blur-md lg:block">
-      <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-6 text-[0.85rem]">
+      <div className="mx-auto flex h-12 w-full max-w-5xl items-center justify-between px-6 text-[0.8rem]">
         <Link href="/" className="text-lg font-semibold tracking-tight text-emerald-200">
           Thinkle
         </Link>
