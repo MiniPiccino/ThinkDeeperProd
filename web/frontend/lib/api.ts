@@ -2,6 +2,7 @@ export type DailyQuestionResponse = {
   id: string;
   prompt: string;
   theme: string;
+  nextTheme?: string | null;
   weekIndex: number;
   dayIndex: number;
   availableOn: string;
