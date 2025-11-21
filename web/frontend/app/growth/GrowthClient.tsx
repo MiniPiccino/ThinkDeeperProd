@@ -259,10 +259,15 @@ export function GrowthClient() {
     const startOfWeek = new Date(todayLocalDate);
     const dayIndex = (startOfWeek.getDay() + 6) % 7;
     startOfWeek.setDate(startOfWeek.getDate() - dayIndex);
+    const currentDayIndex = Math.min(
+      Math.max(data?.dayIndex ?? (completed > 0 ? completed - 1 : 0), 0),
+      total - 1,
+    );
+    const firstFilledIndex = Math.max(0, currentDayIndex - Math.max(completed - 1, 0));
     return Array.from({ length: total }, (_, index) => {
       const dayDate = new Date(startOfWeek);
       dayDate.setDate(startOfWeek.getDate() + index);
-      const captured = index < completed;
+      const captured = completed > 0 && index >= firstFilledIndex && index <= currentDayIndex;
       return {
         date: dayDate.toISOString(),
         weekday: dayDate.toLocaleDateString(undefined, { weekday: "long" }),
@@ -315,7 +320,13 @@ export function GrowthClient() {
       return [];
     }
     const clamped = Math.max(Math.min(completedDays, totalWeekDays), 0);
-    const startIndex = mondayWeekIndex * DAYS_PER_WEEK_TOTAL;
+    if (clamped === 0) {
+      return [];
+    }
+    const currentDayIndex = Math.min(Math.max(data?.dayIndex ?? clamped - 1, 0), totalWeekDays - 1);
+    let offset = currentDayIndex - (clamped - 1);
+    offset = Math.max(0, Math.min(totalWeekDays - clamped, offset));
+    const startIndex = mondayWeekIndex * DAYS_PER_WEEK_TOTAL + offset;
     return Array.from({ length: clamped }, (_, index) => startIndex + index);
   }, [
     weeklyReflectionSummary,
@@ -324,6 +335,7 @@ export function GrowthClient() {
     totalWeekDays,
     mondayWeekIndex,
     timelineUnlocked,
+    data?.dayIndex,
   ]);
 
   return (
