@@ -291,22 +291,25 @@ export function GrowthClient() {
     { title: "Exports & yearly recap", detail: "Download PDFs/CSV or replay your Deep Tree for any year." },
   ];
   const reflectionAnsweredIndices = useMemo(() => {
-    const indices = weeklyReflectionSummary
-      .map((day) => {
-        if (!day.hasEntry || !day.entry) {
-          return null;
-        }
-        const parsed = new Date(day.date);
-        if (Number.isNaN(parsed.getTime())) {
-          return null;
-        }
-        const weekIdx = mondayAlignedWeekIndex(parsed);
-        const dayIdx = mondayAlignedDayIndex(parsed);
-        return weekIdx * DAYS_PER_WEEK_TOTAL + dayIdx;
-      })
-      .filter((value): value is number => value !== null);
-    if (indices.length > 0) {
-      return indices;
+    const canUseTimeline = timelineUnlocked;
+    if (canUseTimeline) {
+      const indices = weeklyReflectionSummary
+        .map((day) => {
+          if (!day.hasEntry || !day.entry) {
+            return null;
+          }
+          const parsed = new Date(day.date);
+          if (Number.isNaN(parsed.getTime())) {
+            return null;
+          }
+          const weekIdx = mondayAlignedWeekIndex(parsed);
+          const dayIdx = mondayAlignedDayIndex(parsed);
+          return weekIdx * DAYS_PER_WEEK_TOTAL + dayIdx;
+        })
+        .filter((value): value is number => value !== null);
+      if (indices.length > 0) {
+        return indices;
+      }
     }
     if (!hasValidDate) {
       return [];
@@ -314,7 +317,14 @@ export function GrowthClient() {
     const clamped = Math.max(Math.min(completedDays, totalWeekDays), 0);
     const startIndex = mondayWeekIndex * DAYS_PER_WEEK_TOTAL;
     return Array.from({ length: clamped }, (_, index) => startIndex + index);
-  }, [weeklyReflectionSummary, hasValidDate, completedDays, totalWeekDays, mondayWeekIndex]);
+  }, [
+    weeklyReflectionSummary,
+    hasValidDate,
+    completedDays,
+    totalWeekDays,
+    mondayWeekIndex,
+    timelineUnlocked,
+  ]);
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-900 px-4 py-12 text-slate-100 lg:py-10">
