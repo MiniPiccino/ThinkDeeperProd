@@ -338,7 +338,7 @@ export function SubmissionCelebration({
           </div>
 
           <div
-            className="relative flex h-full max-h-[calc(100vh-4.5rem)] w-full flex-col overflow-y-auto rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/85 p-8 text-center backdrop-blur-lg dark:bg-zinc-950/80"
+            className="relative flex h-full max-h-[calc(100vh-4.5rem)] w-full flex-col overflow-y-auto rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white p-8 text-center text-zinc-900 shadow-xl dark:bg-zinc-950/80 dark:text-zinc-50"
             style={{ animation: 'rise-card 0.9s ease forwards' }}
           >
             <div className="text-xs font-semibold uppercase tracking-[0.55em] text-emerald-600 dark:text-emerald-200">
@@ -431,25 +431,25 @@ export function SubmissionCelebration({
             ) : null}
 
             <div className="mt-5 grid gap-4 text-left text-sm md:grid-cols-2">
-              <div className="rounded-2xl border border-sky-400/40 bg-sky-900/20 p-4 text-sky-100 shadow">
-                <p className="text-xs uppercase tracking-wide text-sky-300">Today&apos;s challenge</p>
-                <p className="mt-2 text-lg font-semibold capitalize text-sky-100">{difficultyLevel}</p>
-                <p className="mt-1 text-xs text-sky-200">Multiplier x{difficultyMultiplier.toFixed(2)}</p>
-                <p className="mt-3 text-xs text-sky-200/80">{bonusLine}</p>
+              <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sky-900 shadow">
+                <p className="text-xs uppercase tracking-wide text-sky-500">Today&apos;s challenge</p>
+                <p className="mt-2 text-lg font-semibold capitalize text-sky-900">{difficultyLevel}</p>
+                <p className="mt-1 text-xs text-sky-600">Multiplier x{difficultyMultiplier.toFixed(2)}</p>
+                <p className="mt-3 text-xs text-sky-700">{bonusLine}</p>
               </div>
-              <div className="rounded-2xl border border-emerald-400/40 bg-emerald-900/20 p-4 text-emerald-100 shadow">
-                <p className="text-xs uppercase tracking-wide text-emerald-300">Level momentum</p>
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900 shadow">
+                <p className="text-xs uppercase tracking-wide text-emerald-500">Level momentum</p>
                 <div className="mt-2 flex items-center justify-between">
-                  <span className="text-lg font-semibold text-emerald-50">Level {level}</span>
-                  <span className="text-xs text-emerald-200">{levelProgressPercent}%</span>
+                  <span className="text-lg font-semibold text-emerald-900">Level {level}</span>
+                  <span className="text-xs text-emerald-600">{levelProgressPercent}%</span>
                 </div>
-                <div className="mt-3 h-2 w-full rounded-full bg-emerald-800/40">
+                <div className="mt-3 h-2 w-full rounded-full bg-emerald-200/80">
                   <div
-                    className="h-2 rounded-full bg-emerald-400 transition-[width] duration-700 ease-out"
+                    className="h-2 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-400 transition-[width] duration-700 ease-out"
                     style={{ width: `${Math.min(levelProgressPercent, 100)}%` }}
                   />
                 </div>
-                <p className="mt-2 text-xs text-emerald-200/80">
+                <p className="mt-2 text-xs text-emerald-700">
                   {xpToNextLevel > 0 ? `${xpIntoLevel} XP in | ${xpToNextLevel} XP to go` : 'Level up achieved!'}
                 </p>
               </div>
@@ -488,14 +488,14 @@ export function SubmissionCelebration({
                 type="button"
                 onClick={handleShare}
                 disabled={!shareSupported}
-                className="inline-flex items-center justify-center rounded-full bg-emerald-500 px-5 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-emerald-500/60"
+                className="inline-flex items-center justify-center rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-emerald-400"
               >
                 {shareSupported ? 'Share your streak' : 'Share (copy unavailable)'}
               </button>
               <Link
                 href="/growth?treeAnimation=celebration"
                 prefetch={false}
-                className="inline-flex items-center justify-center rounded-full border border-emerald-400/50 px-5 py-2 text-sm font-semibold text-emerald-100 transition hover:border-emerald-300 hover:text-emerald-50"
+                className="inline-flex items-center justify-center rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-slate-800"
               >
                 Go to growth check-in →
               </Link>
