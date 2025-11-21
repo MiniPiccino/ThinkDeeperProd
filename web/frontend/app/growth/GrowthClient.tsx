@@ -295,7 +295,7 @@ export function GrowthClient() {
     if (canUseTimeline) {
       const indices = weeklyReflectionSummary
         .map((day) => {
-          if (!day.hasEntry || !day.entry) {
+          if (!day.hasEntry) {
             return null;
           }
           const parsed = new Date(day.date);
