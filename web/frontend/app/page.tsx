@@ -588,17 +588,6 @@ export default function HomePage() {
 
   return (
     <>
-      {priming && showPrimingModal ? (
-        <PrimingModal
-          mode={primingMode}
-          emotionalHook={priming.emotionalHook}
-          teaserQuestion={priming.teaserQuestion}
-          somaticCue={priming.somaticCue}
-          cognitiveCue={priming.cognitiveCue}
-          onClose={handleDismissPrimingModal}
-          onBegin={handleDismissPrimingModal}
-        />
-      ) : null}
       <main className="relative flex min-h-screen w-full justify-center bg-gradient-to-br from-emerald-50 via-white to-emerald-100 px-4 py-16 dark:from-zinc-950 dark:via-zinc-950 dark:to-zinc-900">
         <div className="flex w-full max-w-4xl flex-col gap-8">
         <header className="flex flex-col items-center gap-2 text-center">
