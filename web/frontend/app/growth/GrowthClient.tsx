@@ -33,6 +33,20 @@ type TreeAnimationFrame = {
   focusMode: "none" | "focus" | "bloom";
 };
 
+type LevelBadgeSpec = {
+  level: number;
+  name: string;
+  icon: string;
+  description: string;
+  gradient: string;
+};
+
+type ThemeBadgeSpec = {
+  name: string;
+  icon: string;
+  description: string;
+};
+
 const TREE_ANIMATION_FRAMES: TreeAnimationFrame[] = [
   {
     key: "wide",
@@ -76,6 +90,33 @@ const TREE_ANIMATION_FRAMES: TreeAnimationFrame[] = [
   },
 ];
 
+const LEVEL_BADGES: LevelBadgeSpec[] = [
+  { level: 1, name: "Seeker", icon: "🌱", description: "Starting to notice your mind’s patterns.", gradient: "from-emerald-600/80 to-emerald-400/50" },
+  { level: 5, name: "Reflector", icon: "💧", description: "Reflection is becoming a daily rhythm.", gradient: "from-sky-600/80 to-cyan-400/60" },
+  { level: 10, name: "Thinker", icon: "🌿", description: "Your thoughts are branching into nuance.", gradient: "from-emerald-600/80 to-lime-400/60" },
+  { level: 15, name: "Observer", icon: "👁️", description: "Calm awareness anchors your sessions.", gradient: "from-indigo-600/80 to-sky-400/60" },
+  { level: 20, name: "Mind Gardener", icon: "🌳", description: "You tend ideas patiently, letting them bloom.", gradient: "from-emerald-700/80 to-amber-400/60" },
+  { level: 25, name: "Insight Bearer", icon: "✨", description: "Insight shows up reliably; you hold space for it.", gradient: "from-amber-500/80 to-yellow-300/60" },
+  { level: 30, name: "Inner Explorer", icon: "🌀", description: "You venture into the edges of your thinking.", gradient: "from-purple-600/80 to-cyan-400/60" },
+  { level: 40, name: "Awakened Mind", icon: "🌙", description: "Presence is steady—even under pressure.", gradient: "from-slate-700/80 to-amber-300/60" },
+  { level: 50, name: "Deep Master", icon: "🔷", description: "Mastery unlocked. Your practice is elemental.", gradient: "from-emerald-800/80 to-emerald-400/60" },
+];
+
+const THEME_BADGES: Record<string, ThemeBadgeSpec> = {
+  "stoic mind": { name: "Stoic Leaf", icon: "🌿", description: "Calm resilience under thought." },
+  consciousness: { name: "Awareness Orb", icon: "👁️‍🗨️", description: "You kept attention wide and present." },
+  "time & mortality": { name: "Hourglass Bloom", icon: "⏳", description: "You honored impermanence with focus." },
+  curiosity: { name: "Curiosity Spark", icon: "💡", description: "You kept asking past the first answer." },
+  "truth and lies": { name: "Truth Gem", icon: "🔷", description: "You separated signal from noise all week." },
+  "technology & humanity": { name: "Circuit Heart", icon: "💛", description: "You balanced code and care." },
+  empathy: { name: "Heart Wave", icon: "💗", description: "You stayed soft while thinking hard." },
+  creativity: { name: "Muse Brush", icon: "🎨", description: "You painted with ideas in motion." },
+  society: { name: "Balance Scales", icon: "⚖️", description: "You held tension between self and system." },
+  "power & corruption": { name: "Broken Crown", icon: "👑", description: "You saw power clearly and stayed honest." },
+  death: { name: "Lantern of Souls", icon: "🏮", description: "You sat with endings and found light." },
+  "new year": { name: "Renewal Flame", icon: "✨", description: "You tended the spark for the next arc." },
+};
+
 function mondayAlignedWeekIndex(target: Date): number {
   const year = target.getUTCFullYear();
   const firstDay = new Date(Date.UTC(year, 0, 1));
@@ -110,6 +151,62 @@ function computeGrowthLevelStats(totalXp: number): GrowthLevelStats {
     nextLevelThreshold: nextThreshold,
     progressPercent: Math.max(0, Math.min(progressPercent, 100)),
   };
+}
+
+function resolveLevelBadge(level: number) {
+  let current = LEVEL_BADGES[0];
+  let next: LevelBadgeSpec | null = null;
+  for (const badge of LEVEL_BADGES) {
+    if (level >= badge.level) {
+      current = badge;
+      continue;
+    }
+    next = badge;
+    break;
+  }
+  return { current, next };
+}
+
+function normalizeThemeKey(theme: string): string {
+  const parts = theme.split("—").map((part) => part.trim()).filter(Boolean);
+  const base = parts[parts.length - 1] ?? theme;
+  return base.toLowerCase();
+}
+
+function resolveThemeBadge(theme: string | undefined | null): ThemeBadgeSpec {
+  if (!theme) {
+    return { name: "Insight Badge", icon: "✨", description: "Finish this week to claim the arc badge." };
+  }
+  const normalized = normalizeThemeKey(theme);
+  return THEME_BADGES[normalized] ?? {
+    name: `${normalized.charAt(0).toUpperCase()}${normalized.slice(1)} Insight`,
+    icon: "✨",
+    description: "Finish this arc to lock in the badge.",
+  };
+}
+
+type BadgePillProps = {
+  title: string;
+  icon: string;
+  description: string;
+  tone: "active" | "muted";
+};
+
+function BadgePill({ title, icon, description, tone }: BadgePillProps) {
+  const border = tone === "active" ? "border-emerald-300/40" : "border-white/10";
+  const bg =
+    tone === "active"
+      ? "bg-gradient-to-br from-emerald-600/20 via-emerald-500/10 to-emerald-700/20"
+      : "bg-slate-900/50";
+  return (
+    <div className={`flex flex-col gap-2 rounded-xl border ${border} ${bg} p-4`}>
+      <div className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-emerald-200">
+        <span>{icon}</span>
+        <span className="truncate">{title}</span>
+      </div>
+      <p className="text-sm text-emerald-50">{description}</p>
+    </div>
+  );
 }
 
 export function GrowthClient() {
@@ -337,6 +434,11 @@ export function GrowthClient() {
     timelineUnlocked,
     data?.dayIndex,
   ]);
+  const { current: levelBadge, next: nextLevelBadge } = resolveLevelBadge(levelStats.level);
+  const weeklyBadge = resolveThemeBadge(data?.theme);
+  const nextThemeBadge = resolveThemeBadge(data?.nextTheme);
+  const remainingWeekDays = Math.max((data?.weekProgress?.totalDays ?? 7) - (data?.weekProgress?.completedDays ?? 0), 0);
+  const weekBadgeEarned = Boolean(data?.weekProgress?.badgeEarned);
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-900 px-4 py-12 text-slate-100 lg:py-10">
@@ -427,6 +529,79 @@ export function GrowthClient() {
                 >
                   Back to today&apos;s reflection
                 </Link>
+              </div>
+            </section>
+
+            <section className="rounded-3xl border border-emerald-400/40 bg-slate-900/60 p-6 text-sm text-slate-100 shadow-2xl">
+              <div className="space-y-2 text-center">
+                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-200">Badges</p>
+                <h3 className="text-2xl font-semibold text-white">Calm milestones</h3>
+                <p className="text-sm text-slate-300">
+                  Level badges track long arc growth; weekly badges honor each theme you finish.
+                </p>
+              </div>
+              <div className="mt-6 grid gap-5 lg:grid-cols-[1.1fr,1fr]">
+                <div className="relative overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-br from-black/60 to-emerald-950/60 p-4 shadow-inner">
+                  <div
+                    className={`absolute inset-x-6 top-2 h-32 rounded-full bg-gradient-to-r ${levelBadge.gradient} blur-3xl opacity-40`}
+                    aria-hidden
+                    style={{ animation: "pulse 3s ease-in-out infinite" }}
+                  />
+                  <div className="relative flex flex-col items-center gap-3 rounded-xl border border-emerald-400/30 bg-white/5 px-4 py-5 text-center backdrop-blur">
+                    <div className="flex items-center gap-3 text-sm uppercase tracking-[0.35em] text-emerald-200">
+                      <span>{levelBadge.icon}</span>
+                      <span>Level Badge</span>
+                    </div>
+                    <p className="text-3xl font-semibold text-white">{levelBadge.name}</p>
+                    <p className="text-sm text-emerald-100/80">{levelBadge.description}</p>
+                    <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1 text-[12px] font-semibold uppercase tracking-wide text-emerald-100">
+                      <span>Level {levelStats.level}</span>
+                      <span className="text-emerald-200/80">·</span>
+                      <span>{levelStats.xpIntoLevel}/{GROWTH_XP_PER_LEVEL} XP in</span>
+                    </div>
+                    <div className="mt-3 h-2 w-full rounded-full bg-emerald-950/70">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-cyan-400"
+                        style={{ width: `${Math.min(levelStats.progressPercent, 100)}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-emerald-100/80">
+                      Next badge{nextLevelBadge ? ` (${nextLevelBadge.name})` : ""} in {Math.max(levelStats.xpToNextLevel, 0)} XP.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-4 shadow-inner">
+                  <div className="flex items-center justify-between gap-2 text-xs uppercase tracking-[0.3em] text-emerald-200">
+                    <span>Weekly badges</span>
+                    <span className="text-emerald-100/80">
+                      {data?.weekProgress?.completedDays ?? 0}/{data?.weekProgress?.totalDays ?? 7}
+                    </span>
+                  </div>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <BadgePill
+                      title={`This week · ${weeklyBadge.name}`}
+                      icon={weeklyBadge.icon}
+                      description={
+                        weekBadgeEarned
+                          ? "Badge unlocked and saved."
+                          : remainingWeekDays === 0
+                            ? "Claiming…"
+                            : `${remainingWeekDays} day${remainingWeekDays === 1 ? "" : "s"} left to unlock.`
+                      }
+                      tone="active"
+                    />
+                    <BadgePill
+                      title={`Next arc · ${nextThemeBadge.name}`}
+                      icon={nextThemeBadge.icon}
+                      description="Preview of the badge arriving with the next theme."
+                      tone="muted"
+                    />
+                  </div>
+                  <p className="mt-3 text-xs text-emerald-100/80">
+                    These badges animate in after you submit—dim screen, soft glow, then they settle into your collection.
+                  </p>
+                </div>
               </div>
             </section>
 

@@ -199,8 +199,10 @@ export function SubmissionCelebration({
   }, [confettiSeed]);
 
   const difficultyTag = useMemo(() => {
-    const capitalized = difficultyLevel.charAt(0).toUpperCase() + difficultyLevel.slice(1);
-    return `${capitalized} | x${difficultyMultiplier.toFixed(2)}`;
+    const safeDifficulty = (difficultyLevel || 'primer').trim();
+    const safeMultiplier = typeof difficultyMultiplier === 'number' ? difficultyMultiplier : 1;
+    const capitalized = safeDifficulty.charAt(0).toUpperCase() + safeDifficulty.slice(1);
+    return `${capitalized} | x${safeMultiplier.toFixed(2)}`;
   }, [difficultyLevel, difficultyMultiplier]);
 
   const bonusLine = useMemo(() => {
@@ -419,7 +421,7 @@ export function SubmissionCelebration({
                   Coach response
                 </p>
                 <p className="mt-2 text-base font-semibold text-zinc-900 dark:text-zinc-50">
-                  {parsedFeedback.celebrate}
+                  Coach celebrates: {parsedFeedback.celebrate}
                 </p>
                 {parsedFeedback.improve ? (
                   <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-200">
@@ -433,8 +435,8 @@ export function SubmissionCelebration({
             <div className="mt-5 grid gap-4 text-left text-sm md:grid-cols-2">
               <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sky-900 shadow">
                 <p className="text-xs uppercase tracking-wide text-sky-500">Today&apos;s challenge</p>
-                <p className="mt-2 text-lg font-semibold capitalize text-sky-900">{difficultyLevel}</p>
-                <p className="mt-1 text-xs text-sky-600">Multiplier x{difficultyMultiplier.toFixed(2)}</p>
+                <p className="mt-2 text-lg font-semibold capitalize text-sky-900">{difficultyLevel || 'primer'}</p>
+                <p className="mt-1 text-xs text-sky-600">Multiplier x{(typeof difficultyMultiplier === 'number' ? difficultyMultiplier : 1).toFixed(2)}</p>
                 <p className="mt-3 text-xs text-sky-700">{bonusLine}</p>
               </div>
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900 shadow">

@@ -477,7 +477,7 @@ export default function HomePage() {
       type: 'START_SESSION',
       payload: { timestamp: Date.now(), timerSeconds: dailyQuestion.timerSeconds },
     });
-    if (questionSectionRef.current) {
+    if (questionSectionRef.current && typeof questionSectionRef.current.scrollIntoView === 'function') {
       questionSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
     requestAnimationFrame(() => {
