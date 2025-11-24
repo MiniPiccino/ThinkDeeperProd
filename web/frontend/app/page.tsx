@@ -598,9 +598,9 @@ export default function HomePage() {
         </header>
         <div className="flex flex-col items-center gap-4">
           <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200/60 bg-white/70 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-zinc-500 shadow-sm dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-300">
-            {streak > 0 ? (
+            {weekProgress.completedDays > 0 ? (
               <>
-                <span>{streak} days in bloom</span>
+                <span>{weekProgress.completedDays} days in bloom</span>
                 <span>·</span>
                 <span>
                   {weekProgress.completedDays}/{weekProgress.totalDays}
