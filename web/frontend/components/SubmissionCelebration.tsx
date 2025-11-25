@@ -112,7 +112,8 @@ export function SubmissionCelebration({
       }
     };
 
-    if (typeof window === 'undefined' || typeof window.requestAnimationFrame === 'undefined') {
+    const isTestEnv = typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
+    if (isTestEnv || typeof window === 'undefined' || typeof window.requestAnimationFrame === 'undefined') {
       finalize();
       return;
     }

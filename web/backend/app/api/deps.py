@@ -4,7 +4,7 @@ from openai import OpenAI
 from ..config import Settings, get_settings
 from ..integrations.supabase_client import SupabaseClient
 from ..repositories import AnswerRepository, ProgressRepository, QuestionRepository, UserRepository
-from ..services import AnswerService, EvaluationService, QuestionService, ReflectionService
+from ..services import AnswerService, BillingService, EvaluationService, QuestionService, ReflectionService
 
 _QUESTION_REPOSITORY: QuestionRepository | None = None
 _PROGRESS_REPOSITORY: ProgressRepository | None = None
@@ -16,6 +16,7 @@ _QUESTION_SERVICE: QuestionService | None = None
 _ANSWER_SERVICE: AnswerService | None = None
 _REFLECTION_SERVICE: ReflectionService | None = None
 _SUPABASE_CLIENT: SupabaseClient | None = None
+_BILLING_SERVICE: BillingService | None = None
 
 
 def _question_repository(settings: Settings) -> QuestionRepository:
@@ -118,6 +119,16 @@ def _reflection_service(settings: Settings) -> ReflectionService:
     return _REFLECTION_SERVICE
 
 
+def _billing_service(settings: Settings) -> BillingService:
+    global _BILLING_SERVICE
+    if _BILLING_SERVICE is None:
+        _BILLING_SERVICE = BillingService(
+            _user_repository(settings),
+            settings,
+        )
+    return _BILLING_SERVICE
+
+
 def get_settings_dependency() -> Settings:
     return get_settings()
 
@@ -132,3 +143,7 @@ def get_answer_service(settings: Settings = Depends(get_settings_dependency)) ->
 
 def get_reflection_service(settings: Settings = Depends(get_settings_dependency)) -> ReflectionService:
     return _reflection_service(settings)
+
+
+def get_billing_service(settings: Settings = Depends(get_settings_dependency)) -> BillingService:
+    return _billing_service(settings)

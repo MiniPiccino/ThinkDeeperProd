@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     supabase_answers_table: str = Field(default="answers", alias="SUPABASE_ANSWERS_TABLE")
     supabase_progress_table: str = Field(default="user_progress", alias="SUPABASE_PROGRESS_TABLE")
     evaluation_model: str = Field(default="gpt-4o-mini", alias="EVALUATION_MODEL")
+    stripe_secret_key: Optional[str] = Field(default=None, alias="STRIPE_SECRET_KEY")
+    stripe_price_id: Optional[str] = Field(default=None, alias="STRIPE_PRICE_ID")
+    stripe_success_url: Optional[str] = Field(default=None, alias="STRIPE_SUCCESS_URL")
+    stripe_cancel_url: Optional[str] = Field(default=None, alias="STRIPE_CANCEL_URL")
+    stripe_webhook_secret: Optional[str] = Field(default=None, alias="STRIPE_WEBHOOK_SECRET")
     default_timer_seconds: int = Field(default=300, alias="DEFAULT_TIMER_SECONDS")
     xp_max: int = Field(default=100, alias="XP_MAX")
     allowed_origins: List[str] = Field(

@@ -1,14 +1,22 @@
 from datetime import date
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
+from pydantic import BaseModel
 
 from ..models.answer import AnswerCreate, AnswerResult
 from ..models.reflection import ReflectionOverview
-from .deps import get_answer_service, get_question_service, get_reflection_service
+from .deps import get_answer_service, get_billing_service, get_question_service, get_reflection_service
+from ..services import BillingConfigError
 from ..services.answer_service import DuplicateAnswerError
 
 router = APIRouter(prefix="/v1", tags=["v1"])
+
+
+class CheckoutRequest(BaseModel):
+    userId: str
+    successUrl: str | None = None
+    cancelUrl: str | None = None
 
 
 @router.get("/questions/daily")
@@ -51,3 +59,37 @@ async def reflections_overview(
     if not resolved_user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User identifier required.")
     return reflection_service.overview(resolved_user, timezone_offset_minutes)
+
+
+@router.post("/billing/checkout")
+async def create_checkout_session(
+    payload: CheckoutRequest,
+    billing_service=Depends(get_billing_service),
+) -> dict:
+    try:
+        url = billing_service.create_checkout_session(
+            user_id=payload.userId,
+            success_url=payload.successUrl,
+            cancel_url=payload.cancelUrl,
+        )
+        return {"checkoutUrl": url}
+    except BillingConfigError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+    except Exception as exc:  # pragma: no cover - surface Stripe errors
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+@router.post("/billing/webhook")
+async def stripe_webhook(
+    request: Request,
+    billing_service=Depends(get_billing_service),
+    stripe_signature: Optional[str] = Header(default=None, alias="Stripe-Signature"),
+) -> dict:
+    payload = await request.body()
+    try:
+        billing_service.handle_webhook(payload, stripe_signature)
+        return {"received": True}
+    except BillingConfigError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+    except Exception as exc:  # pragma: no cover - Stripe validation errors
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc

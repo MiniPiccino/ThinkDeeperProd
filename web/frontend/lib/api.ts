@@ -114,6 +114,10 @@ export type ReflectionOverview = {
   timelineUnlocked: boolean;
 };
 
+export type CheckoutResponse = {
+  checkoutUrl: string;
+};
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS === "true";
@@ -170,6 +174,20 @@ export function fetchReflectionOverview(userId: string, timezoneOffsetMinutes: n
   const params = new URLSearchParams({ userId, timezoneOffsetMinutes: timezoneOffsetMinutes.toString() });
   return request<ReflectionOverview>(`/v1/reflections/overview?${params.toString()}`, {
     cache: "no-store",
+  });
+}
+
+export function createCheckoutSession(userId: string, successUrl?: string, cancelUrl?: string): Promise<CheckoutResponse> {
+  if (!userId) {
+    return Promise.reject(new Error("User ID required for checkout"));
+  }
+  return request<CheckoutResponse>("/v1/billing/checkout", {
+    method: "POST",
+    body: JSON.stringify({
+      userId,
+      successUrl,
+      cancelUrl,
+    }),
   });
 }
 

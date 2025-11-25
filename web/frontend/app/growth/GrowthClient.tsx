@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { StreakReplay } from "@/components/StreakTree";
 import { FloatingAction } from "@/components/FloatingAction";
-import { fetchDailyQuestion, fetchReflectionOverview } from "@/lib/api";
+import { createCheckoutSession, fetchDailyQuestion, fetchReflectionOverview } from "@/lib/api";
 import { useUserIdentifier } from "@/hooks/useUserIdentifier";
 import { TREE_ANIMATION_UNLOCK_STREAK } from "@/constants/experience";
 
@@ -236,6 +236,7 @@ export function GrowthClient() {
   const levelStats = useMemo(() => computeGrowthLevelStats(xpTotal), [xpTotal]);
   const streakCount = data?.streak ?? 0;
   const wantsTreeAnimation = searchParams?.get("treeAnimation") === "celebration";
+  const planStatus = searchParams?.get("plan");
   const animationConsumedRef = useRef(false);
   const animationUnlocked = streakCount >= TREE_ANIMATION_UNLOCK_STREAK;
   const [treeAnimationActive, setTreeAnimationActive] = useState(false);
@@ -350,6 +351,17 @@ export function GrowthClient() {
     : "";
   const todayDateKey = todayLocalDate.toDateString();
   const showReflectionLoading = Boolean(userId && reflectionsLoading && !reflectionData);
+  const [upgradeError, setUpgradeError] = useState<string | null>(null);
+  const [upgradeLoading, setUpgradeLoading] = useState(false);
+  const upgradeNotice = useMemo(() => {
+    if (planStatus === "premium") {
+      return { tone: "success", text: "Upgrade complete. Premium unlocked." };
+    }
+    if (planStatus === "free") {
+      return { tone: "muted", text: "Checkout cancelled. You’re still on free." };
+    }
+    return null;
+  }, [planStatus]);
   const fallbackWeeklySummary = useMemo(() => {
     const total = data?.weekProgress?.totalDays ?? 7;
     const completed = data?.weekProgress?.completedDays ?? 0;
@@ -440,6 +452,31 @@ export function GrowthClient() {
   const remainingWeekDays = Math.max((data?.weekProgress?.totalDays ?? 7) - (data?.weekProgress?.completedDays ?? 0), 0);
   const weekBadgeEarned = Boolean(data?.weekProgress?.badgeEarned);
 
+  const handleUpgrade = useCallback(async () => {
+    if (!userId) {
+      setUpgradeError("Log in to upgrade to premium.");
+      return;
+    }
+    setUpgradeError(null);
+    setUpgradeLoading(true);
+    try {
+      const origin = typeof window !== "undefined" ? window.location.origin : undefined;
+      const successUrl = origin ? `${origin}/growth?plan=premium` : undefined;
+      const cancelUrl = origin ? `${origin}/growth?plan=free` : undefined;
+      const response = await createCheckoutSession(userId, successUrl, cancelUrl);
+      if (response.checkoutUrl) {
+        window.location.href = response.checkoutUrl;
+      } else {
+        setUpgradeError("Could not start checkout. Try again.");
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to start checkout.";
+      setUpgradeError(message);
+    } finally {
+      setUpgradeLoading(false);
+    }
+  }, [userId]);
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-900 px-4 py-12 text-slate-100 lg:py-10">
       <div className="mx-auto flex max-w-4xl flex-col gap-8 pb-16">
@@ -450,6 +487,17 @@ export function GrowthClient() {
             Every streak day lights up this grid. Each week becomes a new band of color. Come here after writing to watch the
             timeline you’re building.
           </p>
+          {upgradeNotice ? (
+            <div
+              className={`mx-auto mt-3 max-w-md rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide ${
+                upgradeNotice.tone === "success"
+                  ? "bg-emerald-500/15 text-emerald-100 border border-emerald-400/50"
+                  : "bg-slate-800/60 text-slate-200 border border-slate-600/60"
+              }`}
+            >
+              {upgradeNotice.text}
+            </div>
+          ) : null}
         </header>
 
         {!userId ? (
@@ -635,12 +683,15 @@ export function GrowthClient() {
                 {!isPremiumUser ? (
                   <button
                     type="button"
+                    onClick={handleUpgrade}
+                    disabled={upgradeLoading}
                     className="inline-flex items-center justify-center rounded-full border border-emerald-400/50 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-emerald-200 transition hover:border-emerald-300 hover:text-emerald-50"
                   >
-                    Upgrade for unlimited
+                    {upgradeLoading ? "Connecting…" : "Upgrade for unlimited"}
                   </button>
                 ) : null}
               </div>
+              {upgradeError ? <p className="mt-2 text-xs text-red-300">{upgradeError}</p> : null}
 
               <div className="mt-5 grid gap-4 lg:grid-cols-2">
                 <div className="space-y-4">
