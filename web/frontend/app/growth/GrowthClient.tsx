@@ -451,6 +451,15 @@ export function GrowthClient() {
   const nextThemeBadge = resolveThemeBadge(data?.nextTheme);
   const remainingWeekDays = Math.max((data?.weekProgress?.totalDays ?? 7) - (data?.weekProgress?.completedDays ?? 0), 0);
   const weekBadgeEarned = Boolean(data?.weekProgress?.badgeEarned);
+  const coachTips = useMemo(
+    () => [
+      "Anchor every thought with a concrete example before you hit submit.",
+      "Name the tension in one sentence, then write why it matters to you.",
+      "Switch lens: rewrite one claim from the opposite view to test your logic.",
+      "Close with a takeaway you can act on tomorrow—one sentence only.",
+    ],
+    [],
+  );
 
   const handleUpgrade = useCallback(async () => {
     if (!userId) {
@@ -766,6 +775,29 @@ export function GrowthClient() {
                       })}
                     </ul>
                   </div>
+
+                  {isPremiumUser ? (
+                    <div className="rounded-2xl border border-emerald-400/30 bg-emerald-500/5 p-4 shadow-inner sm:p-5">
+                      <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.28em] text-emerald-200 sm:text-xs">
+                        <span>AI coach</span>
+                        <span className="text-emerald-100/80">Premium</span>
+                      </div>
+                      <p className="mt-3 text-sm font-semibold text-white">How to write stronger reflections</p>
+                      <p className="mt-1 text-sm text-emerald-100/80">
+                        Use these micro-prompts to deepen answers and earn richer feedback.
+                      </p>
+                      <ul className="mt-3 space-y-2 text-sm text-emerald-50">
+                        {coachTips.map((tip) => (
+                          <li key={tip} className="rounded-xl border border-emerald-400/20 bg-white/5 px-3 py-2 text-left text-emerald-50">
+                            {tip}
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="mt-3 text-xs text-emerald-200/80">
+                        Tip: Pick one prompt per session—don’t overstuff. Depth beats length.
+                      </p>
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-5">
