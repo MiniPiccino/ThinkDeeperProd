@@ -199,12 +199,12 @@ function BadgePill({ title, icon, description, tone }: BadgePillProps) {
       ? "bg-gradient-to-br from-emerald-600/20 via-emerald-500/10 to-emerald-700/20"
       : "bg-slate-900/50";
   return (
-    <div className={`flex flex-col gap-2 rounded-xl border ${border} ${bg} p-4`}>
-      <div className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-emerald-200">
+    <div className={`flex flex-col gap-1.5 rounded-xl border ${border} ${bg} p-3 sm:p-4`}>
+      <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-emerald-200 sm:text-xs">
         <span>{icon}</span>
-        <span className="truncate">{title}</span>
+        <span className="whitespace-normal leading-snug">{title}</span>
       </div>
-      <p className="text-sm text-emerald-50">{description}</p>
+      <p className="text-xs leading-relaxed text-emerald-50 sm:text-sm">{description}</p>
     </div>
   );
 }
