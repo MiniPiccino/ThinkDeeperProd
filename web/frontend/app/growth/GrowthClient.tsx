@@ -580,28 +580,28 @@ export function GrowthClient() {
               </div>
             </section>
 
-            <section className="rounded-3xl border border-emerald-400/40 bg-slate-900/60 p-6 text-sm text-slate-100 shadow-2xl">
-              <div className="space-y-2 text-center">
+            <section className="rounded-3xl border border-emerald-400/40 bg-slate-900/60 p-5 text-sm text-slate-100 shadow-2xl sm:p-6">
+              <div className="space-y-2 text-center sm:px-2">
                 <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-200">Badges</p>
-                <h3 className="text-2xl font-semibold text-white">Calm milestones</h3>
+                <h3 className="text-xl font-semibold text-white sm:text-2xl">Calm milestones</h3>
                 <p className="text-sm text-slate-300">
                   Level badges track long arc growth; weekly badges honor each theme you finish.
                 </p>
               </div>
-              <div className="mt-6 grid gap-5 lg:grid-cols-[1.1fr,1fr]">
-                <div className="relative overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-br from-black/60 to-emerald-950/60 p-4 shadow-inner">
+              <div className="mt-5 grid gap-4 sm:gap-5 lg:grid-cols-[1.1fr,1fr]">
+                <div className="relative overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-br from-black/60 to-emerald-950/60 p-4 shadow-inner sm:p-5">
                   <div
                     className={`absolute inset-x-6 top-2 h-32 rounded-full bg-gradient-to-r ${levelBadge.gradient} blur-3xl opacity-40`}
                     aria-hidden
                     style={{ animation: "pulse 3s ease-in-out infinite" }}
                   />
                   <div className="relative flex flex-col items-center gap-3 rounded-xl border border-emerald-400/30 bg-white/5 px-4 py-5 text-center backdrop-blur">
-                    <div className="flex items-center gap-3 text-sm uppercase tracking-[0.35em] text-emerald-200">
+                    <div className="flex flex-wrap items-center justify-center gap-2 text-[11px] uppercase tracking-[0.35em] text-emerald-200 sm:text-xs">
                       <span>{levelBadge.icon}</span>
                       <span>Level Badge</span>
                     </div>
-                    <p className="text-3xl font-semibold text-white">{levelBadge.name}</p>
-                    <p className="text-sm text-emerald-100/80">{levelBadge.description}</p>
+                    <p className="text-2xl font-semibold text-white sm:text-3xl">{levelBadge.name}</p>
+                    <p className="text-sm text-emerald-100/80 sm:max-w-md">{levelBadge.description}</p>
                     <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1 text-[12px] font-semibold uppercase tracking-wide text-emerald-100">
                       <span>Level {levelStats.level}</span>
                       <span className="text-emerald-200/80">·</span>
@@ -619,8 +619,8 @@ export function GrowthClient() {
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-4 shadow-inner">
-                  <div className="flex items-center justify-between gap-2 text-xs uppercase tracking-[0.3em] text-emerald-200">
+                <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-4 shadow-inner sm:p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs uppercase tracking-[0.3em] text-emerald-200">
                     <span>Weekly badges</span>
                     <span className="text-emerald-100/80">
                       {data?.weekProgress?.completedDays ?? 0}/{data?.weekProgress?.totalDays ?? 7}
