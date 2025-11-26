@@ -64,7 +64,12 @@ def _answer_repository(settings: Settings) -> AnswerRepository:
 def _user_repository(settings: Settings) -> UserRepository:
     global _USER_REPOSITORY
     if _USER_REPOSITORY is None:
-        _USER_REPOSITORY = UserRepository(settings.user_metadata_path)
+        supabase = _supabase_client(settings)
+        _USER_REPOSITORY = UserRepository(
+            settings.user_metadata_path,
+            supabase_client=supabase,
+            supabase_table=settings.supabase_user_table if supabase else None,
+        )
     return _USER_REPOSITORY
 
 

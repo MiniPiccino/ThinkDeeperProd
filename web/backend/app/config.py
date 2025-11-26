@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     supabase_service_key: Optional[str] = Field(default=None, alias="SUPABASE_SERVICE_KEY")
     supabase_answers_table: str = Field(default="answers", alias="SUPABASE_ANSWERS_TABLE")
     supabase_progress_table: str = Field(default="user_progress", alias="SUPABASE_PROGRESS_TABLE")
+    supabase_user_table: str = Field(default="user_plan", alias="SUPABASE_USER_TABLE")
     evaluation_model: str = Field(default="gpt-4o-mini", alias="EVALUATION_MODEL")
     stripe_secret_key: Optional[str] = Field(default=None, alias="STRIPE_SECRET_KEY")
     stripe_price_id: Optional[str] = Field(default=None, alias="STRIPE_PRICE_ID")
