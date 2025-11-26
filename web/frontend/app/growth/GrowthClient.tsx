@@ -589,9 +589,9 @@ export function GrowthClient() {
                 </p>
               </div>
               <div className="mt-5 grid gap-4 sm:gap-5 lg:grid-cols-[1.1fr,1fr]">
-                <div className="relative mx-auto w-full max-w-sm overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-br from-black/60 to-emerald-950/60 p-4 shadow-inner sm:max-w-md sm:p-5 lg:mx-0 lg:max-w-none">
+                <div className="relative mx-auto w-full max-w-[22rem] overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-br from-black/60 to-emerald-950/60 p-4 shadow-inner sm:max-w-md sm:p-5 lg:mx-0 lg:max-w-none">
                   <div
-                    className={`absolute inset-x-4 top-2 h-28 rounded-full bg-gradient-to-r ${levelBadge.gradient} blur-3xl opacity-35 sm:inset-x-6 sm:h-32`}
+                    className={`absolute inset-x-6 top-3 h-24 rounded-full bg-gradient-to-r ${levelBadge.gradient} blur-3xl opacity-30 sm:inset-x-8 sm:h-32`}
                     aria-hidden
                     style={{ animation: "pulse 3s ease-in-out infinite" }}
                   />
@@ -600,9 +600,9 @@ export function GrowthClient() {
                       <span>{levelBadge.icon}</span>
                       <span>Level Badge</span>
                     </div>
-                    <p className="text-lg font-semibold text-white sm:text-2xl">{levelBadge.name}</p>
+                    <p className="text-lg font-semibold text-white sm:text-xl">{levelBadge.name}</p>
                     <p className="text-xs text-emerald-100/80 sm:max-w-md sm:text-sm leading-relaxed text-center">{levelBadge.description}</p>
-                    <div className="mt-1 inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-100 sm:text-[12px]">
+                    <div className="mt-1 inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-100 sm:text-[12px]">
                       <span>Level {levelStats.level}</span>
                       <span className="text-emerald-200/80">·</span>
                       <span>{levelStats.xpIntoLevel}/{GROWTH_XP_PER_LEVEL} XP in</span>
@@ -619,7 +619,7 @@ export function GrowthClient() {
                   </div>
                 </div>
 
-                <div className="mx-auto w-full max-w-sm rounded-2xl border border-white/5 bg-slate-950/60 p-4 shadow-inner sm:max-w-md sm:p-5 lg:mx-0 lg:max-w-none">
+                <div className="mx-auto w-full max-w-[22rem] rounded-2xl border border-white/5 bg-slate-950/60 p-4 shadow-inner sm:max-w-md sm:p-5 lg:mx-0 lg:max-w-none">
                   <div className="flex flex-wrap items-center justify-between gap-2 text-xs uppercase tracking-[0.3em] text-emerald-200">
                     <span>Weekly badges</span>
                     <span className="text-emerald-100/80">
