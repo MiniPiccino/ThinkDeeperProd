@@ -695,12 +695,12 @@ export function GrowthClient() {
 
               <div className="mt-5 grid gap-4 lg:grid-cols-2">
                 <div className="space-y-4">
-                  <div className="rounded-2xl border border-emerald-400/30 bg-emerald-500/5 p-5 shadow-inner">
-                    <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-emerald-200">
+                  <div className="rounded-2xl border border-emerald-400/30 bg-emerald-500/5 p-4 shadow-inner sm:p-5">
+                    <div className="flex items-center justify-between gap-2 text-[11px] uppercase tracking-[0.28em] text-emerald-200 sm:text-xs">
                       <span>Today</span>
-                      <span>{todayDateLabel}</span>
+                      <span className="text-right text-emerald-50">{todayDateLabel}</span>
                     </div>
-                    <p className="mt-3 text-sm text-emerald-100/80">{todayPromptText}</p>
+                    <p className="mt-3 text-sm text-emerald-100/80 leading-relaxed">{todayPromptText}</p>
                     {showReflectionLoading ? (
                       <p className="mt-4 text-sm text-emerald-200/70">Linking today’s reflection…</p>
                     ) : todayLocked ? (
