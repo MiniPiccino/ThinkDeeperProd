@@ -589,7 +589,7 @@ export function GrowthClient() {
                 </p>
               </div>
               <div className="mt-5 grid gap-4 sm:gap-5 lg:grid-cols-[1.1fr,1fr]">
-                <div className="relative mx-auto w-full max-w-xl overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-br from-black/60 to-emerald-950/60 p-4 shadow-inner sm:p-5 lg:mx-0 lg:max-w-none">
+                <div className="relative mx-auto w-full max-w-lg overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-br from-black/60 to-emerald-950/60 p-4 shadow-inner sm:p-5 lg:mx-0 lg:max-w-none">
                   <div
                     className={`absolute inset-x-6 top-2 h-32 rounded-full bg-gradient-to-r ${levelBadge.gradient} blur-3xl opacity-40`}
                     aria-hidden
@@ -619,7 +619,7 @@ export function GrowthClient() {
                   </div>
                 </div>
 
-                <div className="mx-auto w-full max-w-xl rounded-2xl border border-white/5 bg-slate-950/60 p-4 shadow-inner sm:p-5 lg:mx-0 lg:max-w-none">
+                <div className="mx-auto w-full max-w-lg rounded-2xl border border-white/5 bg-slate-950/60 p-4 shadow-inner sm:p-5 lg:mx-0 lg:max-w-none">
                   <div className="flex flex-wrap items-center justify-between gap-2 text-xs uppercase tracking-[0.3em] text-emerald-200">
                     <span>Weekly badges</span>
                     <span className="text-emerald-100/80">
