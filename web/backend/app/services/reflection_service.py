@@ -34,10 +34,12 @@ class ReflectionService:
         today = self._local_date(tz_offset_minutes)
         recent_answers = self._answers.recent_answers(user_id, limit=self.MAX_RECENT_FETCH)
         answers_by_date: Dict[date, StoredAnswer] = {}
+        answered_dates: list[date] = []
         for stored in recent_answers:
             day = self._local_date_from_timestamp(stored.created_at, tz_offset_minutes)
             if day not in answers_by_date:
                 answers_by_date[day] = stored
+            answered_dates.append(day)
 
         today_entry = answers_by_date.get(today)
         weekly_blocks = self._weekly_summaries(today, answers_by_date, tz_offset_minutes, allow_history=is_premium)
@@ -54,6 +56,7 @@ class ReflectionService:
             week=weekly_blocks,
             teasers=teasers,
             timelineUnlocked=is_premium,
+            answeredDates=[d.isoformat() for d in sorted(set(answered_dates))],
         )
         return overview
 

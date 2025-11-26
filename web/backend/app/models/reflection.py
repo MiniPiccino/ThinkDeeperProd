@@ -46,6 +46,7 @@ class ReflectionOverview(BaseModel):
     week: List[ReflectionDaySummary]
     teasers: List[ReflectionTeaser]
     timeline_unlocked: bool = Field(..., alias="timelineUnlocked")
+    answered_dates: List[datetime] = Field(default_factory=list, alias="answeredDates")
 
     class Config:
         populate_by_name = True

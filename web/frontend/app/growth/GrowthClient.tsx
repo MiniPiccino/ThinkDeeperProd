@@ -405,26 +405,40 @@ export function GrowthClient() {
     { title: "Exports & yearly recap", detail: "Download PDFs/CSV or replay your Deep Tree for any year." },
   ];
   const reflectionAnsweredIndices = useMemo(() => {
-    const canUseTimeline = timelineUnlocked;
-    if (canUseTimeline) {
-      const indices = weeklyReflectionSummary
-        .map((day) => {
-          if (!day.hasEntry) {
-            return null;
-          }
-          const parsed = new Date(day.date);
-          if (Number.isNaN(parsed.getTime())) {
-            return null;
-          }
-          const weekIdx = mondayAlignedWeekIndex(parsed);
-          const dayIdx = mondayAlignedDayIndex(parsed);
-          return weekIdx * DAYS_PER_WEEK_TOTAL + dayIdx;
-        })
-        .filter((value): value is number => value !== null);
-      if (indices.length > 0) {
-        return indices;
-      }
+    const fromAnsweredDates =
+      timelineUnlocked && reflectionData?.answeredDates?.length
+        ? reflectionData.answeredDates
+            .map((iso) => {
+              const parsed = new Date(iso);
+              if (Number.isNaN(parsed.getTime())) return null;
+              const weekIdx = mondayAlignedWeekIndex(parsed);
+              const dayIdx = mondayAlignedDayIndex(parsed);
+              return weekIdx * DAYS_PER_WEEK_TOTAL + dayIdx;
+            })
+            .filter((value): value is number => value !== null)
+        : [];
+    if (fromAnsweredDates.length > 0) {
+      return fromAnsweredDates;
     }
+
+    const indices = weeklyReflectionSummary
+      .map((day) => {
+        if (!day.hasEntry) {
+          return null;
+        }
+        const parsed = new Date(day.date);
+        if (Number.isNaN(parsed.getTime())) {
+          return null;
+        }
+        const weekIdx = mondayAlignedWeekIndex(parsed);
+        const dayIdx = mondayAlignedDayIndex(parsed);
+        return weekIdx * DAYS_PER_WEEK_TOTAL + dayIdx;
+      })
+      .filter((value): value is number => value !== null);
+    if (indices.length > 0) {
+      return indices;
+    }
+
     if (!hasValidDate) {
       return [];
     }
@@ -438,12 +452,13 @@ export function GrowthClient() {
     const startIndex = mondayWeekIndex * DAYS_PER_WEEK_TOTAL + offset;
     return Array.from({ length: clamped }, (_, index) => startIndex + index);
   }, [
+    timelineUnlocked,
+    reflectionData?.answeredDates,
     weeklyReflectionSummary,
     hasValidDate,
     completedDays,
     totalWeekDays,
     mondayWeekIndex,
-    timelineUnlocked,
     data?.dayIndex,
   ]);
   const { current: levelBadge, next: nextLevelBadge } = resolveLevelBadge(levelStats.level);

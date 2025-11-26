@@ -112,6 +112,7 @@ export type ReflectionOverview = {
   week: ReflectionDaySummary[];
   teasers: ReflectionTeaser[];
   timelineUnlocked: boolean;
+  answeredDates?: string[];
 };
 
 export type CheckoutResponse = {
