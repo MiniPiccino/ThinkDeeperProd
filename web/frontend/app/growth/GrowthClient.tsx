@@ -580,7 +580,7 @@ export function GrowthClient() {
               </div>
             </section>
 
-            <section className="rounded-3xl border border-emerald-400/40 bg-slate-900/60 p-4 text-sm text-slate-100 shadow-2xl sm:p-6">
+            <section className="overflow-hidden rounded-3xl border border-emerald-400/40 bg-slate-900/60 p-4 text-sm text-slate-100 shadow-2xl sm:p-6">
               <div className="space-y-2 text-center px-1 sm:px-2">
                 <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-200">Badges</p>
                 <h3 className="text-lg font-semibold text-white sm:text-2xl">Calm milestones</h3>
@@ -589,9 +589,9 @@ export function GrowthClient() {
                 </p>
               </div>
               <div className="mt-5 grid gap-4 sm:gap-5 lg:grid-cols-[1.1fr,1fr]">
-                <div className="relative mx-auto w-full max-w-full overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-br from-black/60 to-emerald-950/60 p-4 shadow-inner sm:max-w-xl sm:p-5 lg:mx-0 lg:max-w-none">
+                <div className="relative mx-auto w-full max-w-[20rem] overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-br from-black/60 to-emerald-950/60 p-4 shadow-inner sm:max-w-[22rem] sm:p-5 lg:mx-0 lg:max-w-none">
                   <div
-                    className={`absolute inset-x-4 top-3 h-24 rounded-full bg-gradient-to-r ${levelBadge.gradient} blur-3xl opacity-25 sm:inset-x-8 sm:h-32`}
+                    className={`absolute inset-x-3 top-3 h-20 rounded-full bg-gradient-to-r ${levelBadge.gradient} blur-3xl opacity-25 sm:inset-x-8 sm:h-32`}
                     aria-hidden
                     style={{ animation: "pulse 3s ease-in-out infinite" }}
                   />
@@ -619,14 +619,14 @@ export function GrowthClient() {
                   </div>
                 </div>
 
-                <div className="mx-auto w-full max-w-full rounded-2xl border border-white/5 bg-slate-950/60 p-4 shadow-inner sm:max-w-xl sm:p-5 lg:mx-0 lg:max-w-none">
+                <div className="mx-auto w-full max-w-[20rem] rounded-2xl border border-white/5 bg-slate-950/60 p-4 shadow-inner sm:max-w-[22rem] sm:p-5 lg:mx-0 lg:max-w-none">
                   <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] uppercase tracking-[0.28em] text-emerald-200 sm:text-xs">
                     <span>Weekly badges</span>
                     <span className="text-emerald-100/80">
                       {data?.weekProgress?.completedDays ?? 0}/{data?.weekProgress?.totalDays ?? 7}
                     </span>
                   </div>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div className="mt-4 grid gap-3">
                     <BadgePill
                       title={`This week · ${weeklyBadge.name}`}
                       icon={weeklyBadge.icon}
