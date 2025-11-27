@@ -856,10 +856,10 @@ export function GrowthClient() {
                   {isPremiumUser ? (
                     <div className="space-y-4">
                       <div>
-                        <p className="text-xs uppercase tracking-[0.3em] text-emerald-200">Timeline</p>
+                        <p className="text-xs uppercase tracking-[0.3em] text-emerald-200">Premium timeline</p>
                         <p className="mt-2 text-lg font-semibold text-white">Every reflection, searchable.</p>
                         <p className="text-sm text-slate-300">
-                          Scroll your entire archive, filter by tags, and pin insights as you grow.
+                          Scroll your entire archive, filter by tags, pin insights, and replay your Deep Tree.
                         </p>
                       </div>
                       <div className="space-y-3">
