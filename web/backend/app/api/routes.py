@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Optional
+from typing import Optional, List
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 from pydantic import BaseModel

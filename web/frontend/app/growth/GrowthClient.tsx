@@ -242,6 +242,23 @@ export function GrowthClient() {
     staleTime: 0,
     retry: false,
   });
+  const timelineEntries = useMemo(() => {
+    if (reflectionHistory && reflectionHistory.length > 0) {
+      return reflectionHistory;
+    }
+    const fallback = weeklyReflectionSummary
+      .filter((day) => day.hasEntry && day.entry)
+      .map((day) => ({
+        answeredAt: day.entry!.answeredAt,
+        prompt: day.entry!.prompt,
+        theme: day.entry!.theme,
+        questionId: day.entry!.questionId,
+        excerpt: day.entry!.excerpt ?? "Reflection saved.",
+        xpAwarded: day.entry!.xpAwarded ?? 0,
+        durationSeconds: day.entry!.durationSeconds ?? 0,
+      }));
+    return fallback.slice(0, 6);
+  }, [reflectionHistory, weeklyReflectionSummary]);
 
   const xpTotal = data?.xpTotal ?? 0;
   const levelStats = useMemo(() => computeGrowthLevelStats(xpTotal), [xpTotal]);
@@ -886,11 +903,8 @@ export function GrowthClient() {
                           <span>Latest reflections</span>
                           {historyLoading ? <span className="text-emerald-100/70">Loading…</span> : null}
                         </div>
-                        {historyError ? (
-                          <p className="text-xs text-red-300">Couldn’t load timeline right now.</p>
-                        ) : null}
                         <div className="space-y-2">
-                          {(reflectionHistory ?? []).slice(0, 6).map((entry) => (
+                          {timelineEntries.map((entry) => (
                             <div key={entry.questionId + entry.answeredAt} className="rounded-xl border border-white/10 bg-white/5 p-3">
                               <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.25em] text-emerald-200">
                                 <span>{new Date(entry.answeredAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
@@ -901,8 +915,10 @@ export function GrowthClient() {
                               <p className="mt-1 text-xs text-slate-200 leading-relaxed">{entry.excerpt}</p>
                             </div>
                           ))}
-                          {historyLoading || (reflectionHistory ?? []).length === 0 ? (
-                            <p className="text-xs text-slate-400">Write more to populate your timeline.</p>
+                          {historyLoading || timelineEntries.length === 0 ? (
+                            <p className="text-xs text-slate-400">
+                              {historyError ? "Timeline is warming up—try again soon." : "Write more to populate your timeline."}
+                            </p>
                           ) : null}
                         </div>
                       </div>
