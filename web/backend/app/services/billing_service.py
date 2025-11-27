@@ -40,6 +40,9 @@ class BillingService:
             success_url=success_url or self._settings.stripe_success_url,
             cancel_url=cancel_url or self._settings.stripe_cancel_url or (success_url or self._settings.stripe_success_url),
             allow_promotion_codes=True,
+            billing_address_collection="auto",
+            automatic_tax={"enabled": True},
+            customer_creation="always",
             metadata={"userId": user_id},
         )
         return session.url
