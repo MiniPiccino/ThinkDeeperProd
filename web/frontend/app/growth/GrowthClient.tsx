@@ -468,15 +468,22 @@ export function GrowthClient() {
   const nextThemeBadge = resolveThemeBadge(data?.nextTheme);
   const remainingWeekDays = Math.max((data?.weekProgress?.totalDays ?? 7) - (data?.weekProgress?.completedDays ?? 0), 0);
   const weekBadgeEarned = Boolean(data?.weekProgress?.badgeEarned);
-  const coachTips = useMemo(
-    () => [
-      "Anchor every thought with a concrete example before you hit submit.",
-      "Name the tension in one sentence, then write why it matters to you.",
-      "Switch lens: rewrite one claim from the opposite view to test your logic.",
-      "Close with a takeaway you can act on tomorrow—one sentence only.",
-    ],
-    [],
-  );
+  const themeLabel = useMemo(() => {
+    if (!data?.theme) return "this arc";
+    const parts = data.theme.split("—").map((part) => part.trim()).filter(Boolean);
+    return parts[parts.length - 1] || data.theme;
+  }, [data?.theme]);
+
+  const coachTips = useMemo(() => {
+    const streakLine =
+      streakCount >= 3
+        ? `You’re on a ${streakCount}-day streak—write one line about how today felt different.`
+        : "Name how you feel before you start; use that emotion as your first sentence.";
+    const themeLine = `Link every point back to “${themeLabel}” so the arc feels cohesive.`;
+    const exampleLine = "Anchor each claim with a personal example (who/what/when) before moving on.";
+    const closeLine = `Close with a one-line takeaway for tomorrow. Level ${levelStats.level} climbs faster when you keep it sharp.`;
+    return [streakLine, themeLine, exampleLine, closeLine];
+  }, [streakCount, themeLabel, levelStats.level]);
 
   const handleUpgrade = useCallback(async () => {
     if (!userId || !reflectionData) {
