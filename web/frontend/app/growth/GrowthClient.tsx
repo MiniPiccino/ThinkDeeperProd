@@ -242,24 +242,6 @@ export function GrowthClient() {
     staleTime: 0,
     retry: false,
   });
-  const timelineEntries = useMemo(() => {
-    if (reflectionHistory && reflectionHistory.length > 0) {
-      return reflectionHistory;
-    }
-    const fallback = weeklyReflectionSummary
-      .filter((day) => day.hasEntry && day.entry)
-      .map((day) => ({
-        answeredAt: day.entry!.answeredAt,
-        prompt: day.entry!.prompt,
-        theme: day.entry!.theme,
-        questionId: day.entry!.questionId,
-        excerpt: day.entry!.excerpt ?? "Reflection saved.",
-        xpAwarded: day.entry!.xpAwarded ?? 0,
-        durationSeconds: day.entry!.durationSeconds ?? 0,
-      }));
-    return fallback.slice(0, 6);
-  }, [reflectionHistory, weeklyReflectionSummary]);
-
   const xpTotal = data?.xpTotal ?? 0;
   const levelStats = useMemo(() => computeGrowthLevelStats(xpTotal), [xpTotal]);
   const streakCount = data?.streak ?? 0;
@@ -434,6 +416,23 @@ export function GrowthClient() {
     { title: "Insights", detail: "See how your voice evolves (“Your thinking is more analytical this month”)." },
     { title: "Exports & yearly recap", detail: "Download PDFs/CSV or replay your Deep Tree for any year." },
   ];
+  const timelineEntries = useMemo(() => {
+    if (reflectionHistory && reflectionHistory.length > 0) {
+      return reflectionHistory;
+    }
+    const fallback = weeklyReflectionSummary
+      .filter((day) => day.hasEntry && day.entry)
+      .map((day) => ({
+        answeredAt: day.entry!.answeredAt,
+        prompt: day.entry!.prompt,
+        theme: day.entry!.theme,
+        questionId: day.entry!.questionId,
+        excerpt: day.entry!.excerpt ?? "Reflection saved.",
+        xpAwarded: day.entry!.xpAwarded ?? 0,
+        durationSeconds: day.entry!.durationSeconds ?? 0,
+      }));
+    return fallback.slice(0, 6);
+  }, [reflectionHistory, weeklyReflectionSummary]);
   const reflectionAnsweredIndices = useMemo(() => {
     const fromAnsweredDates =
       timelineUnlocked && reflectionData?.answeredDates?.length
