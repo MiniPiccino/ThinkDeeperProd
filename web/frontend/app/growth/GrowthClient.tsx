@@ -353,6 +353,8 @@ export function GrowthClient() {
   const showReflectionLoading = Boolean(userId && reflectionsLoading && !reflectionData);
   const [upgradeError, setUpgradeError] = useState<string | null>(null);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
+  const upgradeDisabled = !userId || upgradeLoading;
   const upgradeNotice = useMemo(() => {
     if (planStatus === "premium") {
       return { tone: "success", text: "Upgrade complete. Premium unlocked." };
@@ -478,7 +480,8 @@ export function GrowthClient() {
 
   const handleUpgrade = useCallback(async () => {
     if (!userId) {
-      setUpgradeError("Log in to upgrade to premium.");
+      setUpgradeError(null);
+      setShowAuthPrompt(true);
       return;
     }
     setUpgradeError(null);
@@ -503,6 +506,33 @@ export function GrowthClient() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-900 px-4 py-12 text-slate-100 lg:py-10">
+      {showAuthPrompt ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-sm rounded-2xl border border-emerald-400/40 bg-slate-950/90 p-5 text-sm shadow-2xl">
+            <p className="text-xs uppercase tracking-[0.35em] text-emerald-200">Sign in required</p>
+            <h4 className="mt-2 text-lg font-semibold text-white">Log in to upgrade</h4>
+            <p className="mt-2 text-slate-200">
+              You’ll need to sign in so we can attach premium to your account before checkout.
+            </p>
+            <div className="mt-4 flex flex-col gap-2">
+              <Link
+                href="/"
+                className="inline-flex items-center justify-center rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-emerald-500"
+                onClick={() => setShowAuthPrompt(false)}
+              >
+                Go sign in
+              </Link>
+              <button
+                type="button"
+                onClick={() => setShowAuthPrompt(false)}
+                className="inline-flex items-center justify-center rounded-full border border-emerald-400/40 px-4 py-2 text-sm font-semibold text-emerald-200 transition hover:border-emerald-300 hover:text-emerald-50"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <div className="mx-auto flex max-w-4xl flex-col gap-8 pb-16">
         <header className="space-y-3 text-center">
           <p className="text-xs uppercase tracking-[0.4em] text-emerald-300">Growth</p>
@@ -709,7 +739,7 @@ export function GrowthClient() {
                     type="button"
                     onClick={handleUpgrade}
                     disabled={upgradeLoading}
-                    className="inline-flex items-center justify-center rounded-full border border-emerald-400/50 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-emerald-200 transition hover:border-emerald-300 hover:text-emerald-50"
+                    className="inline-flex items-center justify-center rounded-full border border-emerald-400/50 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-emerald-200 transition hover:border-emerald-300 hover:text-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {upgradeLoading ? "Connecting…" : "Upgrade for unlimited"}
                   </button>
