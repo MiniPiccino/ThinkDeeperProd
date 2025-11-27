@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, s
 from pydantic import BaseModel
 
 from ..models.answer import AnswerCreate, AnswerResult
-from ..models.reflection import ReflectionOverview
+from ..models.reflection import ReflectionHistoryItem, ReflectionOverview
 from .deps import get_answer_service, get_billing_service, get_question_service, get_reflection_service
 from ..services import BillingConfigError
 from ..services.answer_service import DuplicateAnswerError
@@ -59,6 +59,20 @@ async def reflections_overview(
     if not resolved_user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User identifier required.")
     return reflection_service.overview(resolved_user, timezone_offset_minutes)
+
+
+@router.get("/reflections/history", response_model=List[ReflectionHistoryItem])
+async def reflections_history(
+    reflection_service=Depends(get_reflection_service),
+    user_id: Optional[str] = Query(default=None, alias="userId"),
+    x_user_id: Optional[str] = Header(default=None, alias="X-User-Id"),
+    limit: int = Query(default=50, ge=1, le=200),
+    search: Optional[str] = Query(default=None, alias="q"),
+) -> List[ReflectionHistoryItem]:
+    resolved_user = user_id or x_user_id
+    if not resolved_user:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User identifier required.")
+    return reflection_service.history(resolved_user, limit=limit, search=search)
 
 
 @router.post("/billing/checkout")

@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { StreakReplay } from "@/components/StreakTree";
 import { FloatingAction } from "@/components/FloatingAction";
-import { createCheckoutSession, fetchDailyQuestion, fetchReflectionOverview } from "@/lib/api";
+import { createCheckoutSession, fetchDailyQuestion, fetchReflectionHistory, fetchReflectionOverview } from "@/lib/api";
 import { useUserIdentifier } from "@/hooks/useUserIdentifier";
 import { TREE_ANIMATION_UNLOCK_STREAK } from "@/constants/experience";
 
@@ -228,6 +228,17 @@ export function GrowthClient() {
     queryKey: ["reflections", userId],
     queryFn: () => fetchReflectionOverview(userId ?? "", new Date().getTimezoneOffset()),
     enabled: Boolean(userId),
+    staleTime: 0,
+    retry: false,
+  });
+  const {
+    data: reflectionHistory,
+    isLoading: historyLoading,
+    isError: historyError,
+  } = useQuery({
+    queryKey: ["reflection-history", userId],
+    queryFn: () => fetchReflectionHistory(userId ?? "", 50),
+    enabled: Boolean(userId && reflectionData?.timelineUnlocked),
     staleTime: 0,
     retry: false,
   });
@@ -870,6 +881,31 @@ export function GrowthClient() {
                           </div>
                         ))}
                       </div>
+                      <div className="mt-4 space-y-2">
+                        <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-emerald-200">
+                          <span>Latest reflections</span>
+                          {historyLoading ? <span className="text-emerald-100/70">Loading…</span> : null}
+                        </div>
+                        {historyError ? (
+                          <p className="text-xs text-red-300">Couldn’t load timeline right now.</p>
+                        ) : null}
+                        <div className="space-y-2">
+                          {(reflectionHistory ?? []).slice(0, 6).map((entry) => (
+                            <div key={entry.questionId + entry.answeredAt} className="rounded-xl border border-white/10 bg-white/5 p-3">
+                              <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.25em] text-emerald-200">
+                                <span>{new Date(entry.answeredAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+                                <span className="text-emerald-100/80">+{entry.xpAwarded} XP</span>
+                              </div>
+                              <p className="mt-1 text-sm font-semibold text-white">{entry.prompt}</p>
+                              <p className="text-xs text-emerald-100/80">{entry.theme}</p>
+                              <p className="mt-1 text-xs text-slate-200 leading-relaxed">{entry.excerpt}</p>
+                            </div>
+                          ))}
+                          {historyLoading || (reflectionHistory ?? []).length === 0 ? (
+                            <p className="text-xs text-slate-400">Write more to populate your timeline.</p>
+                          ) : null}
+                        </div>
+                      </div>
                     </div>
                   ) : (
                     <div className="flex h-full flex-col justify-between gap-4">
@@ -891,6 +927,17 @@ export function GrowthClient() {
                               </p>
                             </div>
                           ))}
+                          <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/5 p-4">
+                            <p className="text-xs uppercase tracking-[0.3em] text-emerald-200">What premium adds</p>
+                            <div className="mt-2 space-y-2">
+                              {premiumHighlights.map((item) => (
+                                <div key={item.title} className="rounded-xl border border-emerald-400/15 bg-white/5 px-3 py-2">
+                                  <p className="text-sm font-semibold text-white">{item.title}</p>
+                                  <p className="text-xs text-emerald-100/80">{item.detail}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
                         </div>
                       </div>
                       <div className="space-y-3 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 p-4">

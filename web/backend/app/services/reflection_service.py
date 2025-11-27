@@ -6,6 +6,7 @@ from typing import Dict, List, Optional
 from ..models.reflection import (
     ReflectionDaySummary,
     ReflectionEntry,
+    ReflectionHistoryItem,
     ReflectionOverview,
     ReflectionTeaser,
 )
@@ -59,6 +60,31 @@ class ReflectionService:
             answeredDates=[d.isoformat() for d in sorted(set(answered_dates))],
         )
         return overview
+
+    def history(self, user_id: str, limit: int = 50, search: Optional[str] = None) -> List[ReflectionHistoryItem]:
+        answers = self._answers.recent_answers(user_id, limit=None)
+        items: List[ReflectionHistoryItem] = []
+        query = (search or "").strip().lower()
+        for stored in answers:
+            prompt, theme = self._question_meta(stored.question_id)
+            excerpt = self._excerpt(stored.answer, 200)
+            combined = f"{prompt} {theme} {excerpt}".lower()
+            if query and query not in combined:
+                continue
+            items.append(
+                ReflectionHistoryItem(
+                  answeredAt=stored.created_at,
+                  prompt=prompt,
+                  theme=theme,
+                  questionId=stored.question_id,
+                  excerpt=excerpt,
+                  xpAwarded=stored.xp_awarded,
+                  durationSeconds=stored.duration_seconds,
+                )
+            )
+            if len(items) >= limit:
+                break
+        return items
 
     def _weekly_summaries(
         self,

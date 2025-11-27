@@ -50,3 +50,16 @@ class ReflectionOverview(BaseModel):
 
     class Config:
         populate_by_name = True
+
+
+class ReflectionHistoryItem(BaseModel):
+    answered_at: datetime = Field(..., alias="answeredAt")
+    prompt: str
+    theme: str
+    question_id: str = Field(..., alias="questionId")
+    excerpt: str
+    xp_awarded: int = Field(..., alias="xpAwarded")
+    duration_seconds: int = Field(..., alias="durationSeconds")
+
+    class Config:
+        populate_by_name = True

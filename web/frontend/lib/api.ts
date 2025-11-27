@@ -115,6 +115,16 @@ export type ReflectionOverview = {
   answeredDates?: string[];
 };
 
+export type ReflectionHistoryItem = {
+  answeredAt: string;
+  prompt: string;
+  theme: string;
+  questionId: string;
+  excerpt: string;
+  xpAwarded: number;
+  durationSeconds: number;
+};
+
 export type CheckoutResponse = {
   checkoutUrl: string;
 };
@@ -174,6 +184,19 @@ export function fetchReflectionOverview(userId: string, timezoneOffsetMinutes: n
   }
   const params = new URLSearchParams({ userId, timezoneOffsetMinutes: timezoneOffsetMinutes.toString() });
   return request<ReflectionOverview>(`/v1/reflections/overview?${params.toString()}`, {
+    cache: "no-store",
+  });
+}
+
+export function fetchReflectionHistory(userId: string, limit = 50, search?: string): Promise<ReflectionHistoryItem[]> {
+  if (!userId) {
+    return Promise.reject(new Error("User ID required for reflections history"));
+  }
+  const params = new URLSearchParams({ userId, limit: String(limit) });
+  if (search) {
+    params.set("q", search);
+  }
+  return request<ReflectionHistoryItem[]>(`/v1/reflections/history?${params.toString()}`, {
     cache: "no-store",
   });
 }
