@@ -479,7 +479,7 @@ export function GrowthClient() {
   );
 
   const handleUpgrade = useCallback(async () => {
-    if (!userId) {
+    if (!userId || !reflectionData) {
       setUpgradeError(null);
       setShowAuthPrompt(true);
       return;
