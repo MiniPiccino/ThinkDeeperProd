@@ -245,6 +245,7 @@ export function GrowthClient() {
   const xpTotal = data?.xpTotal ?? 0;
   const levelStats = useMemo(() => computeGrowthLevelStats(xpTotal), [xpTotal]);
   const streakCount = data?.streak ?? 0;
+  const hasAnsweredToday = Boolean(data?.hasAnsweredToday);
   const wantsTreeAnimation = searchParams?.get("treeAnimation") === "celebration";
   const planStatus = searchParams?.get("plan");
   const animationConsumedRef = useRef(false);
@@ -431,45 +432,50 @@ export function GrowthClient() {
       return fromAnsweredDates;
     }
 
-    const indices = weeklyReflectionSummary
-      .map((day) => {
-        if (!day.hasEntry) {
-          return null;
-        }
-        const parsed = new Date(day.date);
-        if (Number.isNaN(parsed.getTime())) {
-          return null;
-        }
-        const weekIdx = mondayAlignedWeekIndex(parsed);
-        const dayIdx = mondayAlignedDayIndex(parsed);
-        return weekIdx * DAYS_PER_WEEK_TOTAL + dayIdx;
-      })
-      .filter((value): value is number => value !== null);
-    if (indices.length > 0) {
-      return indices;
+    const indicesFromWeek =
+      reflectionData?.week && reflectionData.week.length > 0
+        ? reflectionData.week
+            .map((day) => {
+              if (!day.hasEntry) {
+                return null;
+              }
+              const parsed = new Date(day.date);
+              if (Number.isNaN(parsed.getTime())) {
+                return null;
+              }
+              const weekIdx = mondayAlignedWeekIndex(parsed);
+              const dayIdx = mondayAlignedDayIndex(parsed);
+              return weekIdx * DAYS_PER_WEEK_TOTAL + dayIdx;
+            })
+            .filter((value): value is number => value !== null)
+        : [];
+    if (indicesFromWeek.length > 0) {
+      return indicesFromWeek;
     }
 
-    if (!hasValidDate) {
+    if (!hasValidDate || streakCount <= 0) {
       return [];
     }
-    const clamped = Math.max(Math.min(completedDays, totalWeekDays), 0);
-    if (clamped === 0) {
-      return [];
+    const baseDate = new Date(availableOnDate);
+    if (!hasAnsweredToday) {
+      baseDate.setDate(baseDate.getDate() - 1);
     }
-    const currentDayIndex = Math.min(Math.max(data?.dayIndex ?? clamped - 1, 0), totalWeekDays - 1);
-    let offset = currentDayIndex - (clamped - 1);
-    offset = Math.max(0, Math.min(totalWeekDays - clamped, offset));
-    const startIndex = mondayWeekIndex * DAYS_PER_WEEK_TOTAL + offset;
-    return Array.from({ length: clamped }, (_, index) => startIndex + index);
+    const indices = Array.from({ length: streakCount }, (_, index) => {
+      const day = new Date(baseDate);
+      day.setDate(baseDate.getDate() - index);
+      const weekIdx = mondayAlignedWeekIndex(day);
+      const dayIdx = mondayAlignedDayIndex(day);
+      return weekIdx * DAYS_PER_WEEK_TOTAL + dayIdx;
+    });
+    return indices;
   }, [
     timelineUnlocked,
     reflectionData?.answeredDates,
-    weeklyReflectionSummary,
+    reflectionData?.week,
     hasValidDate,
-    completedDays,
-    totalWeekDays,
-    mondayWeekIndex,
-    data?.dayIndex,
+    streakCount,
+    availableOnDate,
+    hasAnsweredToday,
   ]);
   const { current: levelBadge, next: nextLevelBadge } = resolveLevelBadge(levelStats.level);
   const weeklyBadge = resolveThemeBadge(data?.theme);
