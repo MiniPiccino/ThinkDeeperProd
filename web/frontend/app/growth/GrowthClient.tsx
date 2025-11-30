@@ -283,6 +283,25 @@ export function GrowthClient() {
   const animationConsumedRef = useRef(false);
   const [treeAnimationActive, setTreeAnimationActive] = useState(false);
   const [activeFrameIndex, setActiveFrameIndex] = useState(-1);
+  const availableOnDate = useMemo(() => {
+    const base = data?.availableOn ? new Date(data.availableOn) : new Date();
+    if (Number.isNaN(base.getTime())) {
+      return new Date();
+    }
+    return base;
+  }, [data]);
+  const answeredDates =
+    reflectionData?.answeredDates ??
+    reflectionData?.week?.filter((day) => day.hasEntry).map((day) => day.date) ??
+    [];
+  const streakCount = useMemo(() => {
+    return computeStreakFromDates(
+      answeredDates,
+      availableOnDate,
+    );
+  }, [answeredDates, availableOnDate]);
+  const hasAnsweredToday = Boolean(data?.hasAnsweredToday);
+  const animationUnlocked = streakCount >= TREE_ANIMATION_UNLOCK_STREAK;
 
   const startTreeAnimation = useCallback(() => {
     setTreeAnimationActive(true);
@@ -350,24 +369,6 @@ export function GrowthClient() {
   );
   const focusDayIndex = treeFocusMode === "none" ? null : focusableDay;
   const treeTransformDuration = animationUnlocked && activeFrame ? activeFrame.duration : 1000;
-  const availableOnDate = useMemo(() => {
-    const base = data?.availableOn ? new Date(data.availableOn) : new Date();
-    if (Number.isNaN(base.getTime())) {
-      return new Date();
-    }
-    return base;
-  }, [data]);
-  const answeredDates =
-    reflectionData?.answeredDates ??
-    reflectionData?.week?.filter((day) => day.hasEntry).map((day) => day.date) ??
-    [];
-  const streakCount = useMemo(() => {
-    return computeStreakFromDates(
-      answeredDates,
-      availableOnDate,
-    );
-  }, [answeredDates, availableOnDate]);
-  const hasAnsweredToday = Boolean(data?.hasAnsweredToday);
   const hasValidDate = !Number.isNaN(availableOnDate.getTime());
   const mondayWeekIndex = hasValidDate ? mondayAlignedWeekIndex(availableOnDate) : 0;
   const mondayDayIndex = hasValidDate ? mondayAlignedDayIndex(availableOnDate) : null;
