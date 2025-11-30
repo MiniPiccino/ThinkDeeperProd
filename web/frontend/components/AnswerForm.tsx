@@ -8,10 +8,12 @@ type AnswerFormProps = {
   onSubmit: () => void;
   isSubmitting: boolean;
   disabled?: boolean;
+  onFocus?: () => void;
+  onBlur?: () => void;
 };
 
 export const AnswerForm = forwardRef<HTMLTextAreaElement, AnswerFormProps>(function AnswerForm(
-  { answer, onChange, onSubmit, isSubmitting, disabled }: AnswerFormProps,
+  { answer, onChange, onSubmit, isSubmitting, disabled, onFocus, onBlur }: AnswerFormProps,
   ref,
 ) {
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -30,6 +32,8 @@ export const AnswerForm = forwardRef<HTMLTextAreaElement, AnswerFormProps>(funct
         <textarea
           value={answer}
           onChange={(event) => onChange(event.target.value)}
+          onFocus={onFocus}
+          onBlur={onBlur}
           placeholder="Capture your thoughts here. The more concrete and nuanced, the better."
           className="mt-2 h-40 w-full resize-none rounded-2xl border border-zinc-200 bg-white p-4 text-base leading-6 text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200 disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
           disabled={disabled || isSubmitting}

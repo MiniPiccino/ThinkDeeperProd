@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 
 import { AnswerForm } from '@/components/AnswerForm';
@@ -292,6 +292,8 @@ function casualizeFeedback(message: string): string {
 
 export default function HomePage() {
   const [session, dispatchSession] = useReducer(sessionReducer, initialSessionState);
+  const [quickActionsOpen, setQuickActionsOpen] = useState(false);
+  const [isWriting, setIsWriting] = useState(false);
   const {
     hasStarted,
     isSubmitted,
@@ -322,6 +324,15 @@ export default function HomePage() {
   const questionSectionRef = useRef<HTMLDivElement | null>(null);
   const writingSectionRef = useRef<HTMLDivElement | null>(null);
   const previousQuestionIdRef = useRef<string | null>(null);
+
+  const handleWritingFocus = useCallback(() => {
+    setIsWriting(true);
+    setQuickActionsOpen(false);
+  }, [setIsWriting, setQuickActionsOpen]);
+
+  const handleWritingBlur = useCallback(() => {
+    setIsWriting(false);
+  }, [setIsWriting]);
 
   const markPrimingSeen = useCallback(() => {
     if (typeof window === 'undefined') {
@@ -499,6 +510,7 @@ export default function HomePage() {
   );
 
   const handleSubmit = () => {
+    setIsWriting(false);
     if (!dailyQuestion || answer.trim().length === 0) {
       return;
     }
@@ -667,6 +679,8 @@ export default function HomePage() {
                     onChange={handleAnswerChange}
                     onSubmit={handleSubmit}
                     isSubmitting={mutation.isPending}
+                    onFocus={handleWritingFocus}
+                    onBlur={handleWritingBlur}
                     disabled={isSubmitted}
                     ref={answerRef}
                   />
@@ -703,14 +717,32 @@ export default function HomePage() {
               </div>
 
             </div>
-          </>
+      </>
         ) : null}
       </div>
     </main>
-      <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2 md:gap-3 lg:hidden">
-        <FloatingAction href="/focus-tools" label="Focus tools" />
-        <FloatingAction href="/growth" label="Growth check-in" />
-        <FloatingAction href="/why" label="Why you’ll love Deep" variant="ghost" />
+      <div className="fixed right-4 top-4 z-40 lg:hidden">
+        <div className="flex flex-col items-end gap-2">
+          <button
+            type="button"
+            onClick={() => setQuickActionsOpen((open) => !open)}
+            aria-expanded={quickActionsOpen}
+            aria-label="Toggle quick links"
+            className="inline-flex items-center gap-2 rounded-full bg-zinc-900/90 px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-white shadow-lg ring-1 ring-white/10 transition hover:bg-zinc-800 dark:bg-emerald-600/90 dark:hover:bg-emerald-500"
+          >
+            <span>Quick links</span>
+            <span className="text-sm leading-none">{quickActionsOpen ? '-' : '+'}</span>
+          </button>
+          {quickActionsOpen ? (
+            <div className="w-64 rounded-2xl border border-zinc-200/80 bg-white/90 p-3 shadow-2xl backdrop-blur dark:border-zinc-700/80 dark:bg-zinc-900/95">
+              <div className="flex flex-col items-end gap-2">
+                <FloatingAction href="/focus-tools" label="Focus tools" />
+                <FloatingAction href="/growth" label="Growth check-in" />
+                <FloatingAction href="/why" label="Why you’ll love Deep" variant="ghost" />
+              </div>
+            </div>
+          ) : null}
+        </div>
       </div>
     </>
   );
