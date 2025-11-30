@@ -302,6 +302,7 @@ export function GrowthClient() {
   }, [answeredDates, availableOnDate]);
   const hasAnsweredToday = Boolean(data?.hasAnsweredToday);
   const animationUnlocked = streakCount >= TREE_ANIMATION_UNLOCK_STREAK;
+  const animationUnlocked = streakCount >= TREE_ANIMATION_UNLOCK_STREAK;
 
   const startTreeAnimation = useCallback(() => {
     setTreeAnimationActive(true);
@@ -378,7 +379,6 @@ export function GrowthClient() {
   const todayReflectionEntry = reflectionData?.today ?? null;
   const todayLocked = reflectionData?.todayLocked ?? !todayReflectionEntry;
   const todayTeasers = reflectionData?.teasers ?? [];
-  const animationUnlocked = streakCount >= TREE_ANIMATION_UNLOCK_STREAK;
   const todayLocalDate = useMemo(() => {
     if (todayReflectionEntry?.answeredAt) {
       const parsed = new Date(todayReflectionEntry.answeredAt);
