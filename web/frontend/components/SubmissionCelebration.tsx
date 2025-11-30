@@ -496,6 +496,13 @@ export function SubmissionCelebration({
                 {shareSupported ? 'Share your streak' : 'Share (copy unavailable)'}
               </button>
               <Link
+                href="/upgrade"
+                prefetch={false}
+                className="inline-flex items-center justify-center rounded-full bg-amber-500 px-5 py-2 text-sm font-semibold text-amber-950 shadow-md transition hover:bg-amber-400"
+              >
+                Upgrade to Premium
+              </Link>
+              <Link
                 href="/growth?treeAnimation=celebration"
                 prefetch={false}
                 className="inline-flex items-center justify-center rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-slate-800"

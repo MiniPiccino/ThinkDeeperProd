@@ -376,36 +376,17 @@ export function GrowthClient() {
   }, [planStatus]);
   const fallbackWeeklySummary = useMemo(() => {
     const total = data?.weekProgress?.totalDays ?? 7;
-    const completed = data?.weekProgress?.completedDays ?? 0;
     const startOfWeek = new Date(todayLocalDate);
     const dayIndex = (startOfWeek.getDay() + 6) % 7;
     startOfWeek.setDate(startOfWeek.getDate() - dayIndex);
-    const currentDayIndex = Math.min(
-      Math.max(data?.dayIndex ?? (completed > 0 ? completed - 1 : 0), 0),
-      total - 1,
-    );
-    const firstFilledIndex = Math.max(0, currentDayIndex - Math.max(completed - 1, 0));
     return Array.from({ length: total }, (_, index) => {
       const dayDate = new Date(startOfWeek);
       dayDate.setDate(startOfWeek.getDate() + index);
-      const captured = completed > 0 && index >= firstFilledIndex && index <= currentDayIndex;
       return {
         date: dayDate.toISOString(),
         weekday: dayDate.toLocaleDateString(undefined, { weekday: "long" }),
-        hasEntry: captured,
-        entry: captured
-          ? {
-              questionId: data?.id ?? `week-${data?.weekIndex ?? 0}-day-${index + 1}`,
-              prompt: data?.prompt ?? "Reflection",
-              theme: data?.theme ?? "Current arc",
-              answeredAt: dayDate.toISOString(),
-              xpAwarded: 0,
-              durationSeconds: 0,
-              excerpt: "Reflection saved.",
-              answer: "",
-              feedback: null,
-            }
-          : null,
+        hasEntry: false,
+        entry: null,
       };
     });
   }, [todayLocalDate, data]);
