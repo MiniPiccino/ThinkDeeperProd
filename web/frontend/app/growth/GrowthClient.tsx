@@ -139,6 +139,35 @@ function mondayAlignedDayIndex(target: Date): number {
   return (localDay + 6) % 7; // Monday 0
 }
 
+function computeStreakFromDates(dates: string[], today: Date): number {
+  if (!dates || dates.length === 0) {
+    return 0;
+  }
+  const parsed = dates
+    .map((iso) => {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return null;
+      d.setHours(0, 0, 0, 0);
+      return d;
+    })
+    .filter((d): d is Date => Boolean(d))
+    .sort((a, b) => b.getTime() - a.getTime());
+  const todayMidnight = new Date(today);
+  todayMidnight.setHours(0, 0, 0, 0);
+  let streak = 0;
+  let cursor = todayMidnight.getTime();
+  for (const date of parsed) {
+    const diffDays = Math.round((cursor - date.getTime()) / MS_IN_DAY);
+    if (diffDays === 0 || diffDays === 1) {
+      streak += 1;
+      cursor = date.getTime();
+    } else if (diffDays > 1) {
+      break;
+    }
+  }
+  return streak;
+}
+
 function computeGrowthLevelStats(totalXp: number): GrowthLevelStats {
   if (totalXp < 0) {
     totalXp = 0;
@@ -249,7 +278,16 @@ export function GrowthClient() {
   });
   const xpTotal = data?.xpTotal ?? 0;
   const levelStats = useMemo(() => computeGrowthLevelStats(xpTotal), [xpTotal]);
-  const streakCount = data?.streak ?? 0;
+  const answeredDates =
+    reflectionData?.answeredDates ??
+    reflectionData?.week?.filter((day) => day.hasEntry).map((day) => day.date) ??
+    [];
+  const streakCount = useMemo(() => {
+    return computeStreakFromDates(
+      answeredDates,
+      availableOnDate,
+    );
+  }, [answeredDates, availableOnDate]);
   const hasAnsweredToday = Boolean(data?.hasAnsweredToday);
   const wantsTreeAnimation = searchParams?.get("treeAnimation") === "celebration";
   const planStatus = searchParams?.get("plan");
@@ -494,7 +532,7 @@ export function GrowthClient() {
   }, [data?.theme]);
 
   const coachTips = useMemo(() => {
-    const streakLine =
+  const streakLine =
       streakCount >= 3
         ? `You’re on a ${streakCount}-day streak—write one line about how today felt different.`
         : "Name how you feel before you start; use that emotion as your first sentence.";

@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
 import { DopamineDrivers } from '@/components/DopamineDrivers';
-import { fetchDailyQuestion, type DailyQuestionResponse } from '@/lib/api';
+import { fetchDailyQuestion, fetchReflectionOverview, type DailyQuestionResponse } from '@/lib/api';
 import { FloatingAction } from '@/components/FloatingAction';
 import { XpMeter } from '@/components/XpMeter';
 import { StreakProgress } from '@/components/StreakProgress';
@@ -13,11 +13,19 @@ import { useUserIdentifier } from '@/hooks/useUserIdentifier';
 
 export default function FocusToolsPage() {
   const userId = useUserIdentifier();
+  const timezoneOffsetMinutes = useMemo(() => new Date().getTimezoneOffset(), []);
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['focus-tools', userId],
     queryFn: () => fetchDailyQuestion(userId ?? undefined),
     staleTime: 0,
     enabled: Boolean(userId),
+  });
+  const { data: reflectionOverview } = useQuery({
+    queryKey: ['reflections-focus', userId],
+    queryFn: () => fetchReflectionOverview(userId ?? '', timezoneOffsetMinutes),
+    enabled: Boolean(userId),
+    staleTime: 0,
+    retry: false,
   });
 
   const dopamine = data?.dopamine;
@@ -29,8 +37,21 @@ export default function FocusToolsPage() {
   }, [data]);
   const xpTotal = data?.xpTotal ?? 0;
   const levelStats = computeLevelStats(xpTotal);
-  const streakCount = data?.streak ?? 0;
-  const weekProgress = data?.weekProgress ?? { completedDays: 0, totalDays: 7, badgeEarned: false };
+  const answeredDates =
+    reflectionOverview?.answeredDates ??
+    reflectionOverview?.week?.filter((day) => day.hasEntry).map((day) => day.date) ??
+    [];
+  const streakCount = useMemo(() => {
+    const today = data?.availableOn ? new Date(data.availableOn) : new Date();
+    return computeStreakFromDates(answeredDates, today);
+  }, [answeredDates, data?.availableOn]);
+  const weekCompleted = reflectionOverview?.week?.filter((day) => day.hasEntry).length ?? 0;
+  const weekTotal = reflectionOverview?.week?.length ?? data?.weekProgress?.totalDays ?? 7;
+  const weekProgress = {
+    completedDays: weekCompleted,
+    totalDays: weekTotal,
+    badgeEarned: data?.weekProgress?.badgeEarned ?? false,
+  };
   const badgeName = data?.theme
     ? (() => {
         const badgeLabelParts = data.theme.split('—').map((part) => part.trim()).filter(Boolean);
@@ -179,6 +200,39 @@ function computeLevelStats(totalXp: number): LevelStats {
     xpToNextLevel,
     progressPercent: Math.max(0, Math.min(progressPercent, 100)),
   };
+}
+
+const MS_IN_DAY = 86_400_000;
+
+function computeStreakFromDates(dates: string[], today: Date): number {
+  if (!dates || dates.length === 0) {
+    return 0;
+  }
+  const parsed = dates
+    .map((iso) => {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return null;
+      d.setHours(0, 0, 0, 0);
+      return d;
+    })
+    .filter((d): d is Date => Boolean(d))
+    .sort((a, b) => b.getTime() - a.getTime());
+  const todayMidnight = new Date(today);
+  todayMidnight.setHours(0, 0, 0, 0);
+  let streak = 0;
+  let cursor = todayMidnight.getTime();
+  for (const date of parsed) {
+    const diffDays = Math.round((cursor - date.getTime()) / MS_IN_DAY);
+    if (diffDays === 0 || diffDays === 1) {
+      streak += 1;
+      cursor = date.getTime();
+      continue;
+    }
+    if (diffDays > 1) {
+      break;
+    }
+  }
+  return streak;
 }
 
 function dopamineCuriosity(dopamine: DopaminePayload) {
