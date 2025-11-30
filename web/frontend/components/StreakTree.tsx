@@ -86,8 +86,8 @@ export function StreakReplay({
       const palette = paletteForWeek(weekIndex);
       const isCurrentWeek = weekIndex === normalizedWeekIndex;
       const isCurrentDay = isCurrentWeek && dayIndex === dayPointer;
-      const answered = (isCurrentWeek && dayIndex < weekCompletedDays) || answeredSet.has(index);
-      const answeredHistoric = !isCurrentWeek && answeredSet.has(index);
+      const answered = answeredSet.has(index);
+      const answeredHistoric = !isCurrentWeek && answered;
       return {
         ...palette,
         filled,
