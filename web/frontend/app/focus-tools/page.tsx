@@ -23,9 +23,9 @@ export default function FocusToolsPage() {
   const dopamine = data?.dopamine;
   const nextWeekLabel = useMemo(() => {
     if (!data) {
-      return 'Next arc arrives soon';
+      return 'Next chapter arrives soon';
     }
-    return data.nextTheme ?? data.theme ?? 'Your next arc';
+    return data.nextTheme ?? data.theme ?? 'Your next chapter';
   }, [data]);
   const xpTotal = data?.xpTotal ?? 0;
   const levelStats = computeLevelStats(xpTotal);
@@ -68,7 +68,7 @@ export default function FocusToolsPage() {
           <div className="flex-1 rounded-2xl border border-slate-800/50 bg-slate-950/40 px-4 py-3 text-left text-[11px] text-slate-200">
             <p className="font-semibold uppercase tracking-[0.35em] text-slate-500">Next week</p>
             <p className="mt-1 text-base text-white">{nextWeekLabel}</p>
-            <p className="mt-1 text-xs text-slate-400">Invite someone to start this arc with you.</p>
+            <p className="mt-1 text-xs text-slate-400">Invite someone to start this chapter with you.</p>
           </div>
         </div>
 
@@ -105,7 +105,7 @@ export default function FocusToolsPage() {
               <p className="mt-3 text-base text-white">Level {levelStats.level} | {streakCount} day streak</p>
               <ul className="mt-4 space-y-2 text-sm text-emerald-100/80">
                 <li>Completed days leaf out. {remainingDays === 0 ? 'This loop is in full bloom.' : `${remainingDays} day${remainingDays === 1 ? '' : 's'} left to close the loop.`}</li>
-                <li>Badge unlock: {weekProgress.badgeEarned ? 'claimed for this arc.' : `${badgeName ?? 'Weekly Insight'} once you finish the week.`}</li>
+                <li>Badge unlock: {weekProgress.badgeEarned ? 'claimed for this chapter.' : `${badgeName ?? 'Weekly Insight'} once you finish the week.`}</li>
                 <li>XP pacing: {levelStats.xpToNextLevel > 0 ? `${levelStats.xpToNextLevel} XP until the next tier.` : 'Next tier unlocked—keep stacking.'}</li>
               </ul>
               <p className="mt-4 text-xs text-emerald-200/70">Visit the Growth page after writing to replay your streak.</p>

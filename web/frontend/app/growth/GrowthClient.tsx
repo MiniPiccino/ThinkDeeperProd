@@ -114,24 +114,29 @@ const THEME_BADGES: Record<string, ThemeBadgeSpec> = {
   society: { name: "Balance Scales", icon: "⚖️", description: "You held tension between self and system." },
   "power & corruption": { name: "Broken Crown", icon: "👑", description: "You saw power clearly and stayed honest." },
   death: { name: "Lantern of Souls", icon: "🏮", description: "You sat with endings and found light." },
-  "new year": { name: "Renewal Flame", icon: "✨", description: "You tended the spark for the next arc." },
+  "new year": { name: "Renewal Flame", icon: "✨", description: "You tended the spark for the next chapter." },
 };
 
 function mondayAlignedWeekIndex(target: Date): number {
-  const year = target.getUTCFullYear();
-  const firstDay = new Date(Date.UTC(year, 0, 1));
-  const offsetToMonday = (firstDay.getUTCDay() + 6) % 7; // Monday => 0
-  const firstMondayTime = firstDay.getTime() - offsetToMonday * MS_IN_DAY;
-  const targetMidnight = Date.UTC(year, target.getUTCMonth(), target.getUTCDate());
-  const diffDays = Math.floor((targetMidnight - firstMondayTime) / MS_IN_DAY);
+  const year = target.getFullYear();
+  const firstDay = new Date(year, 0, 1);
+  const offsetToMonday = (firstDay.getDay() + 6) % 7; // Monday => 0
+  const firstMonday = new Date(firstDay);
+  firstMonday.setDate(firstDay.getDate() - offsetToMonday);
+  firstMonday.setHours(0, 0, 0, 0);
+
+  const targetMidnight = new Date(target);
+  targetMidnight.setHours(0, 0, 0, 0);
+
+  const diffDays = Math.floor((targetMidnight.getTime() - firstMonday.getTime()) / MS_IN_DAY);
   const weekIndex = Math.floor(diffDays / 7);
   const normalized = ((weekIndex % 52) + 52) % 52;
   return normalized;
 }
 
 function mondayAlignedDayIndex(target: Date): number {
-  const utcDay = target.getUTCDay(); // Sunday 0 … Saturday 6
-  return (utcDay + 6) % 7; // Monday 0
+  const localDay = target.getDay(); // Sunday 0 … Saturday 6
+  return (localDay + 6) % 7; // Monday 0
 }
 
 function computeGrowthLevelStats(totalXp: number): GrowthLevelStats {
@@ -175,13 +180,13 @@ function normalizeThemeKey(theme: string): string {
 
 function resolveThemeBadge(theme: string | undefined | null): ThemeBadgeSpec {
   if (!theme) {
-    return { name: "Insight Badge", icon: "✨", description: "Finish this week to claim the arc badge." };
+    return { name: "Insight Badge", icon: "✨", description: "Finish this week to claim the chapter badge." };
   }
   const normalized = normalizeThemeKey(theme);
   return THEME_BADGES[normalized] ?? {
     name: `${normalized.charAt(0).toUpperCase()}${normalized.slice(1)} Insight`,
     icon: "✨",
-    description: "Finish this arc to lock in the badge.",
+    description: "Finish this chapter to lock in the badge.",
   };
 }
 
@@ -483,7 +488,7 @@ export function GrowthClient() {
   const remainingWeekDays = Math.max((data?.weekProgress?.totalDays ?? 7) - (data?.weekProgress?.completedDays ?? 0), 0);
   const weekBadgeEarned = Boolean(data?.weekProgress?.badgeEarned);
   const themeLabel = useMemo(() => {
-    if (!data?.theme) return "this arc";
+    if (!data?.theme) return "this chapter";
     const parts = data.theme.split("—").map((part) => part.trim()).filter(Boolean);
     return parts[parts.length - 1] || data.theme;
   }, [data?.theme]);
@@ -493,7 +498,7 @@ export function GrowthClient() {
       streakCount >= 3
         ? `You’re on a ${streakCount}-day streak—write one line about how today felt different.`
         : "Name how you feel before you start; use that emotion as your first sentence.";
-    const themeLine = `Link every point back to “${themeLabel}” so the arc feels cohesive.`;
+    const themeLine = `Link every point back to “${themeLabel}” so the chapter feels cohesive.`;
     const exampleLine = "Anchor each claim with a personal example (who/what/when) before moving on.";
     const closeLine = `Close with a one-line takeaway for tomorrow. Level ${levelStats.level} climbs faster when you keep it sharp.`;
     return [streakLine, themeLine, exampleLine, closeLine];
@@ -660,7 +665,7 @@ export function GrowthClient() {
                 <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-200">Badges</p>
                 <h3 className="text-lg font-semibold text-white sm:text-2xl">Calm milestones</h3>
                 <p className="text-sm text-slate-300">
-                  Level badges track long arc growth; weekly badges honor each theme you finish.
+                  Level badges track long chapter growth; weekly badges honor each theme you finish.
                 </p>
               </div>
               <div className="mt-5 grid gap-4 sm:gap-5 lg:grid-cols-[1.1fr,1fr]">
@@ -715,7 +720,7 @@ export function GrowthClient() {
                       tone="active"
                     />
                     <BadgePill
-                      title={`Next arc · ${nextThemeBadge.name}`}
+                      title={`Next chapter · ${nextThemeBadge.name}`}
                       icon={nextThemeBadge.icon}
                       description="Preview of the badge arriving with the next theme."
                       tone="muted"
@@ -749,7 +754,7 @@ export function GrowthClient() {
                   <p className="text-xs uppercase tracking-[0.35em] text-emerald-200">Reflections</p>
                   <h3 className="mt-1 text-2xl font-semibold text-white">Replay what you wrote</h3>
                   <p className="text-sm text-slate-300">
-                    Return to today’s words, scan this week’s arc, and unlock your full timeline when you upgrade.
+                    Return to today’s words, scan this week’s chapter, and unlock your full timeline when you upgrade.
                   </p>
                   {reflectionsError ? (
                     <p className="mt-2 text-xs text-red-300">Couldn’t load your reflections. Showing placeholders.</p>
