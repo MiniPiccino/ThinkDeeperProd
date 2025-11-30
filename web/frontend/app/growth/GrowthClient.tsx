@@ -281,7 +281,6 @@ export function GrowthClient() {
   const wantsTreeAnimation = searchParams?.get("treeAnimation") === "celebration";
   const planStatus = searchParams?.get("plan");
   const animationConsumedRef = useRef(false);
-  const animationUnlocked = streakCount >= TREE_ANIMATION_UNLOCK_STREAK;
   const [treeAnimationActive, setTreeAnimationActive] = useState(false);
   const [activeFrameIndex, setActiveFrameIndex] = useState(-1);
 
@@ -378,6 +377,7 @@ export function GrowthClient() {
   const todayReflectionEntry = reflectionData?.today ?? null;
   const todayLocked = reflectionData?.todayLocked ?? !todayReflectionEntry;
   const todayTeasers = reflectionData?.teasers ?? [];
+  const animationUnlocked = streakCount >= TREE_ANIMATION_UNLOCK_STREAK;
   const todayLocalDate = useMemo(() => {
     if (todayReflectionEntry?.answeredAt) {
       const parsed = new Date(todayReflectionEntry.answeredAt);
