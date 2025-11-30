@@ -278,17 +278,6 @@ export function GrowthClient() {
   });
   const xpTotal = data?.xpTotal ?? 0;
   const levelStats = useMemo(() => computeGrowthLevelStats(xpTotal), [xpTotal]);
-  const answeredDates =
-    reflectionData?.answeredDates ??
-    reflectionData?.week?.filter((day) => day.hasEntry).map((day) => day.date) ??
-    [];
-  const streakCount = useMemo(() => {
-    return computeStreakFromDates(
-      answeredDates,
-      availableOnDate,
-    );
-  }, [answeredDates, availableOnDate]);
-  const hasAnsweredToday = Boolean(data?.hasAnsweredToday);
   const wantsTreeAnimation = searchParams?.get("treeAnimation") === "celebration";
   const planStatus = searchParams?.get("plan");
   const animationConsumedRef = useRef(false);
@@ -369,6 +358,17 @@ export function GrowthClient() {
     }
     return base;
   }, [data]);
+  const answeredDates =
+    reflectionData?.answeredDates ??
+    reflectionData?.week?.filter((day) => day.hasEntry).map((day) => day.date) ??
+    [];
+  const streakCount = useMemo(() => {
+    return computeStreakFromDates(
+      answeredDates,
+      availableOnDate,
+    );
+  }, [answeredDates, availableOnDate]);
+  const hasAnsweredToday = Boolean(data?.hasAnsweredToday);
   const hasValidDate = !Number.isNaN(availableOnDate.getTime());
   const mondayWeekIndex = hasValidDate ? mondayAlignedWeekIndex(availableOnDate) : 0;
   const mondayDayIndex = hasValidDate ? mondayAlignedDayIndex(availableOnDate) : null;
