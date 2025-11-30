@@ -318,6 +318,7 @@ export default function HomePage() {
     locked,
     submissionError,
   } = session;
+  const writingActive = (hasStarted && !isSubmitted && !locked) || isWriting;
   const { level, xpIntoLevel, xpToNextLevel, progressPercent: levelProgressPercent } = levelStats;
   const celebrationTriggerRef = useRef<HTMLDivElement | null>(null);
   const answerRef = useRef<HTMLTextAreaElement | null>(null);
@@ -328,11 +329,11 @@ export default function HomePage() {
   const handleWritingFocus = useCallback(() => {
     setIsWriting(true);
     setQuickActionsOpen(false);
-  }, [setIsWriting, setQuickActionsOpen]);
+  }, []);
 
   const handleWritingBlur = useCallback(() => {
     setIsWriting(false);
-  }, [setIsWriting]);
+  }, []);
 
   const markPrimingSeen = useCallback(() => {
     if (typeof window === 'undefined') {
@@ -340,6 +341,12 @@ export default function HomePage() {
     }
     window.localStorage.setItem(PRIMING_MODAL_KEY, 'seen');
   }, []);
+
+  useEffect(() => {
+    if (writingActive) {
+      setQuickActionsOpen(false);
+    }
+  }, [writingActive]);
 
   const handleDismissPrimingModal = useCallback(() => {
     markPrimingSeen();
@@ -488,6 +495,7 @@ export default function HomePage() {
       type: 'START_SESSION',
       payload: { timestamp: Date.now(), timerSeconds: dailyQuestion.timerSeconds },
     });
+    setIsWriting(true);
     if (questionSectionRef.current && typeof questionSectionRef.current.scrollIntoView === 'function') {
       questionSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -721,29 +729,37 @@ export default function HomePage() {
         ) : null}
       </div>
     </main>
-      <div className="fixed right-4 top-4 z-40 lg:hidden">
-        <div className="flex flex-col items-end gap-2">
-          <button
-            type="button"
-            onClick={() => setQuickActionsOpen((open) => !open)}
-            aria-expanded={quickActionsOpen}
-            aria-label="Toggle quick links"
-            className="inline-flex items-center gap-2 rounded-full bg-zinc-900/90 px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-white shadow-lg ring-1 ring-white/10 transition hover:bg-zinc-800 dark:bg-emerald-600/90 dark:hover:bg-emerald-500"
-          >
-            <span>Quick links</span>
-            <span className="text-sm leading-none">{quickActionsOpen ? '-' : '+'}</span>
-          </button>
-          {quickActionsOpen ? (
-            <div className="w-64 rounded-2xl border border-zinc-200/80 bg-white/90 p-3 shadow-2xl backdrop-blur dark:border-zinc-700/80 dark:bg-zinc-900/95">
-              <div className="flex flex-col items-end gap-2">
-                <FloatingAction href="/focus-tools" label="Focus tools" />
-                <FloatingAction href="/growth" label="Growth check-in" />
-                <FloatingAction href="/why" label="Why you’ll love Deep" variant="ghost" />
-              </div>
-            </div>
-          ) : null}
+      {!writingActive ? (
+        <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2 md:gap-3 lg:hidden">
+          <FloatingAction href="/focus-tools" label="Focus tools" />
+          <FloatingAction href="/growth" label="Growth check-in" />
+          <FloatingAction href="/why" label="Why you’ll love Deep" variant="ghost" />
         </div>
-      </div>
+      ) : (
+        <div className="fixed right-4 top-4 z-40 lg:hidden">
+          <div className="flex flex-col items-end gap-2">
+            <button
+              type="button"
+              onClick={() => setQuickActionsOpen((open) => !open)}
+              aria-expanded={quickActionsOpen}
+              aria-label="Toggle quick links"
+              className="inline-flex items-center gap-2 rounded-full bg-zinc-900/90 px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-white shadow-lg ring-1 ring-white/10 transition hover:bg-zinc-800 dark:bg-emerald-600/90 dark:hover:bg-emerald-500"
+            >
+              <span>Quick links</span>
+              <span className="text-sm leading-none">{quickActionsOpen ? '-' : '+'}</span>
+            </button>
+            {quickActionsOpen ? (
+              <div className="w-64 rounded-2xl border border-zinc-200/80 bg-white/90 p-3 shadow-2xl backdrop-blur dark:border-zinc-700/80 dark:bg-zinc-900/95">
+                <div className="flex flex-col items-end gap-2">
+                  <FloatingAction href="/focus-tools" label="Focus tools" />
+                  <FloatingAction href="/growth" label="Growth check-in" />
+                  <FloatingAction href="/why" label="Why you’ll love Deep" variant="ghost" />
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
     </>
   );
 }
