@@ -302,7 +302,6 @@ export function GrowthClient() {
   }, [answeredDates, availableOnDate]);
   const hasAnsweredToday = Boolean(data?.hasAnsweredToday);
   const animationUnlocked = streakCount >= TREE_ANIMATION_UNLOCK_STREAK;
-  const animationUnlocked = streakCount >= TREE_ANIMATION_UNLOCK_STREAK;
 
   const startTreeAnimation = useCallback(() => {
     setTreeAnimationActive(true);
