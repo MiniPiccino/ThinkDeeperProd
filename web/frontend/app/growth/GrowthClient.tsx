@@ -283,6 +283,8 @@ export function GrowthClient() {
   const animationConsumedRef = useRef(false);
   const [treeAnimationActive, setTreeAnimationActive] = useState(false);
   const [activeFrameIndex, setActiveFrameIndex] = useState(-1);
+  const [timelineFilter, setTimelineFilter] = useState("");
+  const [showAllTimeline, setShowAllTimeline] = useState(false);
   const availableOnDate = useMemo(() => {
     const base = data?.availableOn ? new Date(data.availableOn) : new Date();
     if (Number.isNaN(base.getTime())) {
@@ -442,22 +444,43 @@ export function GrowthClient() {
     { title: "Exports & yearly recap", detail: "Download PDFs/CSV or replay your Deep Tree for any year." },
   ];
   const timelineEntries = useMemo(() => {
-    if (reflectionHistory && reflectionHistory.length > 0) {
-      return reflectionHistory;
-    }
-    const fallback = weeklyReflectionSummary
-      .filter((day) => day.hasEntry && day.entry)
-      .map((day) => ({
-        answeredAt: day.entry!.answeredAt,
-        prompt: day.entry!.prompt,
-        theme: day.entry!.theme,
-        questionId: day.entry!.questionId,
-        excerpt: day.entry!.excerpt ?? "Reflection saved.",
-        xpAwarded: day.entry!.xpAwarded ?? 0,
-        durationSeconds: day.entry!.durationSeconds ?? 0,
-      }));
-    return fallback.slice(0, 6);
+    const base =
+      reflectionHistory && reflectionHistory.length > 0
+        ? reflectionHistory
+        : weeklyReflectionSummary
+            .filter((day) => day.hasEntry && day.entry)
+            .map((day) => ({
+              answeredAt: day.entry!.answeredAt,
+              prompt: day.entry!.prompt,
+              theme: day.entry!.theme,
+              questionId: day.entry!.questionId,
+              excerpt: day.entry!.excerpt ?? "Reflection saved.",
+              xpAwarded: day.entry!.xpAwarded ?? 0,
+              durationSeconds: day.entry!.durationSeconds ?? 0,
+            }));
+    const sorted = [...base].sort((a, b) => {
+      const xpDelta = (b.xpAwarded ?? 0) - (a.xpAwarded ?? 0);
+      const timeDelta = new Date(b.answeredAt).getTime() - new Date(a.answeredAt).getTime();
+      return xpDelta !== 0 ? xpDelta : timeDelta;
+    });
+    return sorted;
   }, [reflectionHistory, weeklyReflectionSummary]);
+  const filteredTimeline = useMemo(() => {
+    const term = timelineFilter.trim().toLowerCase();
+    let list = timelineEntries;
+    if (term.length > 0) {
+      list = list.filter(
+        (entry) =>
+          entry.prompt.toLowerCase().includes(term) ||
+          entry.theme.toLowerCase().includes(term) ||
+          (entry.excerpt ?? "").toLowerCase().includes(term),
+      );
+    }
+    if (!showAllTimeline) {
+      return list.slice(0, 3);
+    }
+    return list;
+  }, [timelineEntries, timelineFilter, showAllTimeline]);
   const reflectionAnsweredIndices = useMemo(() => {
     const fromAnsweredDates =
       timelineUnlocked && reflectionData?.answeredDates?.length
@@ -918,6 +941,16 @@ export function GrowthClient() {
                         <p className="text-sm text-slate-300">
                           Scroll your entire archive, filter by tags, pin insights, and replay your Deep Tree.
                         </p>
+                        <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] uppercase tracking-[0.25em] text-emerald-200">
+                          <div className="rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-2">
+                            <p className="text-emerald-100/70">Reflections saved</p>
+                            <p className="text-base font-semibold text-white">{timelineEntries.length}</p>
+                          </div>
+                          <div className="rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-2">
+                            <p className="text-emerald-100/70">Active streak</p>
+                            <p className="text-base font-semibold text-white">{streakCount} days</p>
+                          </div>
+                        </div>
                       </div>
                       <div className="space-y-3">
                         {premiumHighlights.map((item) => (
@@ -930,10 +963,26 @@ export function GrowthClient() {
                       <div className="mt-4 space-y-2">
                         <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-emerald-200">
                           <span>Latest reflections</span>
-                          {historyLoading ? <span className="text-emerald-100/70">Loading…</span> : null}
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="search"
+                              value={timelineFilter}
+                              onChange={(event) => setTimelineFilter(event.target.value)}
+                              placeholder="Filter by keyword"
+                              className="w-40 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-[11px] uppercase tracking-[0.15em] text-emerald-50 placeholder:text-emerald-200/60 focus:border-emerald-300 focus:outline-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowAllTimeline((prev) => !prev)}
+                              className="rounded-full border border-emerald-400/40 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-emerald-50 transition hover:border-emerald-200 hover:text-white"
+                            >
+                              {showAllTimeline ? "Top highlights" : "Show more"}
+                            </button>
+                            {historyLoading ? <span className="text-emerald-100/70">Loading…</span> : null}
+                          </div>
                         </div>
                         <div className="space-y-2">
-                          {timelineEntries.map((entry) => (
+                          {filteredTimeline.map((entry) => (
                             <div key={entry.questionId + entry.answeredAt} className="rounded-xl border border-white/10 bg-white/5 p-3">
                               <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.25em] text-emerald-200">
                                 <span>{new Date(entry.answeredAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
@@ -944,7 +993,7 @@ export function GrowthClient() {
                               <p className="mt-1 text-xs text-slate-200 leading-relaxed">{entry.excerpt}</p>
                             </div>
                           ))}
-                          {historyLoading || timelineEntries.length === 0 ? (
+                          {historyLoading || filteredTimeline.length === 0 ? (
                             <p className="text-xs text-slate-400">
                               {historyError ? "Timeline is warming up—try again soon." : "Write more to populate your timeline."}
                             </p>
