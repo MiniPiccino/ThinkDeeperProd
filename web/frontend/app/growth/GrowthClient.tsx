@@ -288,13 +288,9 @@ export function GrowthClient() {
   const weeklyCatalogRef = useRef<HTMLDivElement | null>(null);
   const [weeklyCatalogHeight, setWeeklyCatalogHeight] = useState(0);
   const [weeklyCatalogOpen, setWeeklyCatalogOpen] = useState(false);
-  const handleScrollToReplay = useCallback(() => {
-    if (typeof window === "undefined") return;
-    const target = document.getElementById("growth-streak-replay");
-    if (target) {
-      target.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  }, []);
+  const [yearlyPlaying, setYearlyPlaying] = useState(false);
+  const [yearlyStopIndex, setYearlyStopIndex] = useState(0);
+  const yearlyPlayTimerRef = useRef<number | null>(null);
   const availableOnDate = useMemo(() => {
     const base = data?.availableOn ? new Date(data.availableOn) : new Date();
     if (Number.isNaN(base.getTime())) {
@@ -619,6 +615,21 @@ export function GrowthClient() {
     data?.weekProgress?.totalDays,
     remainingWeekDays,
   ]);
+  const earnedWeeklyStops = useMemo(
+    () =>
+      weeklyBadgeStates.catalog
+        .filter((badge) => badge.status === "earned")
+        .sort((a, b) => a.weekIndex - b.weekIndex),
+    [weeklyBadgeStates.catalog],
+  );
+  const currentYearlyStop = earnedWeeklyStops[yearlyStopIndex] ?? null;
+  useEffect(() => {
+    return () => {
+      if (yearlyPlayTimerRef.current) {
+        window.clearTimeout(yearlyPlayTimerRef.current);
+      }
+    };
+  }, []);
   useEffect(() => {
     if (!weeklyCatalogRef.current) {
       return;
@@ -634,6 +645,43 @@ export function GrowthClient() {
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
   }, [weeklyBadgeStates.catalog, weeklyCatalogOpen]);
+  useEffect(() => {
+    if (!yearlyPlaying) {
+      if (yearlyPlayTimerRef.current) {
+        window.clearTimeout(yearlyPlayTimerRef.current);
+      }
+      return;
+    }
+    if (earnedWeeklyStops.length === 0) {
+      setYearlyPlaying(false);
+      return;
+    }
+    let index = 0;
+    setYearlyStopIndex(0);
+    const tick = () => {
+      index += 1;
+      if (index >= earnedWeeklyStops.length) {
+        yearlyPlayTimerRef.current = window.setTimeout(() => setYearlyPlaying(false), 900);
+        return;
+      }
+      setYearlyStopIndex(index);
+      yearlyPlayTimerRef.current = window.setTimeout(tick, 1100);
+    };
+    yearlyPlayTimerRef.current = window.setTimeout(tick, 1100);
+    return () => {
+      if (yearlyPlayTimerRef.current) {
+        window.clearTimeout(yearlyPlayTimerRef.current);
+      }
+    };
+  }, [yearlyPlaying, earnedWeeklyStops.length]);
+  const handlePlayYearly = useCallback(() => {
+    if (earnedWeeklyStops.length === 0) {
+      setYearlyStopIndex(0);
+      return;
+    }
+    setYearlyStopIndex(0);
+    setYearlyPlaying(true);
+  }, [earnedWeeklyStops.length]);
   const themeLabel = useMemo(() => {
     if (!data?.theme) return "this chapter";
     const parts = data.theme.split("—").map((part) => part.trim()).filter(Boolean);
@@ -853,44 +901,62 @@ export function GrowthClient() {
                       </p>
                     </div>
                   </div>
-
-                  <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/5 p-4 shadow-inner sm:p-5">
-                    <div className="flex items-center justify-between gap-2 text-[11px] uppercase tracking-[0.3em] text-emerald-200">
-                      <span>Card 2 · Streak + tree preview</span>
-                      <span className="text-emerald-100/80">{streakCount} days</span>
-                    </div>
-                    <p className="mt-2 text-sm text-emerald-100/80">
-                      A softer reminder of your streak. Tap “Replay” below to jump to the main tree animation card.
-                    </p>
-                    <div className="mt-3 rounded-xl border border-emerald-400/30 bg-black/40 p-4">
-                      <p className="text-sm font-semibold text-white">Streak {streakCount} days</p>
-                      <p className="text-xs text-emerald-100/70">
-                        Level {levelStats.level} · {weeklyBadgeStates.completed}/{weeklyBadgeStates.totalDays} days this week
-                      </p>
-                      <button
-                        type="button"
-                        onClick={handleScrollToReplay}
-                        className="mt-3 inline-flex items-center justify-center rounded-full border border-emerald-400/50 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.25em] text-emerald-50 transition hover:border-emerald-200 hover:text-white"
-                      >
-                        Replay streak
-                      </button>
-                    </div>
-                  </div>
-
                   <div className="rounded-2xl border border-dashed border-emerald-200/25 bg-white/5 p-4 shadow-inner sm:p-5">
                     <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.3em] text-emerald-200">
                       <span>Card 4 · Yearly recap</span>
                       <button
                         type="button"
-                        onClick={handleScrollToReplay}
-                        className="rounded-full border border-emerald-300/40 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-100 transition hover:border-emerald-200 hover:text-white"
+                        onClick={handlePlayYearly}
+                        disabled={earnedWeeklyStops.length === 0 || yearlyPlaying}
+                        className="rounded-full border border-emerald-300/40 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-100 transition hover:border-emerald-200 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        Later
+                        {yearlyPlaying ? "Playing…" : "Play year"}
                       </button>
                     </div>
                     <p className="mt-2 text-sm text-slate-200">
-                      A calm annual rewind is in the works—every badge pulsing through the tree with music-grade pacing.
+                      Glides across all 52 weeks and pauses only where you’ve earned weekly badges.
                     </p>
+                    <div className="mt-4 space-y-3 rounded-xl border border-emerald-300/25 bg-emerald-500/5 p-3 shadow-inner">
+                      <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.28em] text-emerald-200">
+                        <span>52-week path</span>
+                        <span className="inline-flex items-center gap-2 rounded-full border border-emerald-300/30 bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-50">
+                          {earnedWeeklyStops.length} stops
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-13 gap-1.5 sm:gap-2">
+                        {weeklyBadgeStates.catalog.map((badge) => {
+                          const isEarned = badge.status === "earned";
+                          const isActive = currentYearlyStop?.id === badge.id && yearlyPlaying;
+                          const tone = isActive
+                            ? "border-emerald-200/90 bg-gradient-to-br from-emerald-500/40 via-emerald-400/30 to-cyan-300/40 text-white shadow-lg shadow-emerald-900/40"
+                            : isEarned
+                              ? "border-emerald-300/60 bg-emerald-500/20 text-emerald-50"
+                              : "border-emerald-100/15 bg-white/5 text-emerald-100/60";
+                          return (
+                            <div
+                              key={badge.id}
+                              className={`flex h-9 items-center justify-center rounded-md border text-[10px] font-semibold uppercase tracking-[0.22em] transition duration-500 ${tone}`}
+                              style={{ transitionDelay: isActive ? "60ms" : "0ms" }}
+                            >
+                              W{badge.weekIndex + 1}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="rounded-lg border border-emerald-400/25 bg-black/40 px-3 py-2 text-xs text-emerald-100/80">
+                        {currentYearlyStop ? (
+                          <div className="space-y-1">
+                            <p className="text-[11px] uppercase tracking-[0.24em] text-emerald-200">Current stop</p>
+                            <p className="text-sm font-semibold text-white">
+                              Week {currentYearlyStop.weekIndex + 1} — {currentYearlyStop.title}
+                            </p>
+                            <p className="text-xs text-emerald-100/70">{currentYearlyStop.description}</p>
+                          </div>
+                        ) : (
+                          <p>No badges yet—finish a week to add stops to your yearly recap.</p>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
