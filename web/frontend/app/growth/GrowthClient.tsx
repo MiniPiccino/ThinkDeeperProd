@@ -285,6 +285,9 @@ export function GrowthClient() {
   const [activeFrameIndex, setActiveFrameIndex] = useState(-1);
   const [timelineFilter, setTimelineFilter] = useState("");
   const [showAllTimeline, setShowAllTimeline] = useState(false);
+  const weeklyCatalogRef = useRef<HTMLDivElement | null>(null);
+  const [weeklyCatalogHeight, setWeeklyCatalogHeight] = useState(0);
+  const [weeklyCatalogOpen, setWeeklyCatalogOpen] = useState(false);
   const availableOnDate = useMemo(() => {
     const base = data?.availableOn ? new Date(data.availableOn) : new Date();
     if (Number.isNaN(base.getTime())) {
@@ -380,6 +383,16 @@ export function GrowthClient() {
   const todayReflectionEntry = reflectionData?.today ?? null;
   const todayLocked = reflectionData?.todayLocked ?? !todayReflectionEntry;
   const todayTeasers = reflectionData?.teasers ?? [];
+  const weeklyBadgeCatalog = useMemo(
+    () =>
+      Array.from({ length: 52 }, (_, index) => ({
+        id: `week-${index + 1}`,
+        label: `Week ${index + 1}`,
+        description: `Complete every reflection in week ${index + 1} to earn this badge.`,
+        weekIndex: index,
+      })),
+    [],
+  );
   const todayLocalDate = useMemo(() => {
     if (todayReflectionEntry?.answeredAt) {
       const parsed = new Date(todayReflectionEntry.answeredAt);
@@ -548,6 +561,72 @@ export function GrowthClient() {
   const nextThemeBadge = resolveThemeBadge(data?.nextTheme);
   const remainingWeekDays = Math.max((data?.weekProgress?.totalDays ?? 7) - (data?.weekProgress?.completedDays ?? 0), 0);
   const weekBadgeEarned = Boolean(data?.weekProgress?.badgeEarned);
+  const weeklyBadgeStates = useMemo(() => {
+    const answeredDaysByWeek = new Map<number, Set<number>>();
+    (reflectionData?.answeredDates ?? []).forEach((iso) => {
+      const parsed = new Date(iso);
+      if (Number.isNaN(parsed.getTime())) return;
+      const weekIdx = mondayAlignedWeekIndex(parsed);
+      const dayIdx = mondayAlignedDayIndex(parsed);
+      if (!answeredDaysByWeek.has(weekIdx)) {
+        answeredDaysByWeek.set(weekIdx, new Set());
+      }
+      answeredDaysByWeek.get(weekIdx)?.add(dayIdx);
+    });
+    const earnedWeeks = new Set<number>();
+    answeredDaysByWeek.forEach((days, weekIdx) => {
+      if (days.size >= DAYS_PER_WEEK_TOTAL) {
+        earnedWeeks.add(weekIdx);
+      }
+    });
+    if (weekBadgeEarned) {
+      earnedWeeks.add(mondayWeekIndex);
+    }
+    const completed = Math.min(data?.weekProgress?.completedDays ?? 0, data?.weekProgress?.totalDays ?? 7);
+    const totalDays = data?.weekProgress?.totalDays ?? 7;
+    const progressPercent = Math.round((completed / Math.max(totalDays, 1)) * 100);
+    const catalog = weeklyBadgeCatalog.map((badge) => {
+      const status = earnedWeeks.has(badge.weekIndex)
+        ? "earned"
+        : badge.weekIndex === mondayWeekIndex
+          ? "active"
+          : "locked";
+      const supportingText =
+        status === "earned"
+          ? "Unlocked—saved to your Deep Tree."
+          : status === "active"
+            ? remainingWeekDays === 0
+              ? "Submitting…"
+              : `${remainingWeekDays} day${remainingWeekDays === 1 ? "" : "s"} left this week.`
+            : "Opens when you reach this week.";
+      const title = status === "locked" ? `${badge.label} — Locked` : `${badge.label} Badge`;
+      return { ...badge, status, supportingText, title };
+    });
+    return { catalog, earnedCount: earnedWeeks.size, progressPercent, completed, totalDays };
+  }, [
+    reflectionData?.answeredDates,
+    weekBadgeEarned,
+    mondayWeekIndex,
+    weeklyBadgeCatalog,
+    data?.weekProgress?.completedDays,
+    data?.weekProgress?.totalDays,
+    remainingWeekDays,
+  ]);
+  useEffect(() => {
+    if (!weeklyCatalogRef.current) {
+      return;
+    }
+    const measure = () => {
+      if (!weeklyCatalogRef.current) return;
+      setWeeklyCatalogHeight(weeklyCatalogRef.current.scrollHeight);
+    };
+    measure();
+    if (!weeklyCatalogOpen) {
+      return;
+    }
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [weeklyBadgeStates.catalog, weeklyCatalogOpen]);
   const themeLabel = useMemo(() => {
     if (!data?.theme) return "this chapter";
     const parts = data.theme.split("—").map((part) => part.trim()).filter(Boolean);
@@ -555,7 +634,7 @@ export function GrowthClient() {
   }, [data?.theme]);
 
   const coachTips = useMemo(() => {
-  const streakLine =
+    const streakLine =
       streakCount >= 3
         ? `You’re on a ${streakCount}-day streak—write one line about how today felt different.`
         : "Name how you feel before you start; use that emotion as your first sentence.";
@@ -726,48 +805,104 @@ export function GrowthClient() {
                 <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-200">Badges</p>
                 <h3 className="text-lg font-semibold text-white sm:text-2xl">Calm milestones</h3>
                 <p className="text-sm text-slate-300">
-                  Level badges track long chapter growth; weekly badges honor each theme you finish.
+                  The dropdown is a slow reveal—badges fade in, earned weeks glow, and the whole year shows up at once without the
+                  cheap fireworks.
                 </p>
               </div>
-              <div className="mt-5 grid gap-4 sm:gap-5 lg:grid-cols-[1.1fr,1fr]">
-                <div className="relative mx-auto w-full max-w-[20rem] overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-br from-black/60 to-emerald-950/60 p-4 shadow-inner sm:max-w-[22rem] sm:p-5 lg:mx-0 lg:max-w-none">
-                  <div
-                    className={`absolute inset-x-3 top-3 h-20 rounded-full bg-gradient-to-r ${levelBadge.gradient} blur-3xl opacity-25 sm:inset-x-8 sm:h-32`}
-                    aria-hidden
-                    style={{ animation: "pulse 3s ease-in-out infinite" }}
-                  />
-                  <div className="relative flex flex-col items-center gap-3 rounded-xl border border-emerald-400/30 bg-white/5 px-3 py-4 text-center backdrop-blur sm:px-4 sm:py-5">
-                    <div className="flex flex-wrap items-center justify-center gap-2 text-[10px] uppercase tracking-[0.3em] text-emerald-200 sm:text-[11px]">
-                      <span>{levelBadge.icon}</span>
-                      <span>Level Badge</span>
+              <div className="mt-6 grid gap-4 sm:gap-5 lg:grid-cols-[1.08fr,1fr]">
+                <div className="space-y-4">
+                  <div className="relative mx-auto w-full max-w-[22rem] overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-br from-black/60 to-emerald-950/60 p-4 shadow-inner sm:p-5 lg:mx-0 lg:max-w-none">
+                    <div className="absolute left-4 top-4 rounded-full bg-emerald-500/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.3em] text-emerald-100">
+                      Card 1 · Level badge + XP
                     </div>
-                    <p className="text-lg font-semibold text-white sm:text-xl">{levelBadge.name}</p>
-                    <p className="text-xs text-emerald-100/80 sm:max-w-md sm:text-sm leading-relaxed text-center">{levelBadge.description}</p>
-                    <div className="mt-1 inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-100 sm:text-[11px]">
-                      <span>Level {levelStats.level}</span>
-                      <span className="text-emerald-200/80">·</span>
-                      <span>{levelStats.xpIntoLevel}/{GROWTH_XP_PER_LEVEL} XP in</span>
+                    <div
+                      className={`absolute inset-x-3 top-12 h-20 rounded-full bg-gradient-to-r ${levelBadge.gradient} blur-3xl opacity-25 sm:inset-x-8 sm:h-32`}
+                      aria-hidden
+                      style={{ animation: "pulse 3s ease-in-out infinite" }}
+                    />
+                    <div className="relative mt-10 flex flex-col items-center gap-3 rounded-xl border border-emerald-400/30 bg-white/5 px-3 py-4 text-center backdrop-blur sm:px-4 sm:py-5">
+                      <div className="flex flex-wrap items-center justify-center gap-2 text-[10px] uppercase tracking-[0.3em] text-emerald-200 sm:text-[11px]">
+                        <span>{levelBadge.icon}</span>
+                        <span>Level Badge</span>
+                      </div>
+                      <p className="text-lg font-semibold text-white sm:text-xl">{levelBadge.name}</p>
+                      <p className="text-xs text-emerald-100/80 sm:max-w-md sm:text-sm leading-relaxed text-center">{levelBadge.description}</p>
+                      <div className="mt-1 inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-100 sm:text-[11px]">
+                        <span>Level {levelStats.level}</span>
+                        <span className="text-emerald-200/80">·</span>
+                        <span>{levelStats.xpIntoLevel}/{GROWTH_XP_PER_LEVEL} XP in</span>
+                      </div>
+                      <div className="mt-3 h-2 w-full rounded-full bg-emerald-950/70">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-cyan-400"
+                          style={{ width: `${Math.min(levelStats.progressPercent, 100)}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-emerald-100/80">
+                        Next badge{nextLevelBadge ? ` (${nextLevelBadge.name})` : ""} in {Math.max(levelStats.xpToNextLevel, 0)} XP.
+                      </p>
                     </div>
-                    <div className="mt-3 h-2 w-full rounded-full bg-emerald-950/70">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-cyan-400"
-                        style={{ width: `${Math.min(levelStats.progressPercent, 100)}%` }}
-                      />
+                  </div>
+
+                  <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/5 p-4 shadow-inner sm:p-5">
+                    <div className="flex items-center justify-between gap-2 text-[11px] uppercase tracking-[0.3em] text-emerald-200">
+                      <span>Card 2 · Streak + tree preview</span>
+                      <span className="text-emerald-100/80">{streakCount} days</span>
                     </div>
-                    <p className="text-xs text-emerald-100/80">
-                      Next badge{nextLevelBadge ? ` (${nextLevelBadge.name})` : ""} in {Math.max(levelStats.xpToNextLevel, 0)} XP.
+                    <p className="mt-2 text-sm text-emerald-100/80">
+                      This is the calm sneak peek. The full replay above still holds the slow zoom and glow after each submission.
+                    </p>
+                    <div className="mt-3 overflow-hidden rounded-xl border border-emerald-400/30 bg-black/40 p-3">
+                      <div className="mx-auto max-w-[18rem] scale-95 sm:scale-100">
+                        <StreakReplay
+                          streak={streakCount}
+                          weekCompletedDays={data?.weekProgress?.completedDays ?? 0}
+                          weekTotalDays={data?.weekProgress?.totalDays ?? 7}
+                          currentWeekIndex={mondayWeekIndex}
+                          dayOfWeekIndex={mondayDayIndex}
+                          answeredIndices={reflectionAnsweredIndices}
+                          focusDayIndex={focusDayIndex}
+                          focusMode={treeFocusMode}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-dashed border-emerald-200/25 bg-white/5 p-4 shadow-inner sm:p-5">
+                    <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.3em] text-emerald-200">
+                      <span>Card 4 · Yearly recap</span>
+                      <span className="rounded-full border border-emerald-300/40 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-100">
+                        Later
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm text-slate-200">
+                      A calm annual rewind is in the works—every badge pulsing through the tree with music-grade pacing.
                     </p>
                   </div>
                 </div>
 
-                <div className="mx-auto w-full max-w-[20rem] rounded-2xl border border-white/5 bg-slate-950/60 p-4 shadow-inner sm:max-w-[22rem] sm:p-5 lg:mx-0 lg:max-w-none">
-                  <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] uppercase tracking-[0.28em] text-emerald-200 sm:text-xs">
-                    <span>Weekly badges</span>
-                    <span className="text-emerald-100/80">
-                      {data?.weekProgress?.completedDays ?? 0}/{data?.weekProgress?.totalDays ?? 7}
-                    </span>
+                <div className="mx-auto w-full max-w-[22rem] rounded-2xl border border-white/5 bg-slate-950/60 p-4 shadow-inner sm:max-w-[24rem] sm:p-5 lg:mx-0 lg:max-w-none">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.28em] text-emerald-200 sm:text-xs">Card 3 · Weekly badges</p>
+                      <h4 className="text-lg font-semibold text-white sm:text-xl">Dropdown moment</h4>
+                      <p className="text-sm text-slate-300">
+                        Full 52-week catalog lives here. Locked badges stay outlined; earned ones glow softly.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setWeeklyCatalogOpen((prev) => !prev)}
+                      className="inline-flex items-center gap-2 rounded-full border border-emerald-400/40 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-emerald-50 transition hover:border-emerald-200 hover:text-white"
+                      aria-expanded={weeklyCatalogOpen}
+                    >
+                      {weeklyCatalogOpen ? "Hide dropdown" : "Open dropdown"}
+                      <span className={`transition-transform ${weeklyCatalogOpen ? "rotate-180" : ""}`} aria-hidden>
+                        ˅
+                      </span>
+                    </button>
                   </div>
-                  <div className="mt-4 grid gap-3">
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <BadgePill
                       title={`This week · ${weeklyBadge.name}`}
                       icon={weeklyBadge.icon}
@@ -787,9 +922,84 @@ export function GrowthClient() {
                       tone="muted"
                     />
                   </div>
-                  <p className="mt-3 text-xs text-emerald-100/80">
-                    These badges animate in after you submit—dim screen, soft glow, then they settle into your collection.
+                  <div className="mt-4 flex items-center gap-3">
+                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-emerald-950/70">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-emerald-300 via-emerald-200 to-cyan-300 transition-all duration-500"
+                        style={{ width: `${Math.min(weeklyBadgeStates.progressPercent, 100)}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-emerald-100/80">
+                      {weeklyBadgeStates.completed}/{weeklyBadgeStates.totalDays} days
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs text-emerald-200/80">
+                    Tap the dropdown to watch badges fade in—locked outlines, earned glow, progress front and center.
                   </p>
+                  <div className="mt-4 rounded-xl border border-emerald-400/20 bg-emerald-500/5 p-3 shadow-inner">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="text-sm font-semibold text-white">Full catalog (52)</div>
+                      <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-emerald-100">
+                        <span>{weeklyBadgeStates.earnedCount} earned</span>
+                        <span className="text-emerald-100/70">·</span>
+                        <span>{weeklyBadgeStates.progressPercent}% this week</span>
+                      </div>
+                    </div>
+                    <div
+                      className="transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                      style={{
+                        maxHeight: weeklyCatalogOpen ? weeklyCatalogHeight + 24 : 0,
+                        opacity: weeklyCatalogOpen ? 1 : 0,
+                        transform: weeklyCatalogOpen ? "translateY(0px)" : "translateY(-8px)",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <div
+                        ref={weeklyCatalogRef}
+                        className="mt-3 grid grid-cols-2 gap-2 pr-1 sm:grid-cols-3"
+                      >
+                        {weeklyBadgeStates.catalog.map((badge, index) => {
+                          const isEarned = badge.status === "earned";
+                          const isActive = badge.status === "active";
+                          const tone =
+                            isEarned
+                              ? "border-emerald-300/60 bg-gradient-to-br from-emerald-600/15 via-emerald-500/10 to-cyan-500/10 shadow-[0_0_0_1px_rgba(16,185,129,0.25),0_16px_40px_-28px_rgba(16,185,129,0.7)]"
+                              : isActive
+                                ? "border-emerald-300/40 bg-emerald-500/10"
+                                : "border-dashed border-emerald-100/20 bg-white/5 opacity-70";
+                          const labelTone = isEarned ? "text-emerald-50" : isActive ? "text-emerald-100/80" : "text-emerald-100/70";
+                          const supportingTone = isEarned ? "text-emerald-100/80" : "text-emerald-100/60";
+                          return (
+                            <div
+                              key={badge.id}
+                              className={`rounded-lg border px-3 py-2 transition duration-700 ${tone}`}
+                              style={{ transitionDelay: weeklyCatalogOpen ? `${index * 8}ms` : "0ms" }}
+                            >
+                              <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.22em]">
+                                <span className={labelTone}>{badge.label}</span>
+                                <span className={supportingTone}>
+                                  {isEarned ? "Earned" : isActive ? "In progress" : "Locked"}
+                                </span>
+                              </div>
+                              <p className={`mt-1 text-sm font-semibold ${isEarned ? "text-white" : "text-emerald-50/80"}`}>
+                                {badge.title}
+                              </p>
+                              {isEarned ? (
+                                <p className="text-[11px] text-emerald-100/80">{badge.description}</p>
+                              ) : (
+                                <p className="text-[11px] text-emerald-100/60">{badge.supportingText}</p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    {!weeklyCatalogOpen ? (
+                      <p className="mt-3 text-[11px] uppercase tracking-[0.2em] text-emerald-200">
+                        Tap to reveal the whole year
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             </section>

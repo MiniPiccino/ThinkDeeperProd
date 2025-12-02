@@ -3,18 +3,20 @@ from openai import OpenAI
 
 from ..config import Settings, get_settings
 from ..integrations.supabase_client import SupabaseClient
-from ..repositories import AnswerRepository, ProgressRepository, QuestionRepository, UserRepository
-from ..services import AnswerService, BillingService, EvaluationService, QuestionService, ReflectionService
+from ..repositories import AnswerRepository, BadgeRepository, ProgressRepository, QuestionRepository, UserRepository
+from ..services import AnswerService, BadgeService, BillingService, EvaluationService, QuestionService, ReflectionService
 
 _QUESTION_REPOSITORY: QuestionRepository | None = None
 _PROGRESS_REPOSITORY: ProgressRepository | None = None
 _ANSWER_REPOSITORY: AnswerRepository | None = None
+_BADGE_REPOSITORY: BadgeRepository | None = None
 _USER_REPOSITORY: UserRepository | None = None
 _OPENAI_CLIENT: OpenAI | None = None
 _EVALUATION_SERVICE: EvaluationService | None = None
 _QUESTION_SERVICE: QuestionService | None = None
 _ANSWER_SERVICE: AnswerService | None = None
 _REFLECTION_SERVICE: ReflectionService | None = None
+_BADGE_SERVICE: BadgeService | None = None
 _SUPABASE_CLIENT: SupabaseClient | None = None
 _BILLING_SERVICE: BillingService | None = None
 
@@ -59,6 +61,18 @@ def _answer_repository(settings: Settings) -> AnswerRepository:
             supabase_table=settings.supabase_answers_table if supabase else None,
         )
     return _ANSWER_REPOSITORY
+
+
+def _badge_repository(settings: Settings) -> BadgeRepository:
+    global _BADGE_REPOSITORY
+    if _BADGE_REPOSITORY is None:
+        supabase = _supabase_client(settings)
+        _BADGE_REPOSITORY = BadgeRepository(
+            settings.badge_store_path,
+            supabase_client=supabase,
+            supabase_table=settings.supabase_badges_table if supabase else None,
+        )
+    return _BADGE_REPOSITORY
 
 
 def _user_repository(settings: Settings) -> UserRepository:
@@ -109,8 +123,16 @@ def _answer_service(settings: Settings) -> AnswerService:
             _evaluation_service(settings),
             _answer_repository(settings),
             _progress_repository(settings),
+            _badge_repository(settings),
         )
     return _ANSWER_SERVICE
+
+
+def _badge_service(settings: Settings) -> BadgeService:
+    global _BADGE_SERVICE
+    if _BADGE_SERVICE is None:
+        _BADGE_SERVICE = BadgeService(_badge_repository(settings))
+    return _BADGE_SERVICE
 
 
 def _reflection_service(settings: Settings) -> ReflectionService:
@@ -148,6 +170,10 @@ def get_answer_service(settings: Settings = Depends(get_settings_dependency)) ->
 
 def get_reflection_service(settings: Settings = Depends(get_settings_dependency)) -> ReflectionService:
     return _reflection_service(settings)
+
+
+def get_badge_service(settings: Settings = Depends(get_settings_dependency)) -> BadgeService:
+    return _badge_service(settings)
 
 
 def get_billing_service(settings: Settings = Depends(get_settings_dependency)) -> BillingService:

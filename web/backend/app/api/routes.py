@@ -5,8 +5,15 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, s
 from pydantic import BaseModel
 
 from ..models.answer import AnswerCreate, AnswerResult
+from ..models.badge import Badge
 from ..models.reflection import ReflectionHistoryItem, ReflectionOverview
-from .deps import get_answer_service, get_billing_service, get_question_service, get_reflection_service
+from .deps import (
+    get_answer_service,
+    get_badge_service,
+    get_billing_service,
+    get_question_service,
+    get_reflection_service,
+)
 from ..services import BillingConfigError
 from ..services.answer_service import DuplicateAnswerError
 
@@ -73,6 +80,18 @@ async def reflections_history(
     if not resolved_user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User identifier required.")
     return reflection_service.history(resolved_user, limit=limit, search=search)
+
+
+@router.get("/badges", response_model=List[Badge])
+async def list_badges(
+    badge_service=Depends(get_badge_service),
+    user_id: Optional[str] = Query(default=None, alias="userId"),
+    x_user_id: Optional[str] = Header(default=None, alias="X-User-Id"),
+) -> List[Badge]:
+    resolved_user = user_id or x_user_id
+    if not resolved_user:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User identifier required.")
+    return badge_service.list_badges(resolved_user)
 
 
 @router.post("/billing/checkout")

@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 from app.api.routes import router as api_router
 from app.api.deps import get_answer_service, get_question_service
 from app.config import Settings
-from app.repositories import AnswerRepository, ProgressRepository, QuestionRepository, UserRepository
+from app.repositories import AnswerRepository, BadgeRepository, ProgressRepository, QuestionRepository, UserRepository
 from app.services import AnswerService, EvaluationService, QuestionService, ReflectionService
 
 
@@ -38,6 +38,7 @@ def tmp_settings(tmp_path: Path) -> Settings:
         ANSWERS_STORE_PATH=data_dir / "answers.jsonl",
         PROGRESS_STORE_PATH=data_dir / "progress.json",
         USER_METADATA_PATH=data_dir / "users.json",
+        BADGE_STORE_PATH=data_dir / "badges.json",
         ALLOWED_ORIGINS=["http://testserver"],
     )
 
@@ -55,6 +56,11 @@ def progress_repository(tmp_settings: Settings) -> ProgressRepository:
 @pytest.fixture
 def answer_repository(tmp_settings: Settings) -> AnswerRepository:
     return AnswerRepository(tmp_settings.answers_store_path)
+
+
+@pytest.fixture
+def badge_repository(tmp_settings: Settings):
+    return BadgeRepository(tmp_settings.badge_store_path)
 
 
 @pytest.fixture
@@ -124,12 +130,14 @@ def answer_service(
     evaluation_service: EvaluationService,
     answer_repository: AnswerRepository,
     progress_repository: ProgressRepository,
+    badge_repository,
 ) -> AnswerService:
     return AnswerService(
         question_repository,
         evaluation_service,
         answer_repository,
         progress_repository,
+        badge_repository,
     )
 
 

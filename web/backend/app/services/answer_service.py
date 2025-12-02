@@ -4,9 +4,11 @@ from typing import Dict, Optional, Set
 from ..models.answer import AnswerResult
 from ..repositories import (
     AnswerRepository,
+    BadgeRepository,
     ProgressRepository,
     QuestionRepository,
     StoredAnswer,
+    StoredBadge,
 )
 from .evaluation_service import EvaluationService
 
@@ -32,11 +34,13 @@ class AnswerService:
         evaluation_service: EvaluationService,
         answer_repository: AnswerRepository,
         progress_repository: ProgressRepository,
+        badge_repository: Optional[BadgeRepository] = None,
     ) -> None:
         self._question_repository = question_repository
         self._evaluation_service = evaluation_service
         self._answer_repository = answer_repository
         self._progress_repository = progress_repository
+        self._badge_repository = badge_repository
 
     def submit_answer(
         self,
@@ -73,6 +77,17 @@ class AnswerService:
             bonus_xp = self.WEEK_COMPLETION_BONUS_XP
             badge_earned = True
             badge_name = self._badge_name(question.week_index, question.theme)
+            if self._badge_repository and user_id:
+                self._badge_repository.record_badge(
+                    StoredBadge(
+                        id=f"{persisted_user_id}-week-{question.week_index}",
+                        user_id=persisted_user_id,
+                        week_index=question.week_index,
+                        theme=question.theme,
+                        name=badge_name,
+                        earned_at=now,
+                    )
+                )
 
         total_awarded = adjusted_xp + bonus_xp
         progress = self._progress_repository.update(persisted_user_id, total_awarded, now)
