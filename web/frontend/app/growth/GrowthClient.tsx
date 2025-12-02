@@ -288,6 +288,13 @@ export function GrowthClient() {
   const weeklyCatalogRef = useRef<HTMLDivElement | null>(null);
   const [weeklyCatalogHeight, setWeeklyCatalogHeight] = useState(0);
   const [weeklyCatalogOpen, setWeeklyCatalogOpen] = useState(false);
+  const handleScrollToReplay = useCallback(() => {
+    if (typeof window === "undefined") return;
+    const target = document.getElementById("growth-streak-replay");
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, []);
   const availableOnDate = useMemo(() => {
     const base = data?.availableOn ? new Date(data.availableOn) : new Date();
     if (Number.isNaN(base.getTime())) {
@@ -740,7 +747,10 @@ export function GrowthClient() {
 
         {userId && !isLoading && !isError && data ? (
           <>
-            <section className="rounded-3xl border border-emerald-400/40 bg-gradient-to-br from-zinc-950 via-zinc-900 to-emerald-950 p-6 shadow-2xl">
+            <section
+              id="growth-streak-replay"
+              className="rounded-3xl border border-emerald-400/40 bg-gradient-to-br from-zinc-950 via-zinc-900 to-emerald-950 p-6 shadow-2xl"
+            >
               <div className="relative">
                 <div
                   className={`transition-transform ease-[cubic-bezier(0.19,1,0.22,1)] ${
@@ -850,30 +860,33 @@ export function GrowthClient() {
                       <span className="text-emerald-100/80">{streakCount} days</span>
                     </div>
                     <p className="mt-2 text-sm text-emerald-100/80">
-                      This is the calm sneak peek. The full replay above still holds the slow zoom and glow after each submission.
+                      A softer reminder of your streak. Tap “Replay” below to jump to the main tree animation card.
                     </p>
-                    <div className="mt-3 overflow-hidden rounded-xl border border-emerald-400/30 bg-black/40 p-3">
-                      <div className="mx-auto max-w-[18rem] scale-95 sm:scale-100">
-                        <StreakReplay
-                          streak={streakCount}
-                          weekCompletedDays={data?.weekProgress?.completedDays ?? 0}
-                          weekTotalDays={data?.weekProgress?.totalDays ?? 7}
-                          currentWeekIndex={mondayWeekIndex}
-                          dayOfWeekIndex={mondayDayIndex}
-                          answeredIndices={reflectionAnsweredIndices}
-                          focusDayIndex={focusDayIndex}
-                          focusMode={treeFocusMode}
-                        />
-                      </div>
+                    <div className="mt-3 rounded-xl border border-emerald-400/30 bg-black/40 p-4">
+                      <p className="text-sm font-semibold text-white">Streak {streakCount} days</p>
+                      <p className="text-xs text-emerald-100/70">
+                        Level {levelStats.level} · {weeklyBadgeStates.completed}/{weeklyBadgeStates.totalDays} days this week
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleScrollToReplay}
+                        className="mt-3 inline-flex items-center justify-center rounded-full border border-emerald-400/50 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.25em] text-emerald-50 transition hover:border-emerald-200 hover:text-white"
+                      >
+                        Replay streak
+                      </button>
                     </div>
                   </div>
 
                   <div className="rounded-2xl border border-dashed border-emerald-200/25 bg-white/5 p-4 shadow-inner sm:p-5">
                     <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.3em] text-emerald-200">
                       <span>Card 4 · Yearly recap</span>
-                      <span className="rounded-full border border-emerald-300/40 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-100">
+                      <button
+                        type="button"
+                        onClick={handleScrollToReplay}
+                        className="rounded-full border border-emerald-300/40 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-100 transition hover:border-emerald-200 hover:text-white"
+                      >
                         Later
-                      </span>
+                      </button>
                     </div>
                     <p className="mt-2 text-sm text-slate-200">
                       A calm annual rewind is in the works—every badge pulsing through the tree with music-grade pacing.
