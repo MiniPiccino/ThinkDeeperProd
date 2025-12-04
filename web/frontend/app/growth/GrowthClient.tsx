@@ -821,6 +821,24 @@ export function GrowthClient() {
       }
       return `${Math.round(seconds)}s`;
     };
+    const wrapText = (text: string, width = 86) => {
+      const words = text.split(/\s+/);
+      const linesWrapped: string[] = [];
+      let current = "";
+      words.forEach((word) => {
+        const next = current.length === 0 ? word : `${current} ${word}`;
+        if (next.length > width && current.length > 0) {
+          linesWrapped.push(current);
+          current = word;
+        } else {
+          current = next;
+        }
+      });
+      if (current.length > 0) {
+        linesWrapped.push(current);
+      }
+      return linesWrapped;
+    };
     const exportTimestamp = new Intl.DateTimeFormat("en-US", {
       dateStyle: "long",
       timeStyle: "short",
@@ -840,8 +858,7 @@ export function GrowthClient() {
       lines.push(`${index + 1}. ${dateLabel} — ${entry.prompt}`);
       lines.push(`Theme: ${entry.theme} · +${entry.xpAwarded} XP · Focus ${formatDuration(entry.durationSeconds)}`);
       if (entry.excerpt) {
-        const trimmed = entry.excerpt.length > 160 ? `${entry.excerpt.slice(0, 157)}...` : entry.excerpt;
-        lines.push(trimmed);
+        wrapText(entry.excerpt).forEach((wrappedLine) => lines.push(wrappedLine));
       }
       lines.push("");
     });
