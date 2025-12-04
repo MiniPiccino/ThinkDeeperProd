@@ -812,12 +812,119 @@ export function GrowthClient() {
     if (typeof window === "undefined" || filteredTimelineFull.length === 0) {
       return;
     }
-    const payload = JSON.stringify(filteredTimelineFull, null, 2);
-    const blob = new Blob([payload], { type: "application/json" });
+    const formatDuration = (seconds: number) => {
+      if (!seconds || seconds <= 0) {
+        return "0s";
+      }
+      if (seconds >= 60) {
+        return `${(seconds / 60).toFixed(1)} min`;
+      }
+      return `${Math.round(seconds)}s`;
+    };
+    const exportTimestamp = new Intl.DateTimeFormat("en-US", {
+      dateStyle: "long",
+      timeStyle: "short",
+    }).format(new Date());
+    const lines: string[] = [
+      "Deep Growth reflections export",
+      `Exported on ${exportTimestamp}`,
+      `Entries: ${filteredTimelineFull.length}`,
+      "",
+    ];
+    filteredTimelineFull.forEach((entry, index) => {
+      const dateLabel = new Date(entry.answeredAt).toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+      lines.push(`${index + 1}. ${dateLabel} — ${entry.prompt}`);
+      lines.push(`Theme: ${entry.theme} · +${entry.xpAwarded} XP · Focus ${formatDuration(entry.durationSeconds)}`);
+      if (entry.excerpt) {
+        const trimmed = entry.excerpt.length > 160 ? `${entry.excerpt.slice(0, 157)}...` : entry.excerpt;
+        lines.push(trimmed);
+      }
+      lines.push("");
+    });
+    const escapePdfText = (text: string) =>
+      text.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+    const linesPerPage = 40;
+    const pageLineGroups: string[][] = [];
+    for (let i = 0; i < lines.length; i += linesPerPage) {
+      pageLineGroups.push(lines.slice(i, i + linesPerPage));
+    }
+    if (pageLineGroups.length === 0) {
+      pageLineGroups.push(["Deep Growth reflections export"]);
+    }
+    type PdfObject = { id: number; content: string };
+    const objects: PdfObject[] = [];
+    const registerObject = (content: string) => {
+      const id = objects.length + 1;
+      objects.push({ id, content });
+      return id;
+    };
+    const buildPageStream = (pageLines: string[]) => {
+      const lineHeight = 16;
+      const commands = pageLines.map((line, idx) => {
+        const prefix = idx === 0 ? "72 770 Td" : `0 -${lineHeight} Td`;
+        return `${prefix} (${escapePdfText(line)}) Tj`;
+      });
+      if (commands.length === 0) {
+        commands.push("72 770 Td ( ) Tj");
+      }
+      return `BT
+/F1 12 Tf
+${commands.join("\n")}
+ET`;
+    };
+    const fontObjectId = registerObject("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+    const pagesPlaceholderId = registerObject("__PAGES__");
+    const pageObjectIds: number[] = [];
+    pageLineGroups.forEach((group) => {
+      const stream = buildPageStream(group);
+      const streamObjectId = registerObject(`<< /Length ${stream.length} >>
+stream
+${stream}
+endstream`);
+      const pageObjectId = registerObject(
+        `<< /Type /Page /Parent ${pagesPlaceholderId} 0 R /MediaBox [0 0 612 792] /Contents ${streamObjectId} 0 R /Resources << /Font << /F1 ${fontObjectId} 0 R >> >> >>`,
+      );
+      pageObjectIds.push(pageObjectId);
+    });
+    objects[pagesPlaceholderId - 1].content = `<< /Type /Pages /Count ${pageObjectIds.length} /Kids [${pageObjectIds
+      .map((id) => `${id} 0 R`)
+      .join(" ")}] >>`;
+    const catalogObjectId = registerObject(`<< /Type /Catalog /Pages ${pagesPlaceholderId} 0 R >>`);
+    let pdfContent = "%PDF-1.4\n";
+    const offsets: number[] = [0];
+    let cursor = pdfContent.length;
+    objects.forEach((object) => {
+      offsets.push(cursor);
+      const chunk = `${object.id} 0 obj
+${object.content}
+endobj
+`;
+      pdfContent += chunk;
+      cursor = pdfContent.length;
+    });
+    const xrefPosition = pdfContent.length;
+    pdfContent += `xref
+0 ${objects.length + 1}
+0000000000 65535 f 
+`;
+    for (let i = 1; i <= objects.length; i += 1) {
+      const offset = offsets[i];
+      pdfContent += `${offset.toString().padStart(10, "0")} 00000 n 
+`;
+    }
+    pdfContent += `trailer << /Size ${objects.length + 1} /Root ${catalogObjectId} 0 R >>
+startxref
+${xrefPosition}
+%%EOF`;
+    const blob = new Blob([pdfContent], { type: "application/pdf" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `deep-growth-reflections-${new Date().toISOString().slice(0, 10)}.json`;
+    anchor.download = `deep-growth-reflections-${new Date().toISOString().slice(0, 10)}.pdf`;
     document.body.appendChild(anchor);
     anchor.click();
     document.body.removeChild(anchor);
@@ -1394,7 +1501,7 @@ export function GrowthClient() {
                           onClick={handleExportTimeline}
                           className="flex-1 min-w-[12rem] rounded-full border border-emerald-400/40 bg-emerald-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-emerald-100 transition hover:border-emerald-200 hover:text-white"
                         >
-                          Export reflections (JSON)
+                          Export reflections (PDF)
                         </button>
                         <button
                           type="button"
