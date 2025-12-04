@@ -47,6 +47,16 @@ type ThemeBadgeSpec = {
   description: string;
 };
 
+type TimelineEntry = {
+  answeredAt: string;
+  prompt: string;
+  theme: string;
+  questionId: string;
+  excerpt: string;
+  xpAwarded: number;
+  durationSeconds: number;
+};
+
 const TREE_ANIMATION_FRAMES: TreeAnimationFrame[] = [
   {
     key: "wide",
@@ -285,6 +295,8 @@ export function GrowthClient() {
   const [activeFrameIndex, setActiveFrameIndex] = useState(-1);
   const [timelineFilter, setTimelineFilter] = useState("");
   const [showAllTimeline, setShowAllTimeline] = useState(false);
+  const [timelineViewMode, setTimelineViewMode] = useState<"highlights" | "weekly" | "monthly">("highlights");
+  const [selectedThemeFilter, setSelectedThemeFilter] = useState("all");
   const weeklyCatalogRef = useRef<HTMLDivElement | null>(null);
   const [weeklyCatalogHeight, setWeeklyCatalogHeight] = useState(0);
   const [weeklyCatalogOpen, setWeeklyCatalogOpen] = useState(false);
@@ -463,16 +475,24 @@ export function GrowthClient() {
     { title: "Insights", detail: "See how your voice evolves (“Your thinking is more analytical this month”)." },
     { title: "Exports & yearly recap", detail: "Download PDFs/CSV or replay your Deep Tree for any year." },
   ];
-  const timelineEntries = useMemo(() => {
-    const base =
+  const timelineEntries = useMemo<TimelineEntry[]>(() => {
+    const base: TimelineEntry[] =
       reflectionHistory && reflectionHistory.length > 0
-        ? reflectionHistory
+        ? reflectionHistory.map((entry) => ({
+            answeredAt: entry.answeredAt,
+            prompt: entry.prompt,
+            theme: entry.theme ?? "Reflection",
+            questionId: entry.questionId,
+            excerpt: entry.excerpt ?? "Reflection saved.",
+            xpAwarded: entry.xpAwarded ?? 0,
+            durationSeconds: entry.durationSeconds ?? 0,
+          }))
         : weeklyReflectionSummary
             .filter((day) => day.hasEntry && day.entry)
             .map((day) => ({
               answeredAt: day.entry!.answeredAt,
               prompt: day.entry!.prompt,
-              theme: day.entry!.theme,
+              theme: day.entry!.theme ?? "Reflection",
               questionId: day.entry!.questionId,
               excerpt: day.entry!.excerpt ?? "Reflection saved.",
               xpAwarded: day.entry!.xpAwarded ?? 0,
@@ -485,7 +505,16 @@ export function GrowthClient() {
     });
     return sorted;
   }, [reflectionHistory, weeklyReflectionSummary]);
-  const filteredTimeline = useMemo(() => {
+  const timelineThemes = useMemo(() => {
+    return Array.from(
+      new Set(
+        timelineEntries
+          .map((entry) => entry.theme)
+          .filter((theme): theme is string => Boolean(theme)),
+      ),
+    );
+  }, [timelineEntries]);
+  const filteredTimelineFull = useMemo(() => {
     const term = timelineFilter.trim().toLowerCase();
     let list = timelineEntries;
     if (term.length > 0) {
@@ -496,11 +525,114 @@ export function GrowthClient() {
           (entry.excerpt ?? "").toLowerCase().includes(term),
       );
     }
-    if (!showAllTimeline) {
-      return list.slice(0, 3);
+    if (selectedThemeFilter !== "all") {
+      list = list.filter((entry) => entry.theme === selectedThemeFilter);
     }
     return list;
-  }, [timelineEntries, timelineFilter, showAllTimeline]);
+  }, [timelineEntries, timelineFilter, selectedThemeFilter]);
+  const visibleTimeline = useMemo(() => {
+    if (!showAllTimeline) {
+      return filteredTimelineFull.slice(0, 3);
+    }
+    return filteredTimelineFull;
+  }, [filteredTimelineFull, showAllTimeline]);
+  const timelineWeekGroups = useMemo(() => {
+    const groups = new Map<string, { key: string; label: string; entries: TimelineEntry[] }>();
+    filteredTimelineFull.forEach((entry) => {
+      const date = new Date(entry.answeredAt);
+      if (Number.isNaN(date.getTime())) {
+        return;
+      }
+      const year = date.getFullYear();
+      const weekIdx = mondayAlignedWeekIndex(date);
+      const key = `${year}-w-${weekIdx}`;
+      if (!groups.has(key)) {
+        groups.set(key, {
+          key,
+          label: `Week ${weekIdx + 1}, ${year}`,
+          entries: [],
+        });
+      }
+      groups.get(key)!.entries.push(entry);
+    });
+    return Array.from(groups.values());
+  }, [filteredTimelineFull]);
+  const timelineMonthGroups = useMemo(() => {
+    const groups = new Map<string, { key: string; label: string; entries: TimelineEntry[] }>();
+    const formatter = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" });
+    filteredTimelineFull.forEach((entry) => {
+      const date = new Date(entry.answeredAt);
+      if (Number.isNaN(date.getTime())) {
+        return;
+      }
+      const key = `${date.getFullYear()}-${date.getMonth()}`;
+      if (!groups.has(key)) {
+        groups.set(key, {
+          key,
+          label: formatter.format(date),
+          entries: [],
+        });
+      }
+      groups.get(key)!.entries.push(entry);
+    });
+    return Array.from(groups.values());
+  }, [filteredTimelineFull]);
+  const timelineInsights = useMemo(() => {
+    if (filteredTimelineFull.length === 0) {
+      return null;
+    }
+    const totalXp = filteredTimelineFull.reduce((sum, entry) => sum + (entry.xpAwarded ?? 0), 0);
+    const totalDuration = filteredTimelineFull.reduce(
+      (sum, entry) => sum + (entry.durationSeconds ?? 0),
+      0,
+    );
+    const avgDuration = filteredTimelineFull.length
+      ? totalDuration / filteredTimelineFull.length
+      : 0;
+    const themeCounts = new Map<string, number>();
+    filteredTimelineFull.forEach((entry) => {
+      const key = entry.theme ?? "Insight";
+      themeCounts.set(key, (themeCounts.get(key) ?? 0) + 1);
+    });
+    let dominantTheme = "Insight";
+    let dominantCount = 0;
+    themeCounts.forEach((count, theme) => {
+      if (count > dominantCount) {
+        dominantCount = count;
+        dominantTheme = theme;
+      }
+    });
+    const avgXp = filteredTimelineFull.length
+      ? totalXp / filteredTimelineFull.length
+      : 0;
+    const voiceTone = avgXp >= 30 ? "Analytical" : avgXp >= 15 ? "Curious" : "Reflective";
+    const durationLabel =
+      avgDuration >= 60 ? `${(avgDuration / 60).toFixed(1)} min` : `${Math.round(avgDuration)}s`;
+    return {
+      summary: `Your voice leans ${voiceTone.toLowerCase()}—${dominantTheme.toLowerCase()} shows up most often.`,
+      stats: [
+        { label: "Avg XP", value: `${avgXp.toFixed(1)} XP` },
+        { label: "Avg focus", value: durationLabel },
+        { label: "Top theme", value: dominantTheme },
+      ],
+    };
+  }, [filteredTimelineFull]);
+  const renderTimelineCard = useCallback(
+    (entry: TimelineEntry) => (
+      <div key={`${entry.questionId}-${entry.answeredAt}`} className="rounded-xl border border-white/10 bg-white/5 p-3">
+        <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.25em] text-emerald-200">
+          <span>
+            {new Date(entry.answeredAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+          </span>
+          <span className="text-emerald-100/80">+{entry.xpAwarded} XP</span>
+        </div>
+        <p className="mt-1 text-sm font-semibold text-white">{entry.prompt}</p>
+        <p className="text-xs text-emerald-100/80">{entry.theme}</p>
+        <p className="mt-1 text-xs text-slate-200 leading-relaxed">{entry.excerpt}</p>
+      </div>
+    ),
+    [],
+  );
   const reflectionAnsweredIndices = useMemo(() => {
     const fromAnsweredDates =
       timelineUnlocked && reflectionData?.answeredDates?.length
@@ -676,6 +808,21 @@ export function GrowthClient() {
       setUpgradeLoading(false);
     }
   }, [userId]);
+  const handleExportTimeline = useCallback(() => {
+    if (typeof window === "undefined" || filteredTimelineFull.length === 0) {
+      return;
+    }
+    const payload = JSON.stringify(filteredTimelineFull, null, 2);
+    const blob = new Blob([payload], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `deep-growth-reflections-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  }, [filteredTimelineFull]);
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-900 px-4 py-12 text-slate-100 lg:py-10">
@@ -1130,7 +1277,7 @@ export function GrowthClient() {
 
                 <div className="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-5">
                   {isPremiumUser ? (
-                    <div className="space-y-4">
+                    <div className="space-y-5">
                       <div>
                         <p className="text-xs uppercase tracking-[0.3em] text-emerald-200">Premium timeline</p>
                         <p className="mt-2 text-lg font-semibold text-white">Every reflection, searchable.</p>
@@ -1147,49 +1294,170 @@ export function GrowthClient() {
                             <p className="text-base font-semibold text-white">{streakCount} days</p>
                           </div>
                         </div>
+                        <div className="mt-4">
+                          <p className="text-[11px] uppercase tracking-[0.25em] text-emerald-200">Timeline view</p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {(
+                              [
+                                { label: "Highlights", value: "highlights" },
+                                { label: "Weekly", value: "weekly" },
+                                { label: "Monthly", value: "monthly" },
+                              ] as const
+                            ).map((option) => {
+                              const active = timelineViewMode === option.value;
+                              return (
+                                <button
+                                  key={option.value}
+                                  type="button"
+                                  onClick={() => setTimelineViewMode(option.value)}
+                                  className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] ${
+                                    active
+                                      ? "border-emerald-300 bg-emerald-500/20 text-white"
+                                      : "border-emerald-400/40 text-emerald-100 hover:border-emerald-200 hover:text-white"
+                                  }`}
+                                >
+                                  {option.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/5 p-4">
+                        <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.25em] text-emerald-200">
+                          <span>Search + tags</span>
+                          {historyLoading ? <span className="text-emerald-100/70">Loading…</span> : null}
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <input
+                            type="search"
+                            value={timelineFilter}
+                            onChange={(event) => setTimelineFilter(event.target.value)}
+                            placeholder="Filter by keyword"
+                            className="flex-1 min-w-[12rem] rounded-full border border-emerald-400/30 bg-emerald-500/10 px-4 py-2 text-[11px] uppercase tracking-[0.15em] text-emerald-50 placeholder:text-emerald-200/60 focus:border-emerald-300 focus:outline-none"
+                          />
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedThemeFilter("all")}
+                            className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] ${
+                              selectedThemeFilter === "all"
+                                ? "border-emerald-300 bg-emerald-500/20 text-white"
+                                : "border-emerald-400/30 text-emerald-100"
+                            }`}
+                          >
+                            All themes
+                          </button>
+                          {timelineThemes.map((theme) => {
+                            const active = selectedThemeFilter === theme;
+                            return (
+                              <button
+                                key={theme}
+                                type="button"
+                                onClick={() => setSelectedThemeFilter(theme)}
+                                className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] ${
+                                  active
+                                    ? "border-emerald-300 bg-emerald-500/20 text-white"
+                                    : "border-emerald-400/30 text-emerald-100"
+                                }`}
+                              >
+                                {theme}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-emerald-400/20 bg-white/5 p-4">
+                        <div className="text-[11px] uppercase tracking-[0.3em] text-emerald-200">Insights</div>
+                        {timelineInsights ? (
+                          <>
+                            <p className="mt-2 text-sm text-emerald-100/80">{timelineInsights.summary}</p>
+                            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                              {timelineInsights.stats.map((stat) => (
+                                <div key={stat.label} className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 py-2">
+                                  <p className="text-[11px] uppercase tracking-[0.3em] text-emerald-200">{stat.label}</p>
+                                  <p className="text-lg font-semibold text-white">{stat.value}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        ) : (
+                          <p className="mt-2 text-sm text-emerald-100/70">
+                            Write a few more reflections to unlock insights on tone and focus.
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-3">
+                        <button
+                          type="button"
+                          onClick={handleExportTimeline}
+                          className="flex-1 min-w-[12rem] rounded-full border border-emerald-400/40 bg-emerald-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-emerald-100 transition hover:border-emerald-200 hover:text-white"
+                        >
+                          Export reflections (JSON)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleScrollToReplay}
+                          className="flex-1 min-w-[12rem] rounded-full border border-emerald-400/40 bg-emerald-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-emerald-100 transition hover:border-emerald-200 hover:text-white"
+                        >
+                          Replay yearly recap
+                        </button>
                       </div>
                       <div className="space-y-3">
-                        {premiumHighlights.map((item) => (
-                          <div key={item.title} className="rounded-xl border border-emerald-400/20 bg-emerald-500/5 p-3">
-                            <p className="text-sm font-semibold text-white">{item.title}</p>
-                            <p className="text-xs text-emerald-100/80">{item.detail}</p>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="mt-4 space-y-2">
-                        <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-emerald-200">
-                          <span>Latest reflections</span>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="search"
-                              value={timelineFilter}
-                              onChange={(event) => setTimelineFilter(event.target.value)}
-                              placeholder="Filter by keyword"
-                              className="w-40 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-[11px] uppercase tracking-[0.15em] text-emerald-50 placeholder:text-emerald-200/60 focus:border-emerald-300 focus:outline-none"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowAllTimeline((prev) => !prev)}
-                              className="rounded-full border border-emerald-400/40 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-emerald-50 transition hover:border-emerald-200 hover:text-white"
-                            >
-                              {showAllTimeline ? "Top highlights" : "Show more"}
-                            </button>
-                            {historyLoading ? <span className="text-emerald-100/70">Loading…</span> : null}
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-xs uppercase tracking-[0.3em] text-emerald-200">
+                          <span>
+                            {timelineViewMode === "highlights"
+                              ? "Latest reflections"
+                              : timelineViewMode === "weekly"
+                                ? "Timeline view · weekly"
+                                : "Timeline view · monthly"}
+                          </span>
+                          <div className="flex flex-wrap items-center gap-2">
+                            {timelineViewMode === "highlights" ? (
+                              <button
+                                type="button"
+                                onClick={() => setShowAllTimeline((prev) => !prev)}
+                                className="rounded-full border border-emerald-400/40 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-emerald-50 transition hover:border-emerald-200 hover:text-white"
+                              >
+                                {showAllTimeline ? "Top highlights" : "Show more"}
+                              </button>
+                            ) : null}
+                            {timelineFilter.trim().length > 0 || selectedThemeFilter !== "all" ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setTimelineFilter("");
+                                  setSelectedThemeFilter("all");
+                                }}
+                                className="rounded-full border border-emerald-400/30 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-emerald-200 hover:border-emerald-200 hover:text-white"
+                              >
+                                Clear filters
+                              </button>
+                            ) : null}
                           </div>
                         </div>
                         <div className="space-y-2">
-                          {filteredTimeline.map((entry) => (
-                            <div key={entry.questionId + entry.answeredAt} className="rounded-xl border border-white/10 bg-white/5 p-3">
-                              <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.25em] text-emerald-200">
-                                <span>{new Date(entry.answeredAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
-                                <span className="text-emerald-100/80">+{entry.xpAwarded} XP</span>
-                              </div>
-                              <p className="mt-1 text-sm font-semibold text-white">{entry.prompt}</p>
-                              <p className="text-xs text-emerald-100/80">{entry.theme}</p>
-                              <p className="mt-1 text-xs text-slate-200 leading-relaxed">{entry.excerpt}</p>
-                            </div>
-                          ))}
-                          {historyLoading || filteredTimeline.length === 0 ? (
+                          {timelineViewMode === "highlights"
+                            ? visibleTimeline.map((entry) => renderTimelineCard(entry))
+                            : timelineViewMode === "weekly"
+                              ? timelineWeekGroups.map((group) => (
+                                  <div key={group.key} className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                                    <div className="text-[11px] uppercase tracking-[0.25em] text-emerald-200">{group.label}</div>
+                                    <div className="mt-2 space-y-2">
+                                      {group.entries.map((entry) => renderTimelineCard(entry))}
+                                    </div>
+                                  </div>
+                                ))
+                              : timelineMonthGroups.map((group) => (
+                                  <div key={group.key} className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                                    <div className="text-[11px] uppercase tracking-[0.25em] text-emerald-200">{group.label}</div>
+                                    <div className="mt-2 space-y-2">
+                                      {group.entries.map((entry) => renderTimelineCard(entry))}
+                                    </div>
+                                  </div>
+                                ))}
+                          {historyLoading || filteredTimelineFull.length === 0 ? (
                             <p className="text-xs text-slate-400">
                               {historyError ? "Timeline is warming up—try again soon." : "Write more to populate your timeline."}
                             </p>
