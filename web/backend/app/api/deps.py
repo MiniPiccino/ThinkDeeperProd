@@ -141,40 +141,4 @@ def _reflection_service(settings: Settings) -> ReflectionService:
         _REFLECTION_SERVICE = ReflectionService(
             _answer_repository(settings),
             _question_repository(settings),
-            _user_repository(settings),
-        )
-    return _REFLECTION_SERVICE
-
-
-def _billing_service(settings: Settings) -> BillingService:
-    global _BILLING_SERVICE
-    if _BILLING_SERVICE is None:
-        _BILLING_SERVICE = BillingService(
-            _user_repository(settings),
-            settings,
-        )
-    return _BILLING_SERVICE
-
-
-def get_settings_dependency() -> Settings:
-    return get_settings()
-
-
-def get_question_service(settings: Settings = Depends(get_settings_dependency)) -> QuestionService:
-    return _question_service(settings)
-
-
-def get_answer_service(settings: Settings = Depends(get_settings_dependency)) -> AnswerService:
-    return _answer_service(settings)
-
-
-def get_reflection_service(settings: Settings = Depends(get_settings_dependency)) -> ReflectionService:
-    return _reflection_service(settings)
-
-
-def get_badge_service(settings: Settings = Depends(get_settings_dependency)) -> BadgeService:
-    return _badge_service(settings)
-
-
-def get_billing_service(settings: Settings = Depends(get_settings_dependency)) -> BillingService:
-    return _billing_service(settings)
+      
