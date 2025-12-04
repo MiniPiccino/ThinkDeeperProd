@@ -297,6 +297,10 @@ export function GrowthClient() {
   const [showAllTimeline, setShowAllTimeline] = useState(false);
   const [timelineViewMode, setTimelineViewMode] = useState<"highlights" | "weekly" | "monthly">("highlights");
   const [selectedThemeFilter, setSelectedThemeFilter] = useState("all");
+  const heartbeatContextRef = useRef<AudioContext | null>(null);
+  const heartbeatIntervalRef = useRef<number | null>(null);
+  const userHeartbeatPrimedRef = useRef(false);
+  const [mobileHeartbeatEligible, setMobileHeartbeatEligible] = useState(false);
   const weeklyCatalogRef = useRef<HTMLDivElement | null>(null);
   const [weeklyCatalogHeight, setWeeklyCatalogHeight] = useState(0);
   const [weeklyCatalogOpen, setWeeklyCatalogOpen] = useState(false);
@@ -808,6 +812,122 @@ export function GrowthClient() {
       setUpgradeLoading(false);
     }
   }, [userId]);
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof navigator === "undefined") {
+      return;
+    }
+    const coarse = window.matchMedia ? window.matchMedia("(pointer: coarse)").matches : false;
+    const userAgent = navigator.userAgent || "";
+    const mobileMatch = /Android|Mobi|iPhone|iPad|iPod/i.test(userAgent);
+    setMobileHeartbeatEligible(coarse || mobileMatch);
+  }, []);
+  const triggerHeartbeatBass = useCallback((ctx: AudioContext) => {
+    const pulses = [0, 0.18];
+    pulses.forEach((offset) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = 58;
+      gain.gain.setValueAtTime(0.0001, ctx.currentTime + offset);
+      gain.gain.exponentialRampToValueAtTime(0.4, ctx.currentTime + offset + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + offset + 0.45);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(ctx.currentTime + offset);
+      osc.stop(ctx.currentTime + offset + 0.5);
+    });
+  }, []);
+  const stopHeartbeatBass = useCallback(() => {
+    if (heartbeatIntervalRef.current) {
+      window.clearInterval(heartbeatIntervalRef.current);
+      heartbeatIntervalRef.current = null;
+    }
+    if (heartbeatContextRef.current) {
+      heartbeatContextRef.current.close().catch(() => {
+        /* ignore cleanup errors */
+      });
+      heartbeatContextRef.current = null;
+    }
+  }, []);
+  const startHeartbeatBass = useCallback(() => {
+    if (!mobileHeartbeatEligible || heartbeatIntervalRef.current) {
+      return;
+    }
+    const AudioContextClass =
+      typeof window !== "undefined"
+        ? window.AudioContext ??
+          (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+        : undefined;
+    if (!AudioContextClass) {
+      return;
+    }
+    let ctx = heartbeatContextRef.current;
+    if (!ctx) {
+      ctx = new AudioContextClass();
+      heartbeatContextRef.current = ctx;
+    }
+    if (ctx.state === "suspended") {
+      ctx.resume().catch(() => {
+        /* ignore resume errors */
+      });
+    }
+    triggerHeartbeatBass(ctx);
+    heartbeatIntervalRef.current = window.setInterval(() => {
+      const activeContext = heartbeatContextRef.current;
+      if (!activeContext) {
+        return;
+      }
+      triggerHeartbeatBass(activeContext);
+    }, 1400);
+  }, [mobileHeartbeatEligible, triggerHeartbeatBass]);
+  useEffect(() => {
+    return () => {
+      stopHeartbeatBass();
+    };
+  }, [stopHeartbeatBass]);
+  useEffect(() => {
+    if (!mobileHeartbeatEligible) {
+      stopHeartbeatBass();
+    }
+  }, [mobileHeartbeatEligible, stopHeartbeatBass]);
+  useEffect(() => {
+    if (!mobileHeartbeatEligible || typeof window === "undefined") {
+      return;
+    }
+    let triggered = false;
+    const handleGesture = () => {
+      if (triggered) {
+        return;
+      }
+      triggered = true;
+      userHeartbeatPrimedRef.current = true;
+      startHeartbeatBass();
+    };
+    window.addEventListener("touchstart", handleGesture);
+    window.addEventListener("pointerdown", handleGesture);
+    return () => {
+      window.removeEventListener("touchstart", handleGesture);
+      window.removeEventListener("pointerdown", handleGesture);
+    };
+  }, [mobileHeartbeatEligible, startHeartbeatBass]);
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+    const handleVisibility = () => {
+      if (!userHeartbeatPrimedRef.current) {
+        return;
+      }
+      if (document.hidden) {
+        stopHeartbeatBass();
+      } else if (mobileHeartbeatEligible) {
+        startHeartbeatBass();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [mobileHeartbeatEligible, startHeartbeatBass, stopHeartbeatBass]);
   const handleExportTimeline = useCallback(() => {
     if (typeof window === "undefined" || filteredTimelineFull.length === 0) {
       return;
