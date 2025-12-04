@@ -879,17 +879,6 @@ export function GrowthClient() {
                         Full 52-week catalog lives here. Locked badges stay outlined; earned ones glow softly.
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setWeeklyCatalogOpen((prev) => !prev)}
-                      className="inline-flex items-center gap-2 rounded-full border border-emerald-400/40 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-emerald-50 transition hover:border-emerald-200 hover:text-white"
-                      aria-expanded={weeklyCatalogOpen}
-                    >
-                      {weeklyCatalogOpen ? "Hide dropdown" : "Open dropdown"}
-                      <span className={`transition-transform ${weeklyCatalogOpen ? "rotate-180" : ""}`} aria-hidden>
-                        ˅
-                      </span>
-                    </button>
                   </div>
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <BadgePill
@@ -985,11 +974,17 @@ export function GrowthClient() {
                         })}
                       </div>
                     </div>
-                    {!weeklyCatalogOpen ? (
-                      <p className="mt-3 text-[11px] uppercase tracking-[0.2em] text-emerald-200">
-                        Tap to reveal the whole year
-                      </p>
-                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => setWeeklyCatalogOpen((prev) => !prev)}
+                      className="mt-3 inline-flex items-center gap-2 rounded-full border border-emerald-400/40 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-50 transition hover:border-emerald-200 hover:text-white"
+                      aria-expanded={weeklyCatalogOpen}
+                    >
+                      {weeklyCatalogOpen ? "Hide dropdown" : "Tap to reveal the whole year"}
+                      <span className={`transition-transform ${weeklyCatalogOpen ? "rotate-180" : ""}`} aria-hidden>
+                        ˅
+                      </span>
+                    </button>
                   </div>
                 </div>
               </div>

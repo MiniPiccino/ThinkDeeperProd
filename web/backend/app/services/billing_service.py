@@ -60,4 +60,6 @@ class BillingService:
         )
         if event["type"] in ("checkout.session.completed", "checkout.session.async_payment_succeeded"):
             session = event["data"]["object"]
-            user_id = (session.get("metadata") or {}).g
+            user_id = (session.get("metadata") or {}).get("userId") or session.get("client_reference_id")
+            if user_id:
+                self._users.set_plan(user_id, "premium")
