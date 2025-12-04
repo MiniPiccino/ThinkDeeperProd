@@ -1107,21 +1107,6 @@ ${xrefPosition}
                       </p>
                     </div>
                   </div>
-                  <div className="rounded-2xl border border-dashed border-emerald-200/25 bg-white/5 p-4 shadow-inner sm:p-5">
-                    <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.3em] text-emerald-200">
-                      <span>Card 4 · Yearly recap</span>
-                      <button
-                        type="button"
-                        onClick={handleScrollToReplay}
-                        className="rounded-full border border-emerald-300/40 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-100 transition hover:border-emerald-200 hover:text-white"
-                      >
-                        Replay
-                      </button>
-                    </div>
-                    <p className="mt-2 text-sm text-slate-200">
-                      Preview the calm yearly rewind concept. Tap replay to jump to the streak animation card above.
-                    </p>
-                  </div>
                 </div>
 
                 <div className="mx-auto w-full max-w-[22rem] rounded-2xl border border-white/5 bg-slate-950/60 p-4 shadow-inner sm:max-w-[24rem] sm:p-5 lg:mx-0 lg:max-w-none">
@@ -1129,9 +1114,6 @@ ${xrefPosition}
                     <div>
                       <p className="text-[11px] uppercase tracking-[0.28em] text-emerald-200 sm:text-xs">Card 3 · Weekly badges</p>
                       <h4 className="text-lg font-semibold text-white sm:text-xl">Dropdown moment</h4>
-                      <p className="text-sm text-slate-300">
-                        Full 52-week catalog lives here. Locked badges stay outlined; earned ones glow softly.
-                      </p>
                     </div>
                   </div>
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -1150,7 +1132,7 @@ ${xrefPosition}
                     <BadgePill
                       title={`Next chapter · ${nextThemeBadge.name}`}
                       icon={nextThemeBadge.icon}
-                      description="Preview of the badge arriving with the next theme."
+                      description=""
                       tone="muted"
                     />
                   </div>
@@ -1165,9 +1147,6 @@ ${xrefPosition}
                       {weeklyBadgeStates.completed}/{weeklyBadgeStates.totalDays} days
                     </span>
                   </div>
-                  <p className="mt-2 text-xs text-emerald-200/80">
-                    Tap the dropdown to watch badges fade in—locked outlines, earned glow, progress front and center.
-                  </p>
                   <div className="mt-4 rounded-xl border border-emerald-400/20 bg-emerald-500/5 p-3 shadow-inner">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div className="text-sm font-semibold text-white">Full catalog (52)</div>
@@ -1256,7 +1235,6 @@ ${xrefPosition}
                   style={{ width: `${Math.min(levelStats.progressPercent, 100)}%` }}
                 />
               </div>
-              <p className="mt-2 text-xs text-emerald-200/70">Keep writing daily to push the bar forward.</p>
             </section>
 
             <section className="rounded-3xl border border-emerald-400/40 bg-slate-900/40 p-6 text-sm text-slate-100 shadow-2xl">
