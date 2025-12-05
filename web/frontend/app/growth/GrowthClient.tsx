@@ -1205,48 +1205,10 @@ ${xrefPosition}
               <div className="space-y-2 text-center px-1 sm:px-2">
                 <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-200">Badges</p>
                 <h3 className="text-lg font-semibold text-white sm:text-2xl">Calm milestones</h3>
-                <div className="space-y-3 text-left text-xs text-slate-300 sm:text-sm">
-                  <div>
-                    <p className="font-semibold text-emerald-100">🌟 How it feels when it opens</p>
-                    <p className="mt-1">
-                      This moment matters—it should feel like a calm heartbeat, not a firework. When the dropdown opens the panel
-                      expands slowly, badges fade in, locked rows stay outlined, and earned ones glow just enough to feel proud.
-                    </p>
-                    <ul className="mt-2 list-disc space-y-1 pl-5">
-                      <li>The section expands gradually</li>
-                      <li>Badges fade in with soft transitions</li>
-                      <li>Locked badges stay dimmed and outlined</li>
-                      <li>Earned badges glow subtly with color</li>
-                      <li>Progress is obvious in one satisfying glance</li>
-                    </ul>
-                    <p className="mt-2">
-                      It’s a dopamine reward without feeling gamified—aligned to Deep’s tone: calm, meaningful, subtle, rewarding,
-                      collected.
-                    </p>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-emerald-100">⭐ Why it’s a collapsible card</p>
-                    <p className="mt-1">
-                      The structure stays consistent: Card 1 is Level + XP, Card 2 is the streak tree, Card 3 is this collapsible
-                      weekly badge well, and Card 4 will hold the yearly recap later. Keeping the catalog inside the dropdown lets
-                      the layout stay organized without overwhelming the page.
-                    </p>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-emerald-100">💡 Showing the full 52-badge catalog</p>
-                    <p className="mt-1">
-                      Users should glimpse every badge once they open it—this sparks a collection mindset, long-term motivation, and
-                      an “OMG there’s a badge for every week” realization. Save the detailed descriptions for when a badge is earned.
-                    </p>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-emerald-100">🧠 Locked badge styling</p>
-                    <p className="mt-1">
-                      Locked badges stay translucent with dashed or simple outlines, labeled things like “Week 14 — Locked”. No
-                      harsh padlocks or crossed-out icons—Deep should feel supportive, not punitive.
-                    </p>
-                  </div>
-                </div>
+                <p className="text-sm text-slate-300">
+                  The dropdown stays calm and restrained—badges fade in softly, earned progress glows subtly, and locked weeks stay
+                  outlined so the whole catalog feels like one sustained breath.
+                </p>
               </div>
               <div className="mt-6 grid gap-4 sm:gap-5 lg:grid-cols-[1.08fr,1fr]">
                 <div className="space-y-4">
@@ -1349,34 +1311,38 @@ ${xrefPosition}
                         {weeklyBadgeStates.catalog.map((badge, index) => {
                           const isEarned = badge.status === "earned";
                           const isActive = badge.status === "active";
-                          const tone =
-                            isEarned
-                              ? "border-emerald-300/60 bg-gradient-to-br from-emerald-600/15 via-emerald-500/10 to-cyan-500/10 shadow-[0_0_0_1px_rgba(16,185,129,0.25),0_16px_40px_-28px_rgba(16,185,129,0.7)]"
-                              : isActive
-                                ? "border-emerald-300/40 bg-emerald-500/10"
-                                : "border-dashed border-emerald-100/20 bg-white/5 opacity-70";
-                          const labelTone = isEarned ? "text-emerald-50" : isActive ? "text-emerald-100/80" : "text-emerald-100/70";
-                          const supportingTone = isEarned ? "text-emerald-100/80" : "text-emerald-100/60";
+                          const lockedStyle =
+                            "border border-dashed border-emerald-200/20 bg-transparent text-emerald-100/50 shadow-none";
+                          const activeStyle = "border-emerald-300/50 bg-emerald-500/10 shadow-inner shadow-emerald-900/30";
+                          const earnedStyle =
+                            "border-emerald-300/70 bg-gradient-to-br from-emerald-600/15 via-emerald-500/10 to-cyan-500/10 shadow-[0_0_20px_-6px_rgba(16,185,129,0.7)]";
+                          const tone = isEarned ? earnedStyle : isActive ? activeStyle : lockedStyle;
+                          const labelTone = isEarned ? "text-emerald-50" : isActive ? "text-emerald-100/80" : "text-emerald-100/50";
+                          const supportingTone = isEarned ? "text-emerald-100/80" : isActive ? "text-emerald-100/65" : "text-emerald-100/40";
+                          const statusLabel = isEarned ? "Earned" : isActive ? "In progress" : "Locked";
+                          const title = isEarned ? badge.title : `${badge.label} — Locked`;
                           return (
                             <div
                               key={badge.id}
-                              className={`rounded-lg border px-3 py-2 transition duration-700 ${tone}`}
-                              style={{ transitionDelay: weeklyCatalogOpen ? `${index * 8}ms` : "0ms" }}
+                              className={`rounded-lg px-3 py-2 transition duration-700 ease-out ${tone}`}
+                              style={{
+                                transitionDelay: weeklyCatalogOpen ? `${index * 12}ms` : "0ms",
+                                opacity: weeklyCatalogOpen ? 1 : 0,
+                                transform: weeklyCatalogOpen ? "translateY(0px)" : "translateY(10px)",
+                              }}
                             >
                               <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.22em]">
                                 <span className={labelTone}>{badge.label}</span>
-                                <span className={supportingTone}>
-                                  {isEarned ? "Earned" : isActive ? "In progress" : "Locked"}
-                                </span>
+                                <span className={supportingTone}>{statusLabel}</span>
                               </div>
-                              <p className={`mt-1 text-sm font-semibold ${isEarned ? "text-white" : "text-emerald-50/80"}`}>
-                                {badge.title}
+                              <p className={`mt-1 text-sm font-semibold ${isEarned ? "text-white" : "text-emerald-50/70"}`}>
+                                {title}
                               </p>
                               {isEarned ? (
                                 <p className="text-[11px] text-emerald-100/80">{badge.description}</p>
-                              ) : (
+                              ) : isActive ? (
                                 <p className="text-[11px] text-emerald-100/60">{badge.supportingText}</p>
-                              )}
+                              ) : null}
                             </div>
                           );
                         })}
