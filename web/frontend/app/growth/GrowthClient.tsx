@@ -1205,10 +1205,48 @@ ${xrefPosition}
               <div className="space-y-2 text-center px-1 sm:px-2">
                 <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-200">Badges</p>
                 <h3 className="text-lg font-semibold text-white sm:text-2xl">Calm milestones</h3>
-                <p className="text-sm text-slate-300">
-                  The dropdown is a slow reveal—badges fade in, earned weeks glow, and the whole year shows up at once without the
-                  cheap fireworks.
-                </p>
+                <div className="space-y-3 text-left text-xs text-slate-300 sm:text-sm">
+                  <div>
+                    <p className="font-semibold text-emerald-100">🌟 How it feels when it opens</p>
+                    <p className="mt-1">
+                      This moment matters—it should feel like a calm heartbeat, not a firework. When the dropdown opens the panel
+                      expands slowly, badges fade in, locked rows stay outlined, and earned ones glow just enough to feel proud.
+                    </p>
+                    <ul className="mt-2 list-disc space-y-1 pl-5">
+                      <li>The section expands gradually</li>
+                      <li>Badges fade in with soft transitions</li>
+                      <li>Locked badges stay dimmed and outlined</li>
+                      <li>Earned badges glow subtly with color</li>
+                      <li>Progress is obvious in one satisfying glance</li>
+                    </ul>
+                    <p className="mt-2">
+                      It’s a dopamine reward without feeling gamified—aligned to Deep’s tone: calm, meaningful, subtle, rewarding,
+                      collected.
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-emerald-100">⭐ Why it’s a collapsible card</p>
+                    <p className="mt-1">
+                      The structure stays consistent: Card 1 is Level + XP, Card 2 is the streak tree, Card 3 is this collapsible
+                      weekly badge well, and Card 4 will hold the yearly recap later. Keeping the catalog inside the dropdown lets
+                      the layout stay organized without overwhelming the page.
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-emerald-100">💡 Showing the full 52-badge catalog</p>
+                    <p className="mt-1">
+                      Users should glimpse every badge once they open it—this sparks a collection mindset, long-term motivation, and
+                      an “OMG there’s a badge for every week” realization. Save the detailed descriptions for when a badge is earned.
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-emerald-100">🧠 Locked badge styling</p>
+                    <p className="mt-1">
+                      Locked badges stay translucent with dashed or simple outlines, labeled things like “Week 14 — Locked”. No
+                      harsh padlocks or crossed-out icons—Deep should feel supportive, not punitive.
+                    </p>
+                  </div>
+                </div>
               </div>
               <div className="mt-6 grid gap-4 sm:gap-5 lg:grid-cols-[1.08fr,1fr]">
                 <div className="space-y-4">
