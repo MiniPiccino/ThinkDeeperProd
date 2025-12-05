@@ -702,9 +702,7 @@ export function GrowthClient() {
   const { current: levelBadge, next: nextLevelBadge } = resolveLevelBadge(levelStats.level);
   const weeklyBadge = resolveThemeBadge(data?.theme);
   const nextThemeBadge = resolveThemeBadge(data?.nextTheme);
-  const totalWeekDays = data?.weekProgress?.totalDays ?? 7;
-  const completedWeekDays = data?.weekProgress?.completedDays ?? 0;
-  const computedRemainingWeekDays = Math.max(totalWeekDays - completedWeekDays, 0);
+  const computedRemainingWeekDays = Math.max(totalWeekDays - completedDays, 0);
   const weekBadgeEarned = Boolean(data?.weekProgress?.badgeEarned);
   const currentWeekSummary = weeklyReflectionSummary;
   const mondaySummary = currentWeekSummary[0] ?? null;
