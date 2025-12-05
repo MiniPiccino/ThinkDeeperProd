@@ -67,11 +67,44 @@ export default function FocusToolsPage() {
         return `${badgeBase} Insight Badge`;
       })()
     : undefined;
+  const weekStartDate = useMemo(() => {
+    const base = new Date(referenceDate);
+    const dayIndex = mondayAlignedDayIndex(base);
+    base.setDate(base.getDate() - dayIndex);
+    base.setHours(0, 0, 0, 0);
+    return base;
+  }, [referenceDate]);
   const weekDaysUnlocked = useMemo(() => {
-    const index = mondayAlignedDayIndex(referenceDate);
-    return Math.min(weekProgress.totalDays, index + 1);
-  }, [referenceDate, weekProgress.totalDays]);
-  const remainingDays = Math.max(0, weekDaysUnlocked - weekProgress.completedDays);
+    const todayLocked = referenceDate < weekStartDate;
+    if (todayLocked) {
+      return 0;
+    }
+    const diffMs = referenceDate.getTime() - weekStartDate.getTime();
+    const diffDays = Math.floor(diffMs / MS_IN_DAY);
+    return Math.min(weekProgress.totalDays, diffDays + 1);
+  }, [referenceDate, weekProgress.totalDays, weekStartDate]);
+  const earliestEntryDate = useMemo(() => {
+    const first = reflectionOverview?.week?.find((day) => day.hasEntry);
+    if (!first) return null;
+    const parsed = new Date(first.date);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return parsed;
+  }, [reflectionOverview?.week]);
+  const weekStarted = useMemo(() => {
+    if (weekProgress.badgeEarned) {
+      return true;
+    }
+    if (!earliestEntryDate) {
+      return false;
+    }
+    const monday = new Date(weekStartDate);
+    const tuesday = new Date(monday);
+    tuesday.setDate(tuesday.getDate() + 1);
+    return earliestEntryDate.getTime() <= tuesday.getTime();
+  }, [weekProgress.badgeEarned, earliestEntryDate, weekStartDate]);
+  const remainingDays = weekStarted
+    ? Math.max(0, weekDaysUnlocked - weekProgress.completedDays)
+    : null;
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 px-4 py-12 text-slate-100">
@@ -124,22 +157,49 @@ export default function FocusToolsPage() {
                 xpToNextLevel={levelStats.xpToNextLevel}
                 levelProgressPercent={levelStats.progressPercent}
               />
-              <StreakProgress
-                streak={streakCount}
-                weekCompletedDays={weekProgress.completedDays}
-                weekTotalDays={weekProgress.totalDays}
-                weekActiveDays={weekDaysUnlocked}
-                badgeEarned={weekProgress.badgeEarned}
-                badgeName={badgeName}
-              />
+              {weekStarted ? (
+                <StreakProgress
+                  streak={streakCount}
+                  weekCompletedDays={weekProgress.completedDays}
+                  weekTotalDays={weekProgress.totalDays}
+                  weekActiveDays={weekDaysUnlocked}
+                  badgeEarned={weekProgress.badgeEarned}
+                  badgeName={badgeName}
+                />
+              ) : (
+                <div className="w-full rounded-3xl border border-emerald-500/20 bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-950 p-6 text-emerald-100 shadow-lg">
+                  <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.3em] text-emerald-300">
+                    <span>Weekly badge</span>
+                    <span>Waiting for Monday</span>
+                  </div>
+                  <p className="mt-3 text-lg font-semibold text-emerald-50">Start next Monday to unlock progress.</p>
+                  <p className="mt-4 text-xs text-emerald-200/80">
+                    Weekly badges only track once you write on Monday. Capture that first session next week to light up the bar.
+                  </p>
+                </div>
+              )}
             </section>
 
             <section className="rounded-3xl border border-emerald-500/25 bg-emerald-500/5 p-6 text-sm text-emerald-50 shadow-xl">
               <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-200">Streak intel</p>
               <p className="mt-3 text-base text-white">Level {levelStats.level} | {streakCount} day streak</p>
               <ul className="mt-4 space-y-2 text-sm text-emerald-100/80">
-                <li>Completed days leaf out. {remainingDays === 0 ? 'This loop is in full bloom.' : `${remainingDays} day${remainingDays === 1 ? '' : 's'} left to close the loop.`}</li>
-                <li>Badge unlock: {weekProgress.badgeEarned ? 'claimed for this chapter.' : `${badgeName ?? 'Weekly Insight'} once you finish the week.`}</li>
+                <li>
+                  Completed days leaf out.{" "}
+                  {weekStarted
+                    ? remainingDays === 0
+                      ? "This loop is in full bloom."
+                      : `${remainingDays} day${remainingDays === 1 ? "" : "s"} left to close the loop.`
+                    : "Make Monday your anchor to activate this loop."}
+                </li>
+                <li>
+                  Badge unlock:{" "}
+                  {weekProgress.badgeEarned
+                    ? "claimed for this chapter."
+                    : weekStarted
+                      ? `${badgeName ?? "Weekly Insight"} once you finish the week.`
+                      : "Starts tracking once you write on Monday."}
+                </li>
                 <li>XP pacing: {levelStats.xpToNextLevel > 0 ? `${levelStats.xpToNextLevel} XP until the next tier.` : 'Next tier unlocked—keep stacking.'}</li>
               </ul>
               <p className="mt-4 text-xs text-emerald-200/70">Visit the Growth page after writing to replay your streak.</p>
