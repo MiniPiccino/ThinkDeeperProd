@@ -702,8 +702,16 @@ export function GrowthClient() {
   const { current: levelBadge, next: nextLevelBadge } = resolveLevelBadge(levelStats.level);
   const weeklyBadge = resolveThemeBadge(data?.theme);
   const nextThemeBadge = resolveThemeBadge(data?.nextTheme);
-  const remainingWeekDays = Math.max((data?.weekProgress?.totalDays ?? 7) - (data?.weekProgress?.completedDays ?? 0), 0);
+  const totalWeekDays = data?.weekProgress?.totalDays ?? 7;
+  const completedWeekDays = data?.weekProgress?.completedDays ?? 0;
+  const computedRemainingWeekDays = Math.max(totalWeekDays - completedWeekDays, 0);
   const weekBadgeEarned = Boolean(data?.weekProgress?.badgeEarned);
+  const currentWeekSummary = weeklyReflectionSummary;
+  const mondaySummary = currentWeekSummary[0] ?? null;
+  const mondayAnswered = Boolean(mondaySummary?.hasEntry);
+  const weekStartCommitted = weekBadgeEarned || mondayAnswered || (mondayDayIndex ?? 0) === 0;
+  const weekBadgeLockedForPeriod = !weekStartCommitted;
+  const remainingWeekDays = weekBadgeLockedForPeriod ? null : computedRemainingWeekDays;
   const weeklyBadgeStates = useMemo(() => {
     const answeredDaysByWeek = new Map<number, Set<number>>();
     (reflectionData?.answeredDates ?? []).forEach((iso) => {
@@ -738,9 +746,11 @@ export function GrowthClient() {
         status === "earned"
           ? "Unlocked—saved to your Deep Tree."
           : status === "active"
-            ? remainingWeekDays === 0
-              ? "Submitting…"
-              : `${remainingWeekDays} day${remainingWeekDays === 1 ? "" : "s"} left this week.`
+            ? weekBadgeLockedForPeriod
+              ? "Start next Monday to unlock this badge."
+              : remainingWeekDays === 0
+                ? "Submitting…"
+                : `${remainingWeekDays} day${remainingWeekDays === 1 ? "" : "s"} left this week.`
             : "Opens when you reach this week.";
       const title = status === "locked" ? `${badge.label} — Locked` : `${badge.label} Badge`;
       return { ...badge, status, supportingText, title };
@@ -754,6 +764,7 @@ export function GrowthClient() {
     data?.weekProgress?.completedDays,
     data?.weekProgress?.totalDays,
     remainingWeekDays,
+    weekBadgeLockedForPeriod,
   ]);
   useEffect(() => {
     if (!weeklyCatalogRef.current) {
@@ -1260,7 +1271,9 @@ ${xrefPosition}
                       description={
                         weekBadgeEarned
                           ? "Badge unlocked and saved."
-                          : remainingWeekDays === 0
+                          : weekBadgeLockedForPeriod
+                            ? "Start next Monday to chase the badge."
+                            : remainingWeekDays === 0
                             ? "Claiming…"
                             : `${remainingWeekDays} day${remainingWeekDays === 1 ? "" : "s"} left to unlock.`
                       }
