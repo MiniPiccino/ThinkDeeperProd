@@ -225,7 +225,7 @@ export default function FocusToolsPage() {
             <DopamineDrivers
               curiosity={dopamineCuriosity(dopamine)}
               challenge={dopamineChallenge(dopamine)}
-              reward={dopamineReward(dopamine)}
+              reward={dopamineReward(dopamine, !weekStarted)}
               anticipation={dopamineAnticipation(dopamine)}
             />
           </>
@@ -341,20 +341,29 @@ function dopamineChallenge(dopamine: DopaminePayload) {
   };
 }
 
-function dopamineReward(dopamine: DopaminePayload) {
+function dopamineReward(dopamine: DopaminePayload, weekBadgeLocked: boolean) {
   const highlights =
     dopamine.rewardHighlights?.filter((item): item is { title: string; description: string; earned?: boolean } => Boolean(item?.title)) ??
     [];
-  return {
-    title: 'Reward signal',
-    description: highlights.length > 0 ? 'Snapshots tuned to your streak.' : 'See your wins stack up.',
-    stats:
-      highlights.slice(0, 3).map((highlight) => ({
+  const stats =
+    highlights.slice(0, 3).map((highlight) => {
+      if (!highlight.earned && highlight.title.toLowerCase().includes('badge') && weekBadgeLocked) {
+        return {
+          label: highlight.title,
+          value: 'Waiting for Monday',
+          hint: 'Weekly badges unlock once you write on Monday.',
+        };
+      }
+      return {
         label: highlight.title,
         value: highlight.earned ? 'Unlocked' : 'In progress',
         hint: highlight.description,
-      })) ??
-      [],
+      };
+    }) ?? [];
+  return {
+    title: 'Reward signal',
+    description: stats.length > 0 ? 'Snapshots tuned to your streak.' : 'See your wins stack up.',
+    stats,
   };
 }
 
