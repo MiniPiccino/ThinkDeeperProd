@@ -38,12 +38,20 @@ type DopamineDriversProps = {
   };
 };
 
+import { useEffect, useState } from "react";
+
 export function DopamineDrivers({
   curiosity,
   challenge,
   reward,
   anticipation,
 }: DopamineDriversProps) {
+  const [selectedMode, setSelectedMode] = useState<string | null>(challenge.activeLabel ?? null);
+
+  useEffect(() => {
+    setSelectedMode(challenge.activeLabel ?? null);
+  }, [challenge.activeLabel]);
+
   return (
     <section className="grid gap-4 md:grid-cols-2">
       <article className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-amber-950 shadow-sm dark:border-amber-700/40 dark:bg-amber-900/30 dark:text-amber-100">
@@ -77,10 +85,20 @@ export function DopamineDrivers({
           ) : null}
         </header>
         <div className="mt-4 space-y-3">
+          <p className="text-xs text-indigo-600 dark:text-indigo-200">
+            {selectedMode ? `You’re primed for: ${selectedMode}` : "Tap a mode to prime today’s challenge."}
+          </p>
           {challenge.modes.map((mode) => (
-            <div
+            <button
               key={mode.label}
-              className="rounded-2xl border border-indigo-200/70 bg-white/60 px-4 py-3 text-sm shadow-sm dark:border-indigo-700/40 dark:bg-indigo-900/50"
+              type="button"
+              onClick={() => setSelectedMode(mode.label)}
+              className={`w-full rounded-2xl border px-4 py-3 text-left text-sm shadow-sm transition ${
+                selectedMode === mode.label
+                  ? "border-indigo-400 bg-white dark:bg-indigo-900"
+                  : "border-indigo-200/70 bg-white/60 dark:border-indigo-700/40 dark:bg-indigo-900/50"
+              } ${mode.unlocked === false ? "cursor-not-allowed opacity-70" : "cursor-pointer hover:border-indigo-400/80"}`}
+              disabled={mode.unlocked === false}
             >
               <div className="flex items-center justify-between gap-3">
                 <p className="font-semibold text-indigo-800 dark:text-indigo-50">{mode.label}</p>
@@ -100,7 +118,7 @@ export function DopamineDrivers({
               <p className="mt-1 text-sm leading-relaxed text-indigo-700 dark:text-indigo-100/80">
                 {mode.description}
               </p>
-            </div>
+            </button>
           ))}
         </div>
       </article>
