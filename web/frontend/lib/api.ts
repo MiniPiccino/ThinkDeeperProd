@@ -251,7 +251,7 @@ const baselineMockDailyQuestion: DailyQuestionResponse = {
     curiosityHook: "Prime your mind around truth vs. comfort today.",
     curiosityPrompts: [
       "Theme focus: Truth and Lies",
-      "Day 3 of 7 in this arc",
+      "Day 3 of 7 in this chapter",
       "Where does honesty pinch the most?",
     ],
     activeDifficulty: "deepening",

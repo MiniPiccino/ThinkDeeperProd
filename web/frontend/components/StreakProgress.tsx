@@ -4,6 +4,7 @@ type StreakProgressProps = {
   streak: number;
   weekCompletedDays: number;
   weekTotalDays: number;
+  weekActiveDays?: number;
   badgeEarned: boolean;
   badgeName?: string | null;
   className?: string;
@@ -19,6 +20,7 @@ export function StreakProgress({
   streak,
   weekCompletedDays,
   weekTotalDays,
+  weekActiveDays,
   badgeEarned,
   badgeName,
   className,
@@ -38,6 +40,8 @@ export function StreakProgress({
       />
     );
   });
+  const visibleDays = Math.min(Math.max(weekActiveDays ?? weekTotalDays, 1), weekTotalDays);
+  const displayCompleted = Math.min(weekCompletedDays, visibleDays);
 
   return (
     <div
@@ -54,7 +58,7 @@ export function StreakProgress({
       <p className="mt-4 text-xs text-emerald-200/90">
         {badgeEarned
           ? `Badge unlocked: ${badgeName ?? 'Week accomplished!'}` 
-          : `Week progress: ${weekCompletedDays}/${weekTotalDays}. Finish the circuit to claim the gold.`}
+          : `Week progress: ${displayCompleted}/${visibleDays}. Finish the circuit to claim the gold.`}
       </p>
     </div>
   );

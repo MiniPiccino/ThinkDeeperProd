@@ -29,6 +29,15 @@ export default function FocusToolsPage() {
   });
 
   const dopamine = data?.dopamine;
+  const referenceDate = useMemo(() => {
+    if (data?.availableOn) {
+      const parsed = new Date(data.availableOn);
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed;
+      }
+    }
+    return new Date();
+  }, [data?.availableOn]);
   const nextWeekLabel = useMemo(() => {
     if (!data) {
       return 'Next chapter arrives soon';
@@ -42,9 +51,8 @@ export default function FocusToolsPage() {
     reflectionOverview?.week?.filter((day) => day.hasEntry).map((day) => day.date) ??
     [];
   const streakCount = useMemo(() => {
-    const today = data?.availableOn ? new Date(data.availableOn) : new Date();
-    return computeStreakFromDates(answeredDates, today);
-  }, [answeredDates, data?.availableOn]);
+    return computeStreakFromDates(answeredDates, referenceDate);
+  }, [answeredDates, referenceDate]);
   const weekCompleted = reflectionOverview?.week?.filter((day) => day.hasEntry).length ?? 0;
   const weekTotal = reflectionOverview?.week?.length ?? data?.weekProgress?.totalDays ?? 7;
   const weekProgress = {
@@ -59,7 +67,11 @@ export default function FocusToolsPage() {
         return `${badgeBase} Insight Badge`;
       })()
     : undefined;
-  const remainingDays = Math.max(0, weekProgress.totalDays - weekProgress.completedDays);
+  const weekDaysUnlocked = useMemo(() => {
+    const index = mondayAlignedDayIndex(referenceDate);
+    return Math.min(weekProgress.totalDays, index + 1);
+  }, [referenceDate, weekProgress.totalDays]);
+  const remainingDays = Math.max(0, weekDaysUnlocked - weekProgress.completedDays);
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 px-4 py-12 text-slate-100">
@@ -116,6 +128,7 @@ export default function FocusToolsPage() {
                 streak={streakCount}
                 weekCompletedDays={weekProgress.completedDays}
                 weekTotalDays={weekProgress.totalDays}
+                weekActiveDays={weekDaysUnlocked}
                 badgeEarned={weekProgress.badgeEarned}
                 badgeName={badgeName}
               />
@@ -233,6 +246,11 @@ function computeStreakFromDates(dates: string[], today: Date): number {
     }
   }
   return streak;
+}
+
+function mondayAlignedDayIndex(target: Date): number {
+  const localDay = target.getDay();
+  return (localDay + 6) % 7;
 }
 
 function dopamineCuriosity(dopamine: DopaminePayload) {
