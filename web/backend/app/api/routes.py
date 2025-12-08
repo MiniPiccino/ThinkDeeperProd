@@ -108,21 +108,21 @@ async def create_checkout_session(
         return {"checkoutUrl": url}
     except BillingConfigError as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
-    except Exception as exc:  # pragma: no cover - surface Stripe errors
+    except Exception as exc:  # pragma: no cover - surface Paddle errors
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
 
 @router.post("/billing/webhook")
-async def stripe_webhook(
+async def paddle_webhook(
     request: Request,
     billing_service=Depends(get_billing_service),
-    stripe_signature: Optional[str] = Header(default=None, alias="Stripe-Signature"),
+    paddle_signature: Optional[str] = Header(default=None, alias="Paddle-Signature"),
 ) -> dict:
     payload = await request.body()
     try:
-        billing_service.handle_webhook(payload, stripe_signature)
+        billing_service.handle_webhook(payload, paddle_signature)
         return {"received": True}
     except BillingConfigError as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
-    except Exception as exc:  # pragma: no cover - Stripe validation errors
+    except Exception as exc:  # pragma: no cover - Paddle validation errors
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
