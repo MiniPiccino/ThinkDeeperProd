@@ -1401,7 +1401,7 @@ ${xrefPosition}
                     <p className="mt-2 text-xs text-red-300">Couldn’t load your reflections. Showing placeholders.</p>
                   ) : null}
                 </div>
-                {!isPremiumUser ? (
+                {!isPremiumUser && userId ? (
                   <button
                     type="button"
                     onClick={handleUpgrade}
