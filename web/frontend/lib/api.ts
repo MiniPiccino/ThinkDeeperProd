@@ -291,3 +291,4 @@ const mockAnswerResponse: AnswerResponse = {
   nextLevelThreshold: 240,
   xpIntoLevel: 89,
   levelProgressPercent: 37,
+};

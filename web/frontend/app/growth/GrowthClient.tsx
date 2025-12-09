@@ -1426,4 +1426,346 @@ ${xrefPosition}
                       <p className="mt-4 text-sm text-emerald-200/70">Linking today’s reflection…</p>
                     ) : todayLocked ? (
                       <p className="mt-4 text-base italic text-white">
-                        “Your reflection lands here
+                        "Your reflection lands here once you finish writing."
+                      </p>
+                    ) : (
+                      <div className="mt-4 space-y-3 text-sm text-white">
+                        <p className="whitespace-pre-line leading-relaxed">{todayDisplayText}</p>
+                        {todayReflectionEntry ? (
+                          <p className="text-xs uppercase tracking-[0.25em] text-emerald-300">
+                            +{todayReflectionEntry.xpAwarded} XP · {todayDurationLabel} focused
+                          </p>
+                        ) : null}
+                      </div>
+                    )}
+                    <p className="mt-4 text-xs text-emerald-200/70">Auto-saves when you submit.</p>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 p-5">
+                    <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-300">
+                      <span>This week</span>
+                      <span>
+                        {weeklyReflectionSummary.filter((day) => day.hasEntry).length}/{weeklyReflectionSummary.length} captured
+                      </span>
+                    </div>
+                    <ul className="mt-4 space-y-3">
+                      {weeklyReflectionSummary.map((day, idx) => {
+                        const hasEntry = day.hasEntry;
+                        const summaryDate = new Date(day.date);
+                        const label = day.weekday || `Day ${idx + 1}`;
+                        const isToday = summaryDate.toDateString() === todayDateKey;
+                        const canShowEntry = isPremiumUser || isToday;
+                        const description = hasEntry
+                          ? canShowEntry && day.entry?.excerpt
+                            ? day.entry.excerpt
+                            : "Reflection saved."
+                          : "Write that day to unlock the entry.";
+                        const statusLabel = hasEntry ? (canShowEntry ? "Saved" : "Locked") : "Locked";
+                        return (
+                          <li
+                            key={`${day.date}-${idx}`}
+                            className="flex items-start justify-between gap-4 rounded-xl border border-white/5 bg-white/5 px-3 py-2"
+                          >
+                            <div>
+                              <p className="text-sm font-semibold text-white">{label}</p>
+                              <p className="text-xs text-slate-400">
+                                {summaryDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                              </p>
+                            <p className="text-xs text-slate-300">{description}</p>
+                          </div>
+                          <span
+                            className={`mt-1 inline-flex items-center rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider ${
+                              hasEntry
+                                ? "bg-emerald-500/20 text-emerald-200"
+                                : "bg-slate-800 text-slate-400"
+                            }`}
+                          >
+                            {statusLabel}
+                          </span>
+                        </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+
+                  {isPremiumUser ? (
+                    <div className="rounded-2xl border border-emerald-400/30 bg-emerald-500/5 p-4 shadow-inner sm:p-5">
+                      <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.28em] text-emerald-200 sm:text-xs">
+                        <span>AI coach</span>
+                        <span className="text-emerald-100/80">Premium</span>
+                      </div>
+                      <p className="mt-3 text-sm font-semibold text-white">How to write stronger reflections</p>
+                      <p className="mt-1 text-sm text-emerald-100/80">
+                        Use these micro-prompts to deepen answers and earn richer feedback.
+                      </p>
+                      <ul className="mt-3 space-y-2 text-sm text-emerald-50">
+                        {coachTips.map((tip) => (
+                          <li key={tip} className="rounded-xl border border-emerald-400/20 bg-white/5 px-3 py-2 text-left text-emerald-50">
+                            {tip}
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="mt-3 text-xs text-emerald-200/80">
+                        Tip: Pick one prompt per session—don’t overstuff. Depth beats length.
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-5">
+                  {isPremiumUser ? (
+                    <div className="space-y-5">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.3em] text-emerald-200">Premium timeline</p>
+                        <p className="mt-2 text-lg font-semibold text-white">Every reflection, searchable.</p>
+                        <p className="text-sm text-slate-300">
+                          Scroll your entire archive, filter by tags, pin insights, and replay your Deep Tree.
+                        </p>
+                        <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] uppercase tracking-[0.25em] text-emerald-200">
+                          <div className="rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-2">
+                            <p className="text-emerald-100/70">Reflections saved</p>
+                            <p className="text-base font-semibold text-white">{timelineEntries.length}</p>
+                          </div>
+                          <div className="rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-2">
+                            <p className="text-emerald-100/70">Active streak</p>
+                            <p className="text-base font-semibold text-white">{streakCount} days</p>
+                          </div>
+                        </div>
+                        <div className="mt-4">
+                          <p className="text-[11px] uppercase tracking-[0.25em] text-emerald-200">Timeline view</p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {(
+                              [
+                                { label: "Highlights", value: "highlights" },
+                                { label: "Weekly", value: "weekly" },
+                                { label: "Monthly", value: "monthly" },
+                              ] as const
+                            ).map((option) => {
+                              const active = timelineViewMode === option.value;
+                              return (
+                                <button
+                                  key={option.value}
+                                  type="button"
+                                  onClick={() => setTimelineViewMode(option.value)}
+                                  className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] ${
+                                    active
+                                      ? "border-emerald-300 bg-emerald-500/20 text-white"
+                                      : "border-emerald-400/40 text-emerald-100 hover:border-emerald-200 hover:text-white"
+                                  }`}
+                                >
+                                  {option.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/5 p-4">
+                        <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.25em] text-emerald-200">
+                          <span>Search + tags</span>
+                          {historyLoading ? <span className="text-emerald-100/70">Loading…</span> : null}
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <input
+                            type="search"
+                            value={timelineFilter}
+                            onChange={(event) => setTimelineFilter(event.target.value)}
+                            placeholder="Filter by keyword"
+                            className="flex-1 min-w-[12rem] rounded-full border border-emerald-400/30 bg-emerald-500/10 px-4 py-2 text-[11px] uppercase tracking-[0.15em] text-emerald-50 placeholder:text-emerald-200/60 focus:border-emerald-300 focus:outline-none"
+                          />
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedThemeFilter("all")}
+                            className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] ${
+                              selectedThemeFilter === "all"
+                                ? "border-emerald-300 bg-emerald-500/20 text-white"
+                                : "border-emerald-400/30 text-emerald-100"
+                            }`}
+                          >
+                            All themes
+                          </button>
+                          {timelineThemes.map((theme) => {
+                            const active = selectedThemeFilter === theme;
+                            return (
+                              <button
+                                key={theme}
+                                type="button"
+                                onClick={() => setSelectedThemeFilter(theme)}
+                                className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] ${
+                                  active
+                                    ? "border-emerald-300 bg-emerald-500/20 text-white"
+                                    : "border-emerald-400/30 text-emerald-100"
+                                }`}
+                              >
+                                {theme}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-emerald-400/20 bg-white/5 p-4">
+                        <div className="text-[11px] uppercase tracking-[0.3em] text-emerald-200">Insights</div>
+                        {timelineInsights ? (
+                          <>
+                            <p className="mt-2 text-sm text-emerald-100/80">{timelineInsights.summary}</p>
+                            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                              {timelineInsights.stats.map((stat) => (
+                                <div key={stat.label} className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 py-2">
+                                  <p className="text-[11px] uppercase tracking-[0.3em] text-emerald-200">{stat.label}</p>
+                                  <p className="text-lg font-semibold text-white">{stat.value}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        ) : (
+                          <p className="mt-2 text-sm text-emerald-100/70">
+                            Write a few more reflections to unlock insights on tone and focus.
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-3">
+                        <button
+                          type="button"
+                          onClick={handleExportTimeline}
+                          className="flex-1 min-w-[12rem] rounded-full border border-emerald-400/40 bg-emerald-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-emerald-100 transition hover:border-emerald-200 hover:text-white"
+                        >
+                          Export reflections (PDF)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleScrollToReplay}
+                          className="flex-1 min-w-[12rem] rounded-full border border-emerald-400/40 bg-emerald-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-emerald-100 transition hover:border-emerald-200 hover:text-white"
+                        >
+                          Replay yearly recap
+                        </button>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-xs uppercase tracking-[0.3em] text-emerald-200">
+                          <span>
+                            {timelineViewMode === "highlights"
+                              ? "Latest reflections"
+                              : timelineViewMode === "weekly"
+                                ? "Timeline view · weekly"
+                                : "Timeline view · monthly"}
+                          </span>
+                          <div className="flex flex-wrap items-center gap-2">
+                            {timelineViewMode === "highlights" ? (
+                              <button
+                                type="button"
+                                onClick={() => setShowAllTimeline((prev) => !prev)}
+                                className="rounded-full border border-emerald-400/40 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-emerald-50 transition hover:border-emerald-200 hover:text-white"
+                              >
+                                {showAllTimeline ? "Top highlights" : "Show more"}
+                              </button>
+                            ) : null}
+                            {timelineFilter.trim().length > 0 || selectedThemeFilter !== "all" ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setTimelineFilter("");
+                                  setSelectedThemeFilter("all");
+                                }}
+                                className="rounded-full border border-emerald-400/30 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-emerald-200 hover:border-emerald-200 hover:text-white"
+                              >
+                                Clear filters
+                              </button>
+                            ) : null}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          {timelineViewMode === "highlights"
+                            ? visibleTimeline.map((entry) => renderTimelineCard(entry))
+                            : timelineViewMode === "weekly"
+                              ? timelineWeekGroups.map((group) => (
+                                  <div key={group.key} className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                                    <div className="text-[11px] uppercase tracking-[0.25em] text-emerald-200">{group.label}</div>
+                                    <div className="mt-2 space-y-2">
+                                      {group.entries.map((entry) => renderTimelineCard(entry))}
+                                    </div>
+                                  </div>
+                                ))
+                              : timelineMonthGroups.map((group) => (
+                                  <div key={group.key} className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                                    <div className="text-[11px] uppercase tracking-[0.25em] text-emerald-200">{group.label}</div>
+                                    <div className="mt-2 space-y-2">
+                                      {group.entries.map((entry) => renderTimelineCard(entry))}
+                                    </div>
+                                  </div>
+                                ))}
+                          {historyLoading || filteredTimelineFull.length === 0 ? (
+                            <p className="text-xs text-slate-400">
+                              {historyError ? "Timeline is warming up—try again soon." : "Write more to populate your timeline."}
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex h-full flex-col justify-between gap-4">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.3em] text-slate-300">Earlier glimpses</p>
+                        <div className="mt-3 space-y-3">
+                          {todayTeasers.length === 0 ? (
+                            <p className="text-xs text-slate-400">Unlock premium to browse your earlier reflections.</p>
+                          ) : null}
+                          {todayTeasers.map((teaser) => (
+                            <div key={teaser.questionId} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                              <p className="text-sm font-semibold text-white">{teaser.prompt}</p>
+                              <p className="mt-1 text-xs text-slate-400">
+                                {new Date(teaser.answeredAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                              </p>
+                              <p className="mt-1 text-xs text-slate-300">{teaser.snippet}</p>
+                              <p className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-400">
+                                Locked
+                              </p>
+                            </div>
+                          ))}
+                          <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/5 p-4">
+                            <p className="text-xs uppercase tracking-[0.3em] text-emerald-200">What premium adds</p>
+                            <div className="mt-2 space-y-2">
+                              {premiumHighlights.map((item) => (
+                                <div key={item.title} className="rounded-xl border border-emerald-400/15 bg-white/5 px-3 py-2">
+                                  <p className="text-sm font-semibold text-white">{item.title}</p>
+                                  <p className="text-xs text-emerald-100/80">{item.detail}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      {userId ? (
+                        <div className="space-y-3 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 p-4">
+                          <p className="text-sm font-semibold text-white">Premium unlocks</p>
+                          <ul className="text-xs text-emerald-100/80">
+                            {premiumHighlights.map((item) => (
+                              <li key={item.title} className="mt-1">
+                                <span className="font-semibold">{item.title}:</span> {item.detail}
+                              </li>
+                            ))}
+                          </ul>
+                          <button
+                            type="button"
+                            className="mt-3 w-full rounded-full bg-emerald-500/90 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-400"
+                          >
+                            Unlock reflections
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+          </>
+        ) : null}
+      </div>
+      <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2 md:gap-3 lg:hidden">
+        <FloatingAction href="/" label="Back to reflection" />
+        <FloatingAction href="/focus-tools" label="Focus tools" />
+        <FloatingAction href="/why" label="Why Deep" variant="ghost" />
+      </div>
+    </main>
+  );
+}
