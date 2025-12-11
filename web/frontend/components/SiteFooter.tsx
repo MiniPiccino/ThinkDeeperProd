@@ -21,6 +21,9 @@ export function SiteFooter() {
           <a className="underline-offset-4 hover:underline" href="/data-processing-addendum">
             Data Processing Addendum
           </a>
+          <a className="underline-offset-4 hover:underline" href="/refund-policy">
+            Refund Policy
+          </a>
         </nav>
       </div>
     </footer>

@@ -7,6 +7,7 @@ const NAV_LINKS = [
   { href: "/", label: "Today" },
   { href: "/focus-tools", label: "Focus tools" },
   { href: "/growth", label: "Growth" },
+  { href: "/pricing", label: "Pricing" },
   { href: "/why", label: "Why Deep" },
 ];
 
