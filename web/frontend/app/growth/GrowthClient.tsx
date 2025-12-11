@@ -797,7 +797,7 @@ export function GrowthClient() {
   }, [streakCount, themeLabel, levelStats.level]);
 
   const handleUpgrade = useCallback(async () => {
-    if (!userId || !reflectionData) {
+    if (!userId) {
       setUpgradeError(null);
       setShowAuthPrompt(true);
       return;
