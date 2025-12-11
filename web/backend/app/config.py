@@ -51,6 +51,10 @@ class Settings(BaseSettings):
     paddle_cancel_url: Optional[str] = Field(default=None, alias="PADDLE_CANCEL_URL")
     paddle_webhook_secret: Optional[str] = Field(default=None, alias="PADDLE_WEBHOOK_SECRET")
     paddle_api_url: str = Field(default="https://api.paddle.com", alias="PADDLE_API_URL")
+    paddle_classic_vendor_id: Optional[str] = Field(default=None, alias="PADDLE_CLASSIC_VENDOR_ID")
+    paddle_classic_auth_code: Optional[str] = Field(default=None, alias="PADDLE_CLASSIC_AUTH_CODE")
+    paddle_classic_product_id: Optional[str] = Field(default=None, alias="PADDLE_CLASSIC_PRODUCT_ID")
+    paddle_classic_sandbox: bool = Field(default=False, alias="PADDLE_CLASSIC_SANDBOX")
     default_timer_seconds: int = Field(default=300, alias="DEFAULT_TIMER_SECONDS")
     xp_max: int = Field(default=100, alias="XP_MAX")
     allowed_origins: List[str] = Field(

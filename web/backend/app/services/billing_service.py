@@ -20,15 +20,25 @@ class BillingService:
         self._users = user_repository
         self._settings = settings
         self._base_url = settings.paddle_api_url.rstrip("/") if settings.paddle_api_url else "https://api.paddle.com"
-        self._enabled = bool(
+        self._legacy_base_url = (
+            "https://sandbox-vendors.paddle.com/api/2.0"
+            if settings.paddle_classic_sandbox
+            else "https://vendors.paddle.com/api/2.0"
+        )
+        self._v2_enabled = bool(
             settings.paddle_api_key
             and settings.paddle_price_id
             and settings.paddle_return_url
             and settings.paddle_business_id
         )
+        self._classic_enabled = bool(
+            settings.paddle_classic_vendor_id
+            and settings.paddle_classic_auth_code
+            and settings.paddle_classic_product_id
+        )
 
     def _ensure_enabled(self) -> None:
-        if not self._enabled:
+        if not (self._v2_enabled or self._classic_enabled):
             raise BillingConfigError("Paddle billing is not configured.")
 
     def _headers(self) -> dict[str, str]:
@@ -45,6 +55,9 @@ class BillingService:
     ) -> str:
         """Create a Paddle transaction and return its checkout URL."""
         self._ensure_enabled()
+        if self._classic_enabled:
+            return self._create_classic_checkout_session(user_id, success_url, cancel_url)
+        # Default to Paddle v2 when classic config is absent.
         payload: dict[str, Any] = {
             "business_id": self._settings.paddle_business_id,
             "items": [
@@ -69,6 +82,38 @@ class BillingService:
             raise BillingConfigError(f"Paddle transaction failed: {exc.response.text}") from exc
         data = response.json()
         checkout_url = data.get("data", {}).get("checkout_url") or data.get("data", {}).get("url")
+        if not checkout_url:
+            raise BillingConfigError("Paddle response missing checkout URL.")
+        return checkout_url
+
+    def _create_classic_checkout_session(
+        self,
+        user_id: str,
+        success_url: str | None,
+        cancel_url: str | None,
+    ) -> str:
+        payload = {
+            "vendor_id": self._settings.paddle_classic_vendor_id,
+            "vendor_auth_code": self._settings.paddle_classic_auth_code,
+            "product_id": self._settings.paddle_classic_product_id,
+            "quantity": 1,
+            "passthrough": json.dumps({"userId": user_id}),
+            "return_url": success_url or self._settings.paddle_return_url,
+            "cancel_url": cancel_url or self._settings.paddle_cancel_url or (success_url or self._settings.paddle_return_url),
+        }
+        response = httpx.post(
+            f"{self._legacy_base_url}/product/generate_pay_link",
+            data=payload,
+            timeout=15,
+        )
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            raise BillingConfigError(f"Paddle transaction failed: {exc.response.text}") from exc
+        data = response.json()
+        if not data.get("success"):
+            raise BillingConfigError(f"Paddle transaction failed: {response.text}")
+        checkout_url = data.get("response", {}).get("url") or data.get("response", {}).get("checkout_url")
         if not checkout_url:
             raise BillingConfigError("Paddle response missing checkout URL.")
         return checkout_url
