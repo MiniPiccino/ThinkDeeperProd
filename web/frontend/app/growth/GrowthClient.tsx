@@ -1735,24 +1735,6 @@ ${xrefPosition}
                           </div>
                         </div>
                       </div>
-                      {userId ? (
-                        <div className="space-y-3 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 p-4">
-                          <p className="text-sm font-semibold text-white">Premium unlocks</p>
-                          <ul className="text-xs text-emerald-100/80">
-                            {premiumHighlights.map((item) => (
-                              <li key={item.title} className="mt-1">
-                                <span className="font-semibold">{item.title}:</span> {item.detail}
-                              </li>
-                            ))}
-                          </ul>
-                          <button
-                            type="button"
-                            className="mt-3 w-full rounded-full bg-emerald-500/90 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-400"
-                          >
-                            Unlock reflections
-                          </button>
-                        </div>
-                      ) : null}
                     </div>
                   )}
                 </div>
