@@ -4,6 +4,7 @@ import { Providers } from "./providers";
 import { SiteFooter } from "@/components/SiteFooter";
 import { CookieBanner } from "@/components/CookieBanner";
 import { DesktopNav } from "@/components/DesktopNav";
+import { MobileNav } from "@/components/MobileNav";
 
 export const metadata: Metadata = {
   title: "Deep — Deep Thinking Trainer",
@@ -21,9 +22,10 @@ export default function RootLayout({
         <Providers>
           <div className="flex min-h-screen flex-col">
             <DesktopNav />
-            <main className="flex-1">{children}</main>
+            <main className="flex-1 pb-20 lg:pb-0">{children}</main>
             <SiteFooter />
           </div>
+          <MobileNav />
           <CookieBanner />
         </Providers>
       </body>
