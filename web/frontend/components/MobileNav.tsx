@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 const NAV_ITEMS = [
   { href: "/", label: "Today", icon: CalendarIcon },
@@ -13,38 +14,46 @@ const NAV_ITEMS = [
 
 export function MobileNav() {
   const pathname = usePathname();
+  const [open, setOpen] = useState(false);
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-zinc-800/70 bg-zinc-950/95 backdrop-blur-md shadow-[0_-10px_30px_-20px_rgba(0,0,0,0.8)] lg:hidden">
-      <div className="mx-auto flex max-w-3xl items-stretch justify-between px-3 py-3">
-        {NAV_ITEMS.map((item) => {
-          const active = pathname === item.href;
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex flex-1 flex-col items-center gap-1.5 rounded-xl px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] transition ${
-                active
-                  ? "text-emerald-100"
-                  : "text-zinc-400 hover:text-zinc-200"
-              }`}
-              aria-label={item.label}
-            >
-              <span
-                className={`flex h-10 w-10 items-center justify-center rounded-full border ${
+    <nav className="pointer-events-none fixed bottom-5 right-4 z-50 lg:hidden">
+      <div className="flex flex-col items-end gap-3">
+        <div
+          className={`flex flex-col items-end gap-2 transition-all duration-200 ${
+            open ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 translate-y-4 pointer-events-none"
+          }`}
+        >
+          {NAV_ITEMS.map((item) => {
+            const active = pathname === item.href;
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`pointer-events-auto flex items-center justify-center rounded-full border p-3 shadow-lg transition ${
                   active
-                    ? "border-emerald-400/70 bg-emerald-500/10 shadow-[0_10px_30px_-18px_rgba(16,185,129,0.9)]"
-                    : "border-white/5 bg-white/5"
+                    ? "border-emerald-400/70 bg-emerald-500/15 text-emerald-100 shadow-[0_18px_38px_-24px_rgba(16,185,129,0.9)]"
+                    : "border-white/10 bg-zinc-900/90 text-zinc-200 hover:border-white/20 hover:bg-zinc-900"
                 }`}
-                aria-hidden
+                aria-label={item.label}
               >
-                <Icon className={active ? "h-5 w-5 text-emerald-200" : "h-5 w-5 text-zinc-300"} />
-              </span>
-              <span className="text-[10px] font-semibold">{item.label}</span>
-            </Link>
-          );
-        })}
+                <Icon className="h-5 w-5" />
+                <span className="sr-only">{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setOpen((prev) => !prev)}
+          className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full border border-emerald-400/60 bg-emerald-500/15 text-emerald-100 shadow-[0_18px_38px_-24px_rgba(16,185,129,0.9)] transition hover:border-emerald-300/80 hover:bg-emerald-500/20"
+          aria-expanded={open}
+          aria-label="Toggle navigation"
+        >
+          {open ? <CloseIcon className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
+        </button>
       </div>
     </nav>
   );
@@ -110,6 +119,22 @@ function QuestionIcon(props: React.SVGProps<SVGSVGElement>) {
         strokeLinejoin="round"
       />
       <circle cx="12" cy="17" r="0.9" fill="currentColor" />
+    </svg>
+  );
+}
+
+function MenuIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+      <path d="M4 7h16M4 12h16M4 17h16" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function CloseIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+      <path d="m6 6 12 12M18 6 6 18" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   );
 }
