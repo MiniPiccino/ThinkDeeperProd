@@ -798,11 +798,13 @@ export function GrowthClient() {
   const handleUpgrade = useCallback(() => {
     setUpgradeError(null);
     setUpgradeLoading(true);
-    router.push("/pricing").catch((error) => {
+    try {
+      router.push("/pricing");
+    } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to open pricing.";
       setUpgradeError(message);
       setUpgradeLoading(false);
-    });
+    }
   }, [router]);
   useEffect(() => {
     if (typeof window === "undefined" || typeof navigator === "undefined") {
