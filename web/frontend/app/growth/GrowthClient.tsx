@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { StreakReplay } from "@/components/StreakTree";
 import { FloatingAction } from "@/components/FloatingAction";
-import { createCheckoutSession, fetchDailyQuestion, fetchReflectionHistory, fetchReflectionOverview } from "@/lib/api";
+import { fetchDailyQuestion, fetchReflectionHistory, fetchReflectionOverview } from "@/lib/api";
 import { useUserIdentifier } from "@/hooks/useUserIdentifier";
 import { TREE_ANIMATION_UNLOCK_STREAK } from "@/constants/experience";
 
@@ -446,7 +446,6 @@ export function GrowthClient() {
   const [upgradeError, setUpgradeError] = useState<string | null>(null);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
-  const upgradeDisabled = !userId || upgradeLoading;
   const upgradeNotice = useMemo(() => {
     if (planStatus === "premium") {
       return { tone: "success", text: "Upgrade complete. Premium unlocked." };
@@ -796,31 +795,15 @@ export function GrowthClient() {
     return [streakLine, themeLine, exampleLine, closeLine];
   }, [streakCount, themeLabel, levelStats.level]);
 
-  const handleUpgrade = useCallback(async () => {
-    if (!userId) {
-      setUpgradeError(null);
-      setShowAuthPrompt(true);
-      return;
-    }
+  const handleUpgrade = useCallback(() => {
     setUpgradeError(null);
     setUpgradeLoading(true);
-    try {
-      const origin = typeof window !== "undefined" ? window.location.origin : undefined;
-      const successUrl = origin ? `${origin}/growth?plan=premium` : undefined;
-      const cancelUrl = origin ? `${origin}/growth?plan=free` : undefined;
-      const response = await createCheckoutSession(userId, successUrl, cancelUrl);
-      if (response.checkoutUrl) {
-        window.location.href = response.checkoutUrl;
-      } else {
-        setUpgradeError("Could not start checkout. Try again.");
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to start checkout.";
+    router.push("/pricing").catch((error) => {
+      const message = error instanceof Error ? error.message : "Unable to open pricing.";
       setUpgradeError(message);
-    } finally {
       setUpgradeLoading(false);
-    }
-  }, [userId]);
+    });
+  }, [router]);
   useEffect(() => {
     if (typeof window === "undefined" || typeof navigator === "undefined") {
       return;
