@@ -79,9 +79,18 @@ class BillingService:
         except httpx.HTTPStatusError as exc:  # pragma: no cover - network failure
             raise BillingConfigError(f"Paddle transaction failed: {exc.response.text}") from exc
         data = response.json()
-        checkout_url = data.get("data", {}).get("checkout_url") or data.get("data", {}).get("url")
+        error_payload = data.get("error") or data.get("errors") or data.get("message")
+        if error_payload:
+            raise BillingConfigError(f"Paddle transaction failed: {error_payload}")
+        body = data.get("data", {}) or {}
+        checkout_url = (
+            body.get("checkout_url")
+            or body.get("url")
+            or (body.get("checkout") or {}).get("url")
+            or (body.get("links") or {}).get("checkout_url")
+        )
         if not checkout_url:
-            raise BillingConfigError("Paddle response missing checkout URL.")
+            raise BillingConfigError(f"Paddle response missing checkout URL. Payload: {json.dumps(data)}")
         return checkout_url
 
     def _create_classic_checkout_session(
