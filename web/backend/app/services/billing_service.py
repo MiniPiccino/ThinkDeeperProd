@@ -83,9 +83,13 @@ class BillingService:
         if error_payload:
             raise BillingConfigError(f"Paddle transaction failed: {error_payload}")
         body = data.get("data", {}) or {}
-        transaction_id = body.get("id")
+        attributes = body.get("attributes") or {}
+        transaction_id = body.get("id") or attributes.get("id")
         checkout_url = (
             body.get("checkout_url")
+            or attributes.get("checkout_url")
+            or (attributes.get("checkout") or {}).get("url")
+            or (attributes.get("links") or {}).get("checkout_url")
             or (body.get("checkout") or {}).get("url")
             or (body.get("links") or {}).get("checkout_url")
         )
