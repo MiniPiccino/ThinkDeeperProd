@@ -83,12 +83,14 @@ class BillingService:
         if error_payload:
             raise BillingConfigError(f"Paddle transaction failed: {error_payload}")
         body = data.get("data", {}) or {}
+        transaction_id = body.get("id")
         checkout_url = (
             body.get("checkout_url")
-            or body.get("url")
             or (body.get("checkout") or {}).get("url")
             or (body.get("links") or {}).get("checkout_url")
         )
+        if not checkout_url and transaction_id:
+            checkout_url = f"https://pay.paddle.com/checkout/{transaction_id}"
         if not checkout_url:
             raise BillingConfigError(f"Paddle response missing checkout URL. Payload: {json.dumps(data)}")
         return checkout_url
