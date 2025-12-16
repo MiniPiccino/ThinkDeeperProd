@@ -810,6 +810,7 @@ export function GrowthClient() {
       const successUrl = origin ? `${origin}/growth?plan=premium` : undefined;
       const cancelUrl = origin ? `${origin}/growth?plan=free` : undefined;
       const { checkoutUrl } = await createCheckoutSession(userId, successUrl, cancelUrl);
+      console.info("Checkout session created", { checkoutUrl, userId, successUrl, cancelUrl });
       if (!checkoutUrl) {
         throw new Error("Checkout link missing from server.");
       }
