@@ -88,6 +88,8 @@ class BillingService:
         checkout_url = (
             body.get("checkout_url")
             or attributes.get("checkout_url")
+            or attributes.get("url")
+            or body.get("url")
             or (attributes.get("checkout") or {}).get("url")
             or (attributes.get("links") or {}).get("checkout_url")
             or (body.get("checkout") or {}).get("url")
