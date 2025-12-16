@@ -95,6 +95,11 @@ class BillingService:
         )
         if not checkout_url and transaction_id:
             checkout_url = f"https://pay.paddle.com/checkout/{transaction_id}"
+        # If Paddle returned our own return URL (with _ptxn) instead of the hosted checkout,
+        # fall back to the hosted checkout link built from the transaction ID.
+        if checkout_url and transaction_id:
+            if isinstance(checkout_url, str) and "_ptxn=" in checkout_url and "paddle.com" not in checkout_url:
+                checkout_url = f"https://pay.paddle.com/checkout/{transaction_id}"
         if not checkout_url:
             raise BillingConfigError(f"Paddle response missing checkout URL. Payload: {json.dumps(data)}")
         return checkout_url
