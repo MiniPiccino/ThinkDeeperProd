@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { StreakReplay } from "@/components/StreakTree";
 import { FloatingAction } from "@/components/FloatingAction";
-import { fetchDailyQuestion, fetchReflectionHistory, fetchReflectionOverview } from "@/lib/api";
+import { createCheckoutSession, fetchDailyQuestion, fetchReflectionHistory, fetchReflectionOverview } from "@/lib/api";
 import { useUserIdentifier } from "@/hooks/useUserIdentifier";
 import { TREE_ANIMATION_UNLOCK_STREAK } from "@/constants/experience";
 
@@ -795,17 +795,28 @@ export function GrowthClient() {
     return [streakLine, themeLine, exampleLine, closeLine];
   }, [streakCount, themeLabel, levelStats.level]);
 
-  const handleUpgrade = useCallback(() => {
+  const handleUpgrade = useCallback(async () => {
     setUpgradeError(null);
+    if (!userId) {
+      setShowAuthPrompt(true);
+      return;
+    }
     setUpgradeLoading(true);
     try {
-      router.push("/pricing");
+      const origin = typeof window !== "undefined" ? window.location.origin : undefined;
+      const successUrl = origin ? `${origin}/growth?plan=premium` : undefined;
+      const cancelUrl = origin ? `${origin}/growth?plan=free` : undefined;
+      const { checkoutUrl } = await createCheckoutSession(userId, successUrl, cancelUrl);
+      if (!checkoutUrl) {
+        throw new Error("Checkout link missing from server.");
+      }
+      window.location.href = checkoutUrl;
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to open pricing.";
+      const message = error instanceof Error ? error.message : "Unable to start checkout.";
       setUpgradeError(message);
       setUpgradeLoading(false);
     }
-  }, [router]);
+  }, [userId]);
   useEffect(() => {
     if (typeof window === "undefined" || typeof navigator === "undefined") {
       return;
