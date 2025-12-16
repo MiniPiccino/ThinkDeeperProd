@@ -1,4 +1,10 @@
+'use client';
+
 import Link from "next/link";
+import { useCallback, useState } from "react";
+
+import { createCheckoutSession } from "@/lib/api";
+import { useUserIdentifier } from "@/hooks/useUserIdentifier";
 
 const FEATURES = [
   "Daily guided reflections with feedback",
@@ -8,6 +14,33 @@ const FEATURES = [
 ];
 
 export default function PricingPage() {
+  const userId = useUserIdentifier();
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const startCheckout = useCallback(async () => {
+    setError(null);
+    if (!userId) {
+      setError("Sign in first so we can attach premium to your account.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const origin = typeof window !== "undefined" ? window.location.origin : undefined;
+      const successUrl = origin ? `${origin}/growth?plan=premium` : undefined;
+      const cancelUrl = origin ? `${origin}/growth?plan=free` : undefined;
+      const { checkoutUrl } = await createCheckoutSession(userId, successUrl, cancelUrl);
+      if (!checkoutUrl) {
+        throw new Error("Checkout link missing from server.");
+      }
+      window.location.href = checkoutUrl;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to start checkout.";
+      setError(message);
+      setLoading(false);
+    }
+  }, [userId]);
+
   return (
     <div className="bg-black text-white">
       <div className="mx-auto flex max-w-5xl flex-col gap-12 px-6 py-12 md:py-16">
@@ -17,6 +50,7 @@ export default function PricingPage() {
           <p className="text-base text-slate-300">
             Pick monthly or yearly. Your reflections, streaks, and exports are unlocked on premium.
           </p>
+          {error ? <p className="text-xs text-red-300">{error}</p> : null}
         </header>
 
         <section className="grid gap-6 md:grid-cols-2">
@@ -24,17 +58,19 @@ export default function PricingPage() {
             title="Premium — Monthly"
             price="€5"
             cadence="per month"
-            ctaLabel="Start monthly"
-            href="/growth?plan=premium"
+            ctaLabel={loading ? "Connecting…" : "Start monthly"}
             highlight="Flexibility to pause anytime."
+            onStartCheckout={startCheckout}
+            disabled={loading}
           />
           <PricingCard
             title="Premium — Yearly"
             price="€50"
             cadence="per year"
-            ctaLabel="Start yearly"
-            href="/growth?plan=premium"
+            ctaLabel={loading ? "Connecting…" : "Start yearly"}
             highlight="Save 17% vs monthly. One receipt for the year."
+            onStartCheckout={startCheckout}
+            disabled={loading}
           />
         </section>
 
@@ -74,11 +110,12 @@ type PricingCardProps = {
   price: string;
   cadence: string;
   ctaLabel: string;
-  href: string;
   highlight: string;
+  onStartCheckout: () => void;
+  disabled?: boolean;
 };
 
-function PricingCard({ title, price, cadence, ctaLabel, href, highlight }: PricingCardProps) {
+function PricingCard({ title, price, cadence, ctaLabel, highlight, onStartCheckout, disabled }: PricingCardProps) {
   return (
     <div className="flex flex-col justify-between rounded-2xl border border-white/10 bg-white/5 p-6 shadow-lg shadow-emerald-500/5">
       <div className="space-y-3">
@@ -90,12 +127,14 @@ function PricingCard({ title, price, cadence, ctaLabel, href, highlight }: Prici
           <span className="text-sm text-slate-400">{cadence}</span>
         </div>
       </div>
-      <Link
-        href={href}
-        className="mt-6 inline-flex justify-center rounded-full bg-emerald-500/90 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-400"
+      <button
+        type="button"
+        onClick={onStartCheckout}
+        disabled={disabled}
+        className="mt-6 inline-flex justify-center rounded-full bg-emerald-500/90 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {ctaLabel}
-      </Link>
+      </button>
     </div>
   );
 }

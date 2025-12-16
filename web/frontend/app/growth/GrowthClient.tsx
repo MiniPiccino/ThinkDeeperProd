@@ -447,14 +447,17 @@ export function GrowthClient() {
   const [upgradeLoading, setUpgradeLoading] = useState(false);
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const upgradeNotice = useMemo(() => {
+    if (isPremiumUser) {
+      return { tone: "success", text: "Premium unlocked." };
+    }
     if (planStatus === "premium") {
-      return { tone: "success", text: "Upgrade complete. Premium unlocked." };
+      return { tone: "muted", text: "Finishing your upgrade—refresh if it doesn’t unlock in a moment." };
     }
     if (planStatus === "free") {
       return { tone: "muted", text: "Checkout cancelled. You’re still on free." };
     }
     return null;
-  }, [planStatus]);
+  }, [isPremiumUser, planStatus]);
   const fallbackWeeklySummary = useMemo(() => {
     const total = data?.weekProgress?.totalDays ?? 7;
     const startOfWeek = new Date(todayLocalDate);
