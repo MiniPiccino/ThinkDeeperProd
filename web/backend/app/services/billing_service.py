@@ -29,7 +29,6 @@ class BillingService:
             settings.paddle_api_key
             and settings.paddle_price_id
             and settings.paddle_return_url
-            and settings.paddle_business_id
         )
         self._classic_enabled = bool(
             settings.paddle_classic_vendor_id
@@ -59,7 +58,6 @@ class BillingService:
             return self._create_classic_checkout_session(user_id, success_url, cancel_url)
         # Default to Paddle v2 when classic config is absent.
         payload: dict[str, Any] = {
-            "business_id": self._settings.paddle_business_id,
             "items": [
                 {
                     "price_id": self._settings.paddle_price_id,
