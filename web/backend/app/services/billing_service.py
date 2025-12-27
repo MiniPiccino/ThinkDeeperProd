@@ -21,7 +21,10 @@ class BillingService:
         self._settings = settings
         self._base_url = settings.paddle_api_url.rstrip("/") if settings.paddle_api_url else "https://api.paddle.com"
         # Paddle uses separate hosted domains for sandbox vs live.
-        self._hosted_checkout_base = "https://sandbox-pay.paddle.com" if "sandbox" in self._base_url else "https://pay.paddle.com"
+        # Paddle Billing hosted checkout domains (not the API host).
+        self._hosted_checkout_base = (
+            "https://sandbox-checkout.paddle.com" if "sandbox" in self._base_url else "https://checkout.paddle.com"
+        )
         self._legacy_base_url = (
             "https://sandbox-vendors.paddle.com/api/2.0"
             if settings.paddle_classic_sandbox
@@ -102,9 +105,11 @@ class BillingService:
         if checkout_url and transaction_id:
             if isinstance(checkout_url, str) and "_ptxn=" in checkout_url and "paddle.com" not in checkout_url:
                 checkout_url = f"{self._hosted_checkout_base}/checkout/{transaction_id}"
-            # If we are in sandbox but got a live checkout domain, rewrite to sandbox.
-            if "sandbox" in self._base_url and isinstance(checkout_url, str) and checkout_url.startswith("https://pay.paddle.com/checkout/"):
-                checkout_url = checkout_url.replace("https://pay.paddle.com", self._hosted_checkout_base, 1)
+            # Normalize domains: if sandbox and we got a live domain (pay/checkout), rewrite to sandbox checkout.
+            if "sandbox" in self._base_url and isinstance(checkout_url, str):
+                if checkout_url.startswith("https://pay.paddle.com/checkout/") or checkout_url.startswith("https://checkout.paddle.com/checkout/"):
+                    checkout_url = checkout_url.replace("https://pay.paddle.com", self._hosted_checkout_base, 1)
+                    checkout_url = checkout_url.replace("https://checkout.paddle.com", self._hosted_checkout_base, 1)
         if not checkout_url:
             raise BillingConfigError(f"Paddle response missing checkout URL. Payload: {json.dumps(data)}")
         return checkout_url
