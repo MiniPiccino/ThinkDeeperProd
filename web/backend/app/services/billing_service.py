@@ -21,9 +21,9 @@ class BillingService:
         self._settings = settings
         self._base_url = settings.paddle_api_url.rstrip("/") if settings.paddle_api_url else "https://api.paddle.com"
         # Paddle Billing hosted checkout domains (not the API host).
-        # Sandbox: https://sandbox-checkout.paddle.com, Live: https://checkout.paddle.com
+        # Sandbox uses sandbox-pay; live uses pay.
         self._hosted_checkout_base = (
-            "https://sandbox-checkout.paddle.com" if "sandbox" in self._base_url else "https://checkout.paddle.com"
+            "https://sandbox-pay.paddle.com" if "sandbox" in self._base_url else "https://pay.paddle.com"
         )
         self._legacy_base_url = (
             "https://sandbox-vendors.paddle.com/api/2.0"
