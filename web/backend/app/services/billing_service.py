@@ -73,6 +73,8 @@ class BillingService:
             "return_url": success_url or self._settings.paddle_return_url,
             "cancel_url": cancel_url or self._settings.paddle_cancel_url or (success_url or self._settings.paddle_return_url),
         }
+        if self._settings.paddle_business_id:
+            payload["business_id"] = self._settings.paddle_business_id
         response = httpx.post(
             f"{self._base_url}/transactions",
             json=payload,

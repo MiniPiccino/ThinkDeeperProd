@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     supabase_badges_table: str = Field(default="badges", alias="SUPABASE_BADGES_TABLE")
     evaluation_model: str = Field(default="gpt-4o-mini", alias="EVALUATION_MODEL")
     paddle_api_key: Optional[str] = Field(default=None, alias="PADDLE_API_KEY")
+    paddle_business_id: Optional[str] = Field(default=None, alias="PADDLE_BUSINESS_ID")
     paddle_price_id: Optional[str] = Field(default=None, alias="PADDLE_PRICE_ID")
     paddle_return_url: Optional[str] = Field(default=None, alias="PADDLE_RETURN_URL")
     paddle_cancel_url: Optional[str] = Field(default=None, alias="PADDLE_CANCEL_URL")
