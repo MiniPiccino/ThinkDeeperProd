@@ -21,9 +21,9 @@ class BillingService:
         self._settings = settings
         self._base_url = settings.paddle_api_url.rstrip("/") if settings.paddle_api_url else "https://api.paddle.com"
         # Paddle Billing hosted checkout domains (not the API host).
-        # Sandbox uses sandbox-pay.paddle.com; live uses pay.paddle.com.
+        # Sandbox: https://sandbox-checkout.paddle.com, Live: https://checkout.paddle.com
         self._hosted_checkout_base = (
-            "https://sandbox-pay.paddle.com" if "sandbox" in self._base_url else "https://pay.paddle.com"
+            "https://sandbox-checkout.paddle.com" if "sandbox" in self._base_url else "https://checkout.paddle.com"
         )
         self._legacy_base_url = (
             "https://sandbox-vendors.paddle.com/api/2.0"
@@ -110,8 +110,8 @@ class BillingService:
                 if checkout_url.startswith("https://pay.paddle.com/checkout/") or checkout_url.startswith("https://checkout.paddle.com/checkout/"):
                     checkout_url = checkout_url.replace("https://pay.paddle.com", self._hosted_checkout_base, 1)
                     checkout_url = checkout_url.replace("https://checkout.paddle.com", self._hosted_checkout_base, 1)
-                # If we got the dot-style sandbox host, normalize to the hyphenated host.
-                if checkout_url.startswith("https://sandbox.pay.paddle.com/checkout/"):
+                if checkout_url.startswith("https://sandbox-pay.paddle.com/checkout/") or checkout_url.startswith("https://sandbox.pay.paddle.com/checkout/"):
+                    checkout_url = checkout_url.replace("https://sandbox-pay.paddle.com", self._hosted_checkout_base, 1)
                     checkout_url = checkout_url.replace("https://sandbox.pay.paddle.com", self._hosted_checkout_base, 1)
         if not checkout_url:
             raise BillingConfigError(f"Paddle response missing checkout URL. Payload: {json.dumps(data)}")
