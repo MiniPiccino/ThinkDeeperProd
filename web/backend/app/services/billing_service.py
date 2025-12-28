@@ -20,6 +20,8 @@ class BillingService:
         self._users = user_repository
         self._settings = settings
         self._base_url = settings.paddle_api_url.rstrip("/") if settings.paddle_api_url else "https://api.paddle.com"
+        # Hosted checkout base used as a fallback when Paddle returns a redirect to our own domain.
+        self._hosted_checkout_base = "https://sandbox-pay.paddle.com" if "sandbox" in self._base_url else "https://pay.paddle.com"
         self._legacy_base_url = (
             "https://sandbox-vendors.paddle.com/api/2.0"
             if settings.paddle_classic_sandbox
@@ -93,6 +95,15 @@ class BillingService:
             or body.get("checkout_url")
             or (body.get("links") or {}).get("checkout_url")
         )
+        # If Paddle gives us a redirect to our own domain with _ptxn, fall back to hosted checkout.
+        if (
+            checkout_url
+            and transaction_id
+            and isinstance(checkout_url, str)
+            and "paddle.com" not in checkout_url
+            and "_ptxn=" in checkout_url
+        ):
+            checkout_url = f"{self._hosted_checkout_base}/checkout/{transaction_id}"
         if not checkout_url:
             # As a last resort, include the payload for troubleshooting.
             raise BillingConfigError(f"Paddle response missing checkout URL. Payload: {json.dumps(data)}")
