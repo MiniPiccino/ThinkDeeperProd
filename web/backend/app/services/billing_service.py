@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 from typing import Any
-from urllib.parse import parse_qs, urlparse
 
 import httpx
 
@@ -96,22 +95,6 @@ class BillingService:
             or body.get("checkout_url")
             or (body.get("links") or {}).get("checkout_url")
         )
-        # If Paddle returns a pay.paddle.com URL with _ptxn, rewrite to hosted checkout query format.
-        if checkout_url and isinstance(checkout_url, str) and "_ptxn=" in checkout_url:
-            parsed = urlparse(checkout_url)
-            txn_from_query = parse_qs(parsed.query).get("_ptxn", [None])[0]
-            txn = transaction_id or txn_from_query
-            if txn:
-                checkout_url = f"{self._hosted_checkout_base}/checkout?transaction_id={txn}"
-        # If Paddle gives us a redirect to our own domain with _ptxn, fall back to hosted checkout.
-        if (
-            checkout_url
-            and transaction_id
-            and isinstance(checkout_url, str)
-            and "paddle.com" not in checkout_url
-            and "_ptxn=" in checkout_url
-        ):
-            checkout_url = f"{self._hosted_checkout_base}/checkout?transaction_id={transaction_id}"
         if not checkout_url:
             # As a last resort, include the payload for troubleshooting.
             raise BillingConfigError(f"Paddle response missing checkout URL. Payload: {json.dumps(data)}")
