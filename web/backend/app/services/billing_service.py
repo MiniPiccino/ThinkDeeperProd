@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from typing import Any
+from urllib.parse import parse_qs, urlparse
 
 import httpx
 
@@ -96,6 +97,15 @@ class BillingService:
             or body.get("checkout_url")
             or (body.get("links") or {}).get("checkout_url")
         )
+        # If Paddle returns a pay.paddle.com URL with _ptxn, rewrite to hosted checkout.
+        if checkout_url and isinstance(checkout_url, str) and "_ptxn=" in checkout_url:
+            parsed = urlparse(checkout_url)
+            txn_from_query = parse_qs(parsed.query).get("_ptxn", [None])[0]
+            txn = transaction_id or txn_from_query
+            if txn:
+                checkout_url = f"{self._hosted_checkout_base}/checkout/{txn}"
+                if self._seller_id:
+                    checkout_url = f"{checkout_url}?seller_id={self._seller_id}"
         # Append seller_id if Paddle didn't include it and we have one.
         if checkout_url and self._seller_id and isinstance(checkout_url, str) and "seller_id=" not in checkout_url:
             separator = "&" if "?" in checkout_url else "?"
