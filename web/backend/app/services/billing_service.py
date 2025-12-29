@@ -97,15 +97,17 @@ class BillingService:
             or body.get("checkout_url")
             or (body.get("links") or {}).get("checkout_url")
         )
-        # If Paddle returns a pay.paddle.com URL with _ptxn, rewrite to hosted checkout.
+        # If Paddle returns a pay.paddle.com URL with _ptxn, rewrite to hosted checkout query format.
         if checkout_url and isinstance(checkout_url, str) and "_ptxn=" in checkout_url:
             parsed = urlparse(checkout_url)
             txn_from_query = parse_qs(parsed.query).get("_ptxn", [None])[0]
             txn = transaction_id or txn_from_query
             if txn:
-                checkout_url = f"{self._hosted_checkout_base}/checkout/{txn}"
-                if self._seller_id:
-                    checkout_url = f"{checkout_url}?seller_id={self._seller_id}"
+                separator = "&seller_id=" if self._seller_id else ""
+                seller = self._seller_id or ""
+                checkout_url = f"{self._hosted_checkout_base}/checkout?transaction_id={txn}"
+                if seller:
+                    checkout_url = f"{checkout_url}{separator}{seller}"
         # Append seller_id if Paddle didn't include it and we have one.
         if checkout_url and self._seller_id and isinstance(checkout_url, str) and "seller_id=" not in checkout_url:
             separator = "&" if "?" in checkout_url else "?"
@@ -118,9 +120,9 @@ class BillingService:
             and "paddle.com" not in checkout_url
             and "_ptxn=" in checkout_url
         ):
-            checkout_url = f"{self._hosted_checkout_base}/checkout/{transaction_id}"
+            checkout_url = f"{self._hosted_checkout_base}/checkout?transaction_id={transaction_id}"
             if self._seller_id:
-                checkout_url = f"{checkout_url}?seller_id={self._seller_id}"
+                checkout_url = f"{checkout_url}&seller_id={self._seller_id}"
         if not checkout_url:
             # As a last resort, include the payload for troubleshooting.
             raise BillingConfigError(f"Paddle response missing checkout URL. Payload: {json.dumps(data)}")
