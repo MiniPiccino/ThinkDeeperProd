@@ -67,6 +67,31 @@ class BillingService:
             raise BillingConfigError(f"Paddle client token missing. Payload: {json.dumps(data)}")
         return token
 
+    def confirm_transaction(self, transaction_id: str) -> None:
+        """Confirm a Paddle transaction and upgrade the user if paid."""
+        self._ensure_enabled()
+        if not transaction_id:
+            raise BillingConfigError("Transaction ID missing.")
+        response = httpx.get(
+            f"{self._base_url}/transactions/{transaction_id}",
+            headers=self._headers(),
+            timeout=15,
+        )
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:  # pragma: no cover - network failure
+            raise BillingConfigError(f"Paddle transaction lookup failed: {exc.response.text}") from exc
+        data = response.json()
+        body = data.get("data", {}) or {}
+        status = body.get("status") or body.get("state")
+        if status not in {"completed", "paid"}:
+            raise BillingConfigError(f"Transaction not completed (status={status}).")
+        custom_data = body.get("custom_data") or {}
+        user_id = custom_data.get("userId") or custom_data.get("user_id")
+        if not user_id:
+            raise BillingConfigError("Transaction missing user id.")
+        self._users.set_plan(user_id, "premium")
+
     def create_checkout_session(
         self,
         user_id: str,

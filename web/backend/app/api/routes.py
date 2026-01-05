@@ -28,6 +28,9 @@ class CheckoutRequest(BaseModel):
 class ClientTokenResponse(BaseModel):
     token: str
 
+class TransactionConfirmRequest(BaseModel):
+    transactionId: str
+
 
 @router.get("/questions/daily")
 async def fetch_daily_question(
@@ -122,6 +125,20 @@ async def create_paddle_client_token(
     try:
         token = billing_service.create_client_token()
         return ClientTokenResponse(token=token)
+    except BillingConfigError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+    except Exception as exc:  # pragma: no cover - surface Paddle errors
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+@router.post("/billing/confirm")
+async def confirm_paddle_transaction(
+    payload: TransactionConfirmRequest,
+    billing_service=Depends(get_billing_service),
+) -> dict:
+    try:
+        billing_service.confirm_transaction(payload.transactionId)
+        return {"confirmed": True}
     except BillingConfigError as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
     except Exception as exc:  # pragma: no cover - surface Paddle errors

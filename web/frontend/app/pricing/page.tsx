@@ -4,7 +4,7 @@ import Link from "next/link";
 import Script from "next/script";
 import { useCallback, useState } from "react";
 
-import { createPaddleClientToken } from "@/lib/api";
+import { confirmPaddleTransaction, createPaddleClientToken } from "@/lib/api";
 import { useUserIdentifier } from "@/hooks/useUserIdentifier";
 
 declare global {
@@ -49,8 +49,24 @@ export default function PricingPage() {
       window.Paddle.Environment.set(paddleEnv);
       window.Paddle.Initialize({
         token,
-        eventCallback: (data: unknown) => {
+        eventCallback: async (data: any) => {
           console.log("Paddle event", data);
+          const eventName = data?.name ?? data?.eventName ?? "";
+          if (eventName === "checkout.completed" || eventName === "checkout.success") {
+            const transactionId =
+              data?.data?.transaction_id ??
+              data?.data?.transactionId ??
+              data?.transaction_id ??
+              data?.transactionId;
+            if (transactionId) {
+              try {
+                await confirmPaddleTransaction(String(transactionId));
+                window.location.href = "/growth?plan=premium";
+              } catch (confirmError) {
+                console.error("Failed to confirm transaction", confirmError);
+              }
+            }
+          }
         },
       });
       window.Paddle.Checkout.open({
