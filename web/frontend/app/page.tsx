@@ -16,6 +16,7 @@ import {
   DailyQuestionResponse,
   SubmitAnswerPayload,
   fetchDailyQuestion,
+  fetchReflectionOverview,
   submitAnswer,
 } from '@/lib/api';
 import { useUserIdentifier } from '@/hooks/useUserIdentifier';
@@ -354,6 +355,15 @@ export default function HomePage() {
   }, [dispatchSession, markPrimingSeen]);
 
   const resolvedUserId = useUserIdentifier();
+
+  const { data: reflectionOverview } = useQuery({
+    queryKey: ['reflection-overview', resolvedUserId],
+    queryFn: () => fetchReflectionOverview(resolvedUserId ?? '', new Date().getTimezoneOffset()),
+    enabled: Boolean(resolvedUserId),
+    staleTime: 0,
+    retry: false,
+  });
+  const isPremiumUser = reflectionOverview?.plan === 'premium';
 
 
   const {
@@ -719,6 +729,7 @@ export default function HomePage() {
                     weekTotalDays={weekProgress.totalDays}
                     weekBadgeEarned={weekProgress.badgeEarned}
                     badgeName={weekBadgeName}
+                    isPremium={isPremiumUser}
                     onClose={() => dispatchSession({ type: 'DISMISS_CELEBRATION' })}
                   />
                 )}

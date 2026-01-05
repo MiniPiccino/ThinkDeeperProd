@@ -21,6 +21,7 @@ type SubmissionCelebrationProps = {
   weekTotalDays: number;
   weekBadgeEarned: boolean;
   badgeName?: string | null;
+  isPremium?: boolean;
   onClose: () => void;
 };
 
@@ -51,6 +52,7 @@ export function SubmissionCelebration({
   weekTotalDays,
   weekBadgeEarned,
   badgeName,
+  isPremium = false,
   onClose,
 }: SubmissionCelebrationProps) {
   const baselineTotal = Math.max(xpTotal - xpGain, 0);
@@ -495,13 +497,15 @@ export function SubmissionCelebration({
               >
                 {shareSupported ? 'Share your streak' : 'Share (copy unavailable)'}
               </button>
-              <Link
-                href="/pricing"
-                prefetch={false}
-                className="inline-flex items-center justify-center rounded-full bg-amber-500 px-5 py-2 text-sm font-semibold text-amber-950 shadow-md transition hover:bg-amber-400"
-              >
-                Upgrade to Premium
-              </Link>
+              {!isPremium ? (
+                <Link
+                  href="/pricing"
+                  prefetch={false}
+                  className="inline-flex items-center justify-center rounded-full bg-amber-500 px-5 py-2 text-sm font-semibold text-amber-950 shadow-md transition hover:bg-amber-400"
+                >
+                  Upgrade to Premium
+                </Link>
+              ) : null}
               <Link
                 href="/growth?treeAnimation=celebration"
                 prefetch={false}
