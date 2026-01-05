@@ -1,10 +1,21 @@
 'use client';
 
 import Link from "next/link";
+import Script from "next/script";
 import { useCallback, useState } from "react";
 
-import { createCheckoutSession } from "@/lib/api";
+import { createPaddleClientToken } from "@/lib/api";
 import { useUserIdentifier } from "@/hooks/useUserIdentifier";
+
+declare global {
+  interface Window {
+    Paddle?: {
+      Environment: { set: (env: string) => void };
+      Initialize: (options: { token: string; eventCallback?: (data: unknown) => void }) => void;
+      Checkout: { open: (options: { items: Array<{ priceId: string; quantity: number }>; customData?: Record<string, string> }) => void };
+    };
+  }
+}
 
 const FEATURES = [
   "Daily guided reflections with feedback",
@@ -26,16 +37,26 @@ export default function PricingPage() {
     }
     setLoading(true);
     try {
-      const origin = typeof window !== "undefined" ? window.location.origin : undefined;
-      const successUrl = origin ? `${origin}/growth?plan=premium` : undefined;
-      const cancelUrl = origin ? `${origin}/growth?plan=free` : undefined;
-      const { checkoutUrl } = await createCheckoutSession(userId, successUrl, cancelUrl);
-      // Log for debugging in case the redirect doesn't happen.
-      console.info("Checkout session created", { checkoutUrl, userId, successUrl, cancelUrl });
-      if (!checkoutUrl) {
-        throw new Error("Checkout link missing from server.");
+      const priceId = process.env.NEXT_PUBLIC_PADDLE_PRICE_ID;
+      if (!priceId) {
+        throw new Error("Missing Paddle price ID.");
       }
-      window.location.href = checkoutUrl;
+      const { token } = await createPaddleClientToken();
+      if (!token || !window.Paddle) {
+        throw new Error("Paddle checkout not available yet.");
+      }
+      const paddleEnv = process.env.NEXT_PUBLIC_PADDLE_ENV ?? "sandbox";
+      window.Paddle.Environment.set(paddleEnv);
+      window.Paddle.Initialize({
+        token,
+        eventCallback: (data: unknown) => {
+          console.log("Paddle event", data);
+        },
+      });
+      window.Paddle.Checkout.open({
+        items: [{ priceId, quantity: 1 }],
+        customData: { userId },
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unable to start checkout.";
       setError(message);
@@ -45,6 +66,7 @@ export default function PricingPage() {
 
   return (
     <div className="bg-black text-white">
+      <Script src="https://cdn.paddle.com/paddle/v2/paddle.js" strategy="afterInteractive" />
       <div className="mx-auto flex max-w-5xl flex-col gap-12 px-6 py-12 md:py-16">
         <header className="space-y-3 text-center">
           <p className="text-xs uppercase tracking-[0.3em] text-emerald-200">Pricing</p>

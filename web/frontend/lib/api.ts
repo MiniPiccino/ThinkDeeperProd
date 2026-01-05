@@ -129,6 +129,10 @@ export type CheckoutResponse = {
   checkoutUrl: string;
 };
 
+export type PaddleClientTokenResponse = {
+  token: string;
+};
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS === "true";
@@ -212,6 +216,13 @@ export function createCheckoutSession(userId: string, successUrl?: string, cance
       successUrl,
       cancelUrl,
     }),
+  });
+}
+
+export function createPaddleClientToken(): Promise<PaddleClientTokenResponse> {
+  return request<PaddleClientTokenResponse>("/v1/billing/client-token", {
+    method: "POST",
+    body: JSON.stringify({}),
   });
 }
 

@@ -48,6 +48,25 @@ class BillingService:
             "Content-Type": "application/json",
         }
 
+    def create_client_token(self) -> str:
+        """Create a Paddle client token for Paddle.js."""
+        self._ensure_enabled()
+        response = httpx.post(
+            f"{self._base_url}/client-tokens",
+            json={},
+            headers=self._headers(),
+            timeout=15,
+        )
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:  # pragma: no cover - network failure
+            raise BillingConfigError(f"Paddle client token failed: {exc.response.text}") from exc
+        data = response.json()
+        token = (data.get("data") or {}).get("token") or data.get("token")
+        if not token:
+            raise BillingConfigError(f"Paddle client token missing. Payload: {json.dumps(data)}")
+        return token
+
     def create_checkout_session(
         self,
         user_id: str,
