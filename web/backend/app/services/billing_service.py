@@ -53,7 +53,7 @@ class BillingService:
         self._ensure_enabled()
         response = httpx.post(
             f"{self._base_url}/client-tokens",
-            json={},
+            json={"name": "thinkdeeper-web"},
             headers=self._headers(),
             timeout=15,
         )
