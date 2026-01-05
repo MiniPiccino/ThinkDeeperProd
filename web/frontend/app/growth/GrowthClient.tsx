@@ -1223,7 +1223,7 @@ ${xrefPosition}
                 <div className="space-y-4">
                   <div className="relative mx-auto w-full max-w-[22rem] overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-br from-black/60 to-emerald-950/60 p-4 shadow-inner sm:p-5 lg:mx-0 lg:max-w-none">
                     <div className="absolute left-4 top-4 rounded-full bg-emerald-500/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.3em] text-emerald-100">
-                      Card 1 · Level badge + XP
+                      Level badge + XP
                     </div>
                     <div
                       className={`absolute inset-x-3 top-12 h-20 rounded-full bg-gradient-to-r ${levelBadge.gradient} blur-3xl opacity-25 sm:inset-x-8 sm:h-32`}
@@ -1258,7 +1258,7 @@ ${xrefPosition}
                 <div className="mx-auto w-full max-w-[22rem] rounded-2xl border border-white/5 bg-slate-950/60 p-4 shadow-inner sm:max-w-[24rem] sm:p-5 lg:mx-0 lg:max-w-none">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                      <p className="text-[11px] uppercase tracking-[0.28em] text-emerald-200 sm:text-xs">Card 3 · Weekly badges</p>
+                      <p className="text-[11px] uppercase tracking-[0.28em] text-emerald-200 sm:text-xs">Weekly badges</p>
                       <h4 className="text-lg font-semibold text-white sm:text-xl">Dropdown moment</h4>
                     </div>
                   </div>
