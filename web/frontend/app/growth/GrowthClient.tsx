@@ -446,6 +446,8 @@ export function GrowthClient() {
   const [upgradeError, setUpgradeError] = useState<string | null>(null);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
+  const [showShareSheet, setShowShareSheet] = useState(false);
+  const [shareState, setShareState] = useState<'idle' | 'copied' | 'error'>('idle');
   const upgradeNotice = useMemo(() => {
     if (isPremiumUser) {
       return { tone: "success", text: "Premium unlocked." };
@@ -474,6 +476,34 @@ export function GrowthClient() {
       };
     });
   }, [todayLocalDate, data]);
+  const sharePayload = useMemo(() => {
+    const shareTitle = 'Think Deeper growth';
+    const shareUrl = typeof window !== 'undefined' ? window.location.origin : 'https://deepenyourmind.com';
+    const streakLine =
+      streakCount > 0 ? `Streak: ${streakCount} day${streakCount === 1 ? '' : 's'}.` : 'New streak started.';
+    const levelLine = `Level ${levelStats.level} · ${xpTotal} XP`;
+    const themeLine = data?.theme ? `Theme: ${data.theme}.` : '';
+    const text = `My Think Deeper progress update.\n${streakLine} ${levelLine} ${themeLine}`.trim();
+    return { title: shareTitle, text, url: shareUrl };
+  }, [data?.theme, levelStats.level, streakCount, xpTotal]);
+  const copyShareText = useCallback(async (value: string) => {
+    if (!navigator?.clipboard?.writeText) {
+      setShareState('error');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(value);
+      setShareState('copied');
+    } catch {
+      setShareState('error');
+    }
+  }, []);
+  const openShareLink = useCallback((url: string) => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }, []);
   const weeklyReflectionSummary = reflectionData?.week ?? fallbackWeeklySummary;
   const premiumHighlights = [
     { title: "Timeline view", detail: "Scroll every answer you’ve written, grouped by week and month." },
@@ -1106,6 +1136,85 @@ ${xrefPosition}
           </div>
         </div>
       ) : null}
+      {showShareSheet ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            aria-hidden="true"
+            onClick={() => setShowShareSheet(false)}
+          />
+          <div className="relative z-10 w-full max-w-md rounded-2xl border border-emerald-400/40 bg-slate-950/90 p-5 text-slate-100 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <p className="text-xs uppercase tracking-[0.35em] text-emerald-200">Share</p>
+              <button
+                type="button"
+                onClick={() => setShowShareSheet(false)}
+                className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200 hover:text-emerald-50"
+              >
+                Close
+              </button>
+            </div>
+            <h4 className="mt-2 text-lg font-semibold text-white">Share the streak spark</h4>
+            <p className="mt-2 text-sm text-slate-300">
+              Drop a recap anywhere, or post a quick brag to your favorite feed.
+            </p>
+            <div className="mt-4 grid gap-3">
+              <button
+                type="button"
+                onClick={() => copyShareText(`${sharePayload.text}\n${sharePayload.url}`)}
+                className="inline-flex items-center justify-center rounded-full border border-emerald-400/40 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:border-emerald-300 hover:text-emerald-50"
+              >
+                Copy full recap
+              </button>
+              <button
+                type="button"
+                onClick={() => copyShareText(sharePayload.url)}
+                className="inline-flex items-center justify-center rounded-full border border-white/10 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-white/30 hover:text-white"
+              >
+                Copy link only
+              </button>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    openShareLink(
+                      `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+                        `${sharePayload.text}\n${sharePayload.url}`,
+                      )}`,
+                    )
+                  }
+                  className="inline-flex items-center justify-center rounded-full bg-sky-500/90 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-400"
+                >
+                  Post to X
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    openShareLink(
+                      `mailto:?subject=${encodeURIComponent(sharePayload.title)}&body=${encodeURIComponent(
+                        `${sharePayload.text}\n${sharePayload.url}`,
+                      )}`,
+                    )
+                  }
+                  className="inline-flex items-center justify-center rounded-full bg-emerald-500/90 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-400"
+                >
+                  Email it
+                </button>
+              </div>
+            </div>
+            {shareState === 'copied' ? (
+              <p className="mt-3 text-xs font-semibold uppercase tracking-[0.25em] text-emerald-300">
+                Copied to clipboard.
+              </p>
+            ) : null}
+            {shareState === 'error' ? (
+              <p className="mt-3 text-xs font-semibold uppercase tracking-[0.25em] text-red-300">
+                Couldn&apos;t copy just now.
+              </p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
       <div className="mx-auto flex max-w-4xl flex-col gap-8 pb-16">
         <header className="space-y-3 text-center">
           <p className="text-xs uppercase tracking-[0.4em] text-emerald-300">Growth</p>
@@ -1114,6 +1223,18 @@ ${xrefPosition}
             Every streak day lights up this grid. Each week becomes a new band of color. Come here after writing to watch the
             timeline you’re building.
           </p>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setShareState('idle');
+                setShowShareSheet(true);
+              }}
+              className="inline-flex items-center gap-2 rounded-full border border-emerald-400/60 px-4 py-1.5 text-[12px] font-semibold uppercase tracking-wide text-emerald-200 hover:border-emerald-300 hover:text-emerald-100"
+            >
+              Share progress
+            </button>
+          </div>
           {upgradeNotice ? (
             <div
               className={`mx-auto mt-3 max-w-md rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide ${

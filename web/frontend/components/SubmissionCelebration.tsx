@@ -61,6 +61,7 @@ export function SubmissionCelebration({
   const [animatedTotal, setAnimatedTotal] = useState(baselineTotal);
   const [animatedStreak, setAnimatedStreak] = useState(targetStreak === 0 ? 0 : Math.max(1, targetStreak));
   const [shareState, setShareState] = useState<'idle' | 'success' | 'copied' | 'error'>('idle');
+  const [showShareSheet, setShowShareSheet] = useState(false);
   const levelCapacity = Math.max(xpIntoLevel + xpToNextLevel, 1);
   const targetLevelPercent = Math.min(Math.max(levelProgressPercent, 0), 100);
   const estimatedGainPercent = Math.min(Math.round((xpGain / levelCapacity) * 100), 100);
@@ -278,38 +279,30 @@ export function SubmissionCelebration({
     xpTotal,
   ]);
 
-  const shareSupported = useMemo(() => {
-    if (typeof navigator === 'undefined') {
-      return false;
-    }
-    return typeof navigator.share === 'function' || typeof navigator.clipboard?.writeText === 'function';
+  const openShareSheet = useCallback(() => {
+    setShareState('idle');
+    setShowShareSheet(true);
   }, []);
-  const handleShare = useCallback(async () => {
-    if (typeof navigator === 'undefined') {
+
+  const copyShareText = useCallback(async (value: string) => {
+    if (!navigator?.clipboard?.writeText) {
       setShareState('error');
       return;
     }
-
-    setShareState('idle');
-    const { title, text, url } = sharePayload;
-    const combined = `${text}\n${url}`;
-
     try {
-      if (typeof navigator.share === 'function') {
-        await navigator.share({ title, text, url });
-        setShareState('success');
-        return;
-      }
-      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-        await navigator.clipboard.writeText(combined);
-        setShareState('copied');
-        return;
-      }
-      setShareState('error');
+      await navigator.clipboard.writeText(value);
+      setShareState('copied');
     } catch {
       setShareState('error');
     }
-  }, [sharePayload]);
+  }, []);
+
+  const openShareLink = useCallback((url: string) => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }, []);
 
   return (
     <div
@@ -491,11 +484,10 @@ export function SubmissionCelebration({
             <div className="mt-6 flex flex-col gap-3">
               <button
                 type="button"
-                onClick={handleShare}
-                disabled={!shareSupported}
-                className="inline-flex items-center justify-center rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-emerald-400"
+                onClick={openShareSheet}
+                className="inline-flex items-center justify-center rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-emerald-500"
               >
-                {shareSupported ? 'Share your streak' : 'Share (copy unavailable)'}
+                Share your streak
               </button>
               {!isPremium ? (
                 <Link
@@ -527,6 +519,80 @@ export function SubmissionCelebration({
                 <p className="text-xs font-medium uppercase tracking-wide text-red-500 dark:text-red-300">
                   Couldn&apos;t share just now. Try again later.
                 </p>
+              ) : null}
+              {showShareSheet ? (
+                <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+                  <div
+                    className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+                    aria-hidden="true"
+                    onClick={() => setShowShareSheet(false)}
+                  />
+                  <div className="relative z-10 w-full max-w-md rounded-2xl border border-emerald-400/40 bg-slate-950/90 p-5 text-slate-100 shadow-2xl">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs uppercase tracking-[0.35em] text-emerald-200">Share</p>
+                      <button
+                        type="button"
+                        onClick={() => setShowShareSheet(false)}
+                        className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200 hover:text-emerald-50"
+                      >
+                        Close
+                      </button>
+                    </div>
+                    <h4 className="mt-2 text-lg font-semibold text-white">Share the streak spark</h4>
+                    <p className="mt-2 text-sm text-slate-300">
+                      Drop a recap anywhere, or post a quick brag to your favorite feed.
+                    </p>
+                    <div className="mt-4 grid gap-3">
+                      <button
+                        type="button"
+                        onClick={() => copyShareText(`${sharePayload.text}\n${sharePayload.url}`)}
+                        className="inline-flex items-center justify-center rounded-full border border-emerald-400/40 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:border-emerald-300 hover:text-emerald-50"
+                      >
+                        Copy full recap
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => copyShareText(sharePayload.url)}
+                        className="inline-flex items-center justify-center rounded-full border border-white/10 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-white/30 hover:text-white"
+                      >
+                        Copy link only
+                      </button>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openShareLink(
+                              `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+                                `${sharePayload.text}\n${sharePayload.url}`,
+                              )}`,
+                            )
+                          }
+                          className="inline-flex items-center justify-center rounded-full bg-sky-500/90 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-400"
+                        >
+                          Post to X
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openShareLink(
+                              `mailto:?subject=${encodeURIComponent(sharePayload.title)}&body=${encodeURIComponent(
+                                `${sharePayload.text}\n${sharePayload.url}`,
+                              )}`,
+                            )
+                          }
+                          className="inline-flex items-center justify-center rounded-full bg-emerald-500/90 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-400"
+                        >
+                          Email it
+                        </button>
+                      </div>
+                    </div>
+                    {shareState === 'copied' ? (
+                      <p className="mt-3 text-xs font-semibold uppercase tracking-[0.25em] text-emerald-300">
+                        Copied to clipboard.
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
               ) : null}
               <button
                 type="button"
