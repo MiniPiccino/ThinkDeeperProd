@@ -29,7 +29,7 @@ export default function PricingPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const startCheckout = useCallback(async () => {
+  const startCheckout = useCallback(async (priceId: string) => {
     setError(null);
     if (!userId) {
       setError("Sign in first so we can attach premium to your account.");
@@ -37,7 +37,6 @@ export default function PricingPage() {
     }
     setLoading(true);
     try {
-      const priceId = process.env.NEXT_PUBLIC_PADDLE_PRICE_ID;
       if (!priceId) {
         throw new Error("Missing Paddle price ID.");
       }
@@ -64,8 +63,21 @@ export default function PricingPage() {
                 window.location.href = "/growth?plan=premium";
               } catch (confirmError) {
                 console.error("Failed to confirm transaction", confirmError);
+                setLoading(false);
               }
             }
+            return;
+          }
+          const lowered = String(eventName).toLowerCase();
+          if (
+            lowered.includes("cancel") ||
+            lowered.includes("close") ||
+            lowered.includes("error") ||
+            lowered.includes("fail") ||
+            lowered.includes("opened") ||
+            lowered.includes("loaded")
+          ) {
+            setLoading(false);
           }
         },
       });
@@ -100,6 +112,7 @@ export default function PricingPage() {
             cadence="per month"
             ctaLabel={loading ? "Connecting…" : "Start monthly"}
             highlight="Flexibility to pause anytime."
+            priceId={process.env.NEXT_PUBLIC_PADDLE_PRICE_ID_MONTHLY ?? ""}
             onStartCheckout={startCheckout}
             disabled={loading}
           />
@@ -109,6 +122,7 @@ export default function PricingPage() {
             cadence="per year"
             ctaLabel={loading ? "Connecting…" : "Start yearly"}
             highlight="Save 17% vs monthly. One receipt for the year."
+            priceId={process.env.NEXT_PUBLIC_PADDLE_PRICE_ID_YEARLY ?? ""}
             onStartCheckout={startCheckout}
             disabled={loading}
           />
@@ -151,11 +165,12 @@ type PricingCardProps = {
   cadence: string;
   ctaLabel: string;
   highlight: string;
-  onStartCheckout: () => void;
+  priceId: string;
+  onStartCheckout: (priceId: string) => void;
   disabled?: boolean;
 };
 
-function PricingCard({ title, price, cadence, ctaLabel, highlight, onStartCheckout, disabled }: PricingCardProps) {
+function PricingCard({ title, price, cadence, ctaLabel, highlight, priceId, onStartCheckout, disabled }: PricingCardProps) {
   return (
     <div className="flex flex-col justify-between rounded-2xl border border-white/10 bg-white/5 p-6 shadow-lg shadow-emerald-500/5">
       <div className="space-y-3">
@@ -169,8 +184,8 @@ function PricingCard({ title, price, cadence, ctaLabel, highlight, onStartChecko
       </div>
       <button
         type="button"
-        onClick={onStartCheckout}
-        disabled={disabled}
+        onClick={() => onStartCheckout(priceId)}
+        disabled={disabled || !priceId}
         className="mt-6 inline-flex justify-center rounded-full bg-emerald-500/90 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {ctaLabel}
