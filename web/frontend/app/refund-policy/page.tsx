@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function RefundPolicyPage() {
   return (
     <div className="bg-black text-white">
@@ -46,6 +48,17 @@ export default function RefundPolicyPage() {
           <p className="mt-2">
             Reach us at rene@3rz.eu. We aim to reply within 1 business day.
           </p>
+        </section>
+
+        <section className="rounded-2xl border border-white/10 bg-white/5 p-6 text-sm leading-relaxed text-slate-200">
+          <h2 className="text-lg font-semibold text-white">Cancel your plan</h2>
+          <p className="mt-2">Manage cancellation using your Paddle receipt or request help.</p>
+          <Link
+            href="/cancel"
+            className="mt-4 inline-flex items-center text-sm font-semibold text-emerald-200 underline-offset-4 hover:underline"
+          >
+            Go to cancellation instructions
+          </Link>
         </section>
       </div>
     </div>

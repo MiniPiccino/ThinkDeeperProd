@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   description: "Understand the terms that govern your use of the Thinkle platform operated by 3RZ d.o.o.",
 };
 
-const governingLaw = "Republic of Croatia";
+const governingLaw = "State of California, USA";
 
 export default function TermsPage() {
   return (
@@ -132,8 +132,9 @@ export default function TermsPage() {
         <h2 className="text-2xl font-semibold">12. Governing Law &amp; Dispute Resolution</h2>
         <p>
           These Terms are governed by the laws of the {governingLaw}, without regard to conflict of law
-          principles. The parties agree to the exclusive jurisdiction of the courts located in Croatia
-          for any disputes arising out of these Terms, except where prohibited by law.
+          principles. The parties agree to the exclusive jurisdiction of the state and federal courts
+          located in San Francisco County, California, for any disputes arising out of these Terms,
+          except where prohibited by law.
         </p>
       </section>
 
