@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   description: "Understand the terms that govern your use of the Thinkle platform operated by 3RZ d.o.o.",
 };
 
-const governingLaw = "State of California, USA";
+const governingLaw = "Republic of Croatia";
 
 export default function TermsPage() {
   return (
@@ -46,9 +46,9 @@ export default function TermsPage() {
         <h2 className="text-2xl font-semibold">3. Subscription &amp; Billing</h2>
         <p>
           Certain features may require a paid subscription or one-time purchase. Prices are listed at
-          the point of sale and may change upon notice. Unless otherwise stated, fees are non-refundable.
-          Taxes and payment processor fees may apply. You authorize us to charge the payment method
-          associated with your account.
+          the point of sale and may change upon notice. Fees are non-refundable except as required by
+          law or as described in our Refund Policy. Taxes and payment processor fees may apply. You
+          authorize us to charge the payment method associated with your account.
         </p>
       </section>
 
@@ -111,7 +111,7 @@ export default function TermsPage() {
       <section className="space-y-4">
         <h2 className="text-2xl font-semibold">10. Limitation of Liability</h2>
         <p>
-          TO THE MAXIMUM EXTENT PERMITTED BY LAW, THINKDEEPER AND ITS SUPPLIERS WILL NOT BE LIABLE FOR
+          TO THE MAXIMUM EXTENT PERMITTED BY LAW, THINKLE AND ITS SUPPLIERS WILL NOT BE LIABLE FOR
           ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR FOR ANY LOSS OF
           PROFITS OR REVENUE. OUR TOTAL LIABILITY FOR ANY CLAIM ARISING OUT OF THESE TERMS OR THE
           SERVICES WILL NOT EXCEED THE GREATER OF (A) $100 OR (B) THE AMOUNTS YOU PAID TO US IN THE
@@ -132,9 +132,8 @@ export default function TermsPage() {
         <h2 className="text-2xl font-semibold">12. Governing Law &amp; Dispute Resolution</h2>
         <p>
           These Terms are governed by the laws of the {governingLaw}, without regard to conflict of law
-          principles. The parties agree to the exclusive jurisdiction of the state and federal courts
-          located in San Francisco County, California, for any disputes arising out of these Terms,
-          except where prohibited by law.
+          principles. The parties agree to the exclusive jurisdiction of the courts located in Croatia
+          for any disputes arising out of these Terms, except where prohibited by law.
         </p>
       </section>
 
