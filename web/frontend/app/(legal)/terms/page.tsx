@@ -151,8 +151,8 @@ export default function TermsPage() {
         <h2 className="text-2xl font-semibold">14. Contact</h2>
         <p>
           If you have questions about these Terms, contact us at{" "}
-          <a className="underline" href="mailto:rene@3rz.eu">
-            rene@3rz.eu
+          <a className="underline" href="mailto:support@deepenyourmind.com">
+            support@deepenyourmind.com
           </a>
           .
         </p>

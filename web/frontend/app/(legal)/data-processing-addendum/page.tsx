@@ -151,8 +151,8 @@ export default function DataProcessingAddendumPage() {
         <h2 className="text-2xl font-semibold">14. Contact</h2>
         <p>
           Data protection inquiries should be directed to{" "}
-          <a className="underline" href="mailto:rene@3rz.eu">
-            rene@3rz.eu
+          <a className="underline" href="mailto:support@deepenyourmind.com">
+            support@deepenyourmind.com
           </a>
           .
         </p>

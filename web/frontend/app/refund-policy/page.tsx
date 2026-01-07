@@ -13,7 +13,7 @@ export default function RefundPolicyPage() {
         <section className="rounded-2xl border border-white/10 bg-white/5 p-6 text-sm leading-relaxed text-slate-200">
           <h2 className="text-lg font-semibold text-white">14-day satisfaction window</h2>
           <p className="mt-2">
-            If you are not satisfied within 14 days of starting a paid plan, email rene@3rz.eu and we will refund your
+            If you are not satisfied within 14 days of starting a paid plan, email support@deepenyourmind.com and we will refund your
             most recent payment. No questions asked beyond basic account verification.
           </p>
         </section>
@@ -37,7 +37,7 @@ export default function RefundPolicyPage() {
         <section className="rounded-2xl border border-white/10 bg-white/5 p-6 text-sm leading-relaxed text-slate-200">
           <h2 className="text-lg font-semibold text-white">How to request a refund</h2>
           <ul className="mt-2 list-disc space-y-2 pl-5">
-            <li>Email rene@3rz.eu from the address linked to your Thinkle account.</li>
+            <li>Email support@deepenyourmind.com from the address linked to your Thinkle account.</li>
             <li>Include your name and (if available) your checkout email or receipt.</li>
             <li>We will confirm eligibility and issue the refund to the original payment method.</li>
           </ul>
@@ -46,7 +46,7 @@ export default function RefundPolicyPage() {
         <section className="rounded-2xl border border-white/10 bg-white/5 p-6 text-sm leading-relaxed text-slate-200">
           <h2 className="text-lg font-semibold text-white">Questions</h2>
           <p className="mt-2">
-            Reach us at rene@3rz.eu. We aim to reply within 1 business day.
+            Reach us at support@deepenyourmind.com. We aim to reply within 1 business day.
           </p>
         </section>
 

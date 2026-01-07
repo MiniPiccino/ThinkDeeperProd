@@ -144,7 +144,7 @@ export default function PricingPage() {
           <h2 className="text-lg font-semibold text-white">Refund policy</h2>
           <p className="mt-2 text-sm text-emerald-100/90">
             We want Thinkle to feel valuable. If you’re not happy within 14 days of starting a plan, email us at
-            rene@3rz.eu and we’ll issue a refund for your most recent payment. Yearly plans can be
+            support@deepenyourmind.com and we’ll issue a refund for your most recent payment. Yearly plans can be
             refunded in full within 14 days; after that, cancel anytime to stop future renewals.
           </p>
           <Link

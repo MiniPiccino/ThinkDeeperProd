@@ -57,8 +57,8 @@ export default function AIDisclaimerPage() {
         <h2 className="text-2xl font-semibold">Report Issues</h2>
         <p>
           If you encounter problematic output or suspect an error, contact us at{" "}
-          <a className="underline" href="mailto:rene@3rz.eu">
-            rene@3rz.eu
+          <a className="underline" href="mailto:support@deepenyourmind.com">
+            support@deepenyourmind.com
           </a>{" "}
           so we can investigate and improve the experience.
         </p>

@@ -126,8 +126,8 @@ export default function CookiePolicyPage() {
         <h2 className="text-2xl font-semibold">Contact</h2>
         <p>
           Questions about this Cookie Policy can be directed to{" "}
-          <a className="underline" href="mailto:rene@3rz.eu">
-            rene@3rz.eu
+          <a className="underline" href="mailto:support@deepenyourmind.com">
+            support@deepenyourmind.com
           </a>
           .
         </p>

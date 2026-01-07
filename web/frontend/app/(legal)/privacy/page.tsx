@@ -6,7 +6,7 @@ export const metadata: Metadata = {
     "Learn how Thinkle, operated by 3RZ d.o.o., collects, uses, and protects your personal information across the app and API.",
 };
 
-const supportEmail = "rene@3rz.eu";
+const supportEmail = "support@deepenyourmind.com";
 const mailingAddress = "3RZ d.o.o., Suzanicev put 35, 51221 Kostrena, Croatia";
 
 export default function PrivacyPage() {
