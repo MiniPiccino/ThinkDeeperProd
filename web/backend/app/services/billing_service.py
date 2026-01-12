@@ -27,11 +27,7 @@ class BillingService:
             if settings.paddle_classic_sandbox
             else "https://vendors.paddle.com/api/2.0"
         )
-        self._v2_enabled = bool(
-            settings.paddle_api_key
-            and settings.paddle_price_id
-            and settings.paddle_return_url
-        )
+        self._v2_enabled = bool(settings.paddle_api_key)
         self._classic_enabled = bool(
             settings.paddle_classic_vendor_id
             and settings.paddle_classic_auth_code
@@ -41,6 +37,12 @@ class BillingService:
     def _ensure_enabled(self) -> None:
         if not (self._v2_enabled or self._classic_enabled):
             raise BillingConfigError("Paddle billing is not configured.")
+
+    def _ensure_v2_checkout_configured(self) -> None:
+        if not self._settings.paddle_price_id:
+            raise BillingConfigError("Paddle price id is not configured.")
+        if not self._settings.paddle_return_url:
+            raise BillingConfigError("Paddle return url is not configured.")
 
     def _headers(self) -> dict[str, str]:
         return {
@@ -102,6 +104,7 @@ class BillingService:
         self._ensure_enabled()
         if self._classic_enabled:
             return self._create_classic_checkout_session(user_id, success_url, cancel_url)
+        self._ensure_v2_checkout_configured()
         # Default to Paddle v2 when classic config is absent.
         payload: dict[str, Any] = {
             "items": [
