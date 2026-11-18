@@ -1,0 +1,200 @@
+import json
+from pathlib import Path
+from typing import Callable, Generator
+
+import pytest
+
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+
+from app.api.routes import router as api_router
+from app.api.deps import (
+    get_answer_service,
+    get_authenticated_user_id,
+    get_optional_user_id,
+    get_question_service,
+)
+from app.config import Settings
+from app.repositories import (
+    AnswerRepository,
+    BadgeRepository,
+    ProgressRepository,
+    QuestionRepository,
+    UserRepository,
+)
+from app.services import (
+    AnswerService,
+    EntitlementService,
+    EvaluationService,
+    QuestionService,
+    ReflectionService,
+)
+
+
+@pytest.fixture
+def tmp_settings(tmp_path: Path) -> Settings:
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    question_source = data_dir / "questions.json"
+    question_source.write_text(
+        json.dumps(
+            {
+                "catalogVersion": "test-v1",
+                "weeks": [
+                    {
+                        "theme": f"Week {week + 1}",
+                        "questions": [f"W{week + 1}Q{day + 1}" for day in range(7)],
+                    }
+                    for week in range(52)
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    return Settings(
+        OPENAI_API_KEY="test",
+        QUESTION_SOURCE=question_source,
+        ANSWERS_STORE_PATH=data_dir / "answers.jsonl",
+        PROGRESS_STORE_PATH=data_dir / "progress.json",
+        USER_METADATA_PATH=data_dir / "users.json",
+        BADGE_STORE_PATH=data_dir / "badges.json",
+        ALLOWED_ORIGINS=["http://testserver"],
+    )
+
+
+@pytest.fixture
+def question_repository(tmp_settings: Settings) -> QuestionRepository:
+    return QuestionRepository(tmp_settings.question_source)
+
+
+@pytest.fixture
+def progress_repository(tmp_settings: Settings) -> ProgressRepository:
+    return ProgressRepository(tmp_settings.progress_store_path)
+
+
+@pytest.fixture
+def answer_repository(tmp_settings: Settings) -> AnswerRepository:
+    return AnswerRepository(tmp_settings.answers_store_path)
+
+
+@pytest.fixture
+def badge_repository(tmp_settings: Settings):
+    return BadgeRepository(tmp_settings.badge_store_path)
+
+
+@pytest.fixture
+def user_repository(tmp_settings: Settings) -> UserRepository:
+    return UserRepository(tmp_settings.user_metadata_path)
+
+
+class DummyCompletionResponse:
+    def __init__(self, payload: str) -> None:
+        self.choices = [
+            type(
+                "Choice",
+                (),
+                {
+                    "message": type("Message", (), {"content": payload}),
+                },
+            )()
+        ]
+
+
+class DummyCompletions:
+    def __init__(self, handler: Callable[[str, str], str]) -> None:
+        self._handler = handler
+
+    def create(
+        self, *, messages, model, temperature, **kwargs
+    ) -> DummyCompletionResponse:  # type: ignore[override]
+        content = json.loads(messages[1]["content"])
+        payload = self._handler(content["question"], content["answer"])
+        return DummyCompletionResponse(payload)
+
+
+class DummyChat:
+    def __init__(self, handler: Callable[[str, str], str]) -> None:
+        self.completions = DummyCompletions(handler)
+
+
+class DummyClient:
+    def __init__(self, handler: Callable[[str, str], str]) -> None:
+        self.chat = DummyChat(handler)
+
+
+@pytest.fixture
+def evaluation_service(tmp_settings: Settings) -> EvaluationService:
+    def handler(question, answer):
+        return json.dumps(
+            {
+                "reasoning_depth": 2,
+                "clarity": 2,
+                "alternatives": 2,
+                "evidence": 2,
+                "strength": f"Tight {question}",
+                "next_step": "Add one example.",
+            }
+        )
+    client = DummyClient(handler)
+    return EvaluationService(client, tmp_settings.evaluation_model)
+
+
+@pytest.fixture
+def question_service(
+    question_repository: QuestionRepository,
+    progress_repository: ProgressRepository,
+    answer_repository: AnswerRepository,
+    tmp_settings: Settings,
+) -> QuestionService:
+    return QuestionService(
+        question_repository,
+        progress_repository,
+        answer_repository,
+        tmp_settings,
+    )
+
+
+@pytest.fixture
+def answer_service(
+    question_repository: QuestionRepository,
+    evaluation_service: EvaluationService,
+    answer_repository: AnswerRepository,
+    progress_repository: ProgressRepository,
+    badge_repository,
+) -> AnswerService:
+    return AnswerService(
+        question_repository,
+        evaluation_service,
+        answer_repository,
+        progress_repository,
+        badge_repository,
+    )
+
+
+@pytest.fixture
+def reflection_service(
+    answer_repository: AnswerRepository,
+    question_repository: QuestionRepository,
+    user_repository: UserRepository,
+) -> ReflectionService:
+    return ReflectionService(
+        answer_repository,
+        question_repository,
+        EntitlementService(user_repository),
+    )
+
+
+@pytest.fixture
+def test_client(
+    question_service: QuestionService,
+    answer_service: AnswerService,
+) -> Generator[TestClient, None, None]:
+    app = FastAPI()
+    app.include_router(api_router)
+    app.dependency_overrides[get_question_service] = lambda: question_service
+    app.dependency_overrides[get_answer_service] = lambda: answer_service
+    app.dependency_overrides[get_authenticated_user_id] = lambda: "test-user"
+    app.dependency_overrides[get_optional_user_id] = lambda: "test-user"
+
+    with TestClient(app) as client:
+        yield client

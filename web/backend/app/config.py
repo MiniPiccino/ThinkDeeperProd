@@ -1,0 +1,129 @@
+from functools import lru_cache
+from pathlib import Path
+from typing import List, Optional
+
+from pydantic import Field, SecretStr
+from pydantic_settings import BaseSettings
+
+_DATA_DIR = Path(__file__).parents[1] / "data"
+
+
+class Settings(BaseSettings):
+    """Application configuration loaded from environment variables and .env files."""
+
+    openai_api_key: str = Field(..., alias="OPENAI_API_KEY")
+    google_sheets_id: Optional[str] = Field(default=None, alias="GOOGLE_SHEETS_ID")
+    google_service_account_json: Optional[str] = Field(
+        default=None, alias="GOOGLE_APPLICATION_CREDENTIALS_JSON"
+    )
+    data_dir: Path = Field(default=_DATA_DIR, alias="DATA_DIR")
+    question_source: Path = Field(
+        default=_DATA_DIR / "questions.json",
+        alias="QUESTION_SOURCE",
+    )
+    answers_store_path: Path = Field(
+        default=_DATA_DIR / "answers.jsonl",
+        alias="ANSWERS_STORE_PATH",
+    )
+    progress_store_path: Path = Field(
+        default=_DATA_DIR / "progress.json",
+        alias="PROGRESS_STORE_PATH",
+    )
+    user_metadata_path: Path = Field(
+        default=_DATA_DIR / "users.json",
+        alias="USER_METADATA_PATH",
+    )
+    badge_store_path: Path = Field(
+        default=_DATA_DIR / "badges.json",
+        alias="BADGE_STORE_PATH",
+    )
+    supabase_url: Optional[str] = Field(default=None, alias="SUPABASE_URL")
+    supabase_jwks_url: Optional[str] = Field(default=None, alias="SUPABASE_JWKS_URL")
+    supabase_jwt_issuer: Optional[str] = Field(
+        default=None, alias="SUPABASE_JWT_ISSUER"
+    )
+    supabase_jwt_audience: str = Field(
+        default="authenticated", alias="SUPABASE_JWT_AUDIENCE"
+    )
+    supabase_jwt_secret: Optional[SecretStr] = Field(
+        default=None, alias="SUPABASE_JWT_SECRET"
+    )
+    supabase_service_key: Optional[str] = Field(
+        default=None, alias="SUPABASE_SERVICE_KEY"
+    )
+    supabase_answers_table: str = Field(
+        default="answers", alias="SUPABASE_ANSWERS_TABLE"
+    )
+    supabase_progress_table: str = Field(
+        default="user_progress", alias="SUPABASE_PROGRESS_TABLE"
+    )
+    supabase_user_table: str = Field(default="user_plan", alias="SUPABASE_USER_TABLE")
+    supabase_badges_table: str = Field(default="badges", alias="SUPABASE_BADGES_TABLE")
+    evaluation_model: str = Field(default="gpt-4o-mini", alias="EVALUATION_MODEL")
+    evaluation_timeout_seconds: float = Field(
+        default=12.0, alias="EVALUATION_TIMEOUT_SECONDS"
+    )
+    evaluation_user_requests_per_5_minutes: int = Field(
+        default=3, alias="EVALUATION_USER_REQUESTS_PER_5_MINUTES"
+    )
+    evaluation_global_requests_per_minute: int = Field(
+        default=60, alias="EVALUATION_GLOBAL_REQUESTS_PER_MINUTE"
+    )
+    evaluation_max_concurrency: int = Field(
+        default=8, alias="EVALUATION_MAX_CONCURRENCY"
+    )
+    paddle_api_key: Optional[str] = Field(default=None, alias="PADDLE_API_KEY")
+    paddle_price_id: Optional[str] = Field(default=None, alias="PADDLE_PRICE_ID")
+    paddle_allowed_price_ids: Optional[str] = Field(
+        default=None, alias="PADDLE_ALLOWED_PRICE_IDS"
+    )
+    paddle_return_url: Optional[str] = Field(default=None, alias="PADDLE_RETURN_URL")
+    paddle_cancel_url: Optional[str] = Field(default=None, alias="PADDLE_CANCEL_URL")
+    paddle_webhook_secret: Optional[str] = Field(
+        default=None, alias="PADDLE_WEBHOOK_SECRET"
+    )
+    paddle_webhook_tolerance_seconds: int = Field(
+        default=5, alias="PADDLE_WEBHOOK_TOLERANCE_SECONDS"
+    )
+    paddle_checkout_correlation_ttl_minutes: int = Field(
+        default=60,
+        alias="PADDLE_CHECKOUT_CORRELATION_TTL_MINUTES",
+    )
+    paddle_past_due_grace_days: int = Field(
+        default=7, alias="PADDLE_PAST_DUE_GRACE_DAYS"
+    )
+    paddle_reconciliation_max_pages: int = Field(
+        default=100, alias="PADDLE_RECONCILIATION_MAX_PAGES"
+    )
+    paddle_api_url: str = Field(
+        default="https://api.paddle.com", alias="PADDLE_API_URL"
+    )
+    paddle_classic_vendor_id: Optional[str] = Field(
+        default=None, alias="PADDLE_CLASSIC_VENDOR_ID"
+    )
+    paddle_classic_auth_code: Optional[str] = Field(
+        default=None, alias="PADDLE_CLASSIC_AUTH_CODE"
+    )
+    paddle_classic_product_id: Optional[str] = Field(
+        default=None, alias="PADDLE_CLASSIC_PRODUCT_ID"
+    )
+    paddle_classic_sandbox: bool = Field(default=False, alias="PADDLE_CLASSIC_SANDBOX")
+    default_timer_seconds: int = Field(default=300, alias="DEFAULT_TIMER_SECONDS")
+    application_timezone: str = Field(default="UTC", alias="APPLICATION_TIMEZONE")
+    xp_max: int = Field(default=100, alias="XP_MAX")
+    allowed_origins: List[str] = Field(
+        default_factory=lambda: ["http://localhost:3000"],
+        alias="ALLOWED_ORIGINS",
+    )
+
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        populate_by_name = True
+
+
+@lru_cache
+def get_settings() -> Settings:
+    """Return cached settings instance."""
+
+    return Settings()  # type: ignore[arg-type]

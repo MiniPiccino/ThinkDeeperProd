@@ -1,0 +1,190 @@
+from __future__ import annotations
+
+from datetime import date, datetime, timedelta, timezone
+from typing import Dict, List, Optional
+
+from ..models.reflection import (
+    ReflectionDaySummary,
+    ReflectionEntry,
+    ReflectionHistoryItem,
+    ReflectionOverview,
+    ReflectionTeaser,
+)
+from ..repositories import AnswerRepository, QuestionRepository, StoredAnswer
+from .entitlement_service import EntitlementService
+
+
+class ReflectionService:
+    """Builds reflection summaries backed by stored answers."""
+
+    WEEK_DAYS = 7
+    MAX_RECENT_FETCH = 90
+
+    def __init__(
+        self,
+        answer_repository: AnswerRepository,
+        question_repository: QuestionRepository,
+        entitlement_service: EntitlementService,
+    ) -> None:
+        self._answers = answer_repository
+        self._questions = question_repository
+        self._entitlements = entitlement_service
+
+    def overview(self, user_id: str, tz_offset_minutes: int = 0) -> ReflectionOverview:
+        entitlement = self._entitlements.display_entitlement_for(user_id)
+        is_premium = entitlement.is_active()
+        plan = "premium" if is_premium else "free"
+        today = self._local_date(tz_offset_minutes)
+        recent_answers = self._answers.recent_answers(
+            user_id, limit=self.MAX_RECENT_FETCH
+        )
+        answers_by_date: Dict[date, StoredAnswer] = {}
+        answered_dates: list[date] = []
+        for stored in recent_answers:
+            day = stored.question_date or self._local_date_from_timestamp(
+                stored.created_at, tz_offset_minutes
+            )
+            if day not in answers_by_date:
+                answers_by_date[day] = stored
+            answered_dates.append(day)
+
+        today_entry = answers_by_date.get(today)
+        weekly_blocks = self._weekly_summaries(
+            today, answers_by_date, tz_offset_minutes, allow_history=is_premium
+        )
+        teasers = []
+        if not is_premium:
+            week_start = today - timedelta(days=today.weekday())
+            older = [
+                entry
+                for entry in recent_answers
+                if (entry.question_date or entry.created_at.date()) < week_start
+            ]
+            teasers = [
+                self._teaser_payload(entry)
+                for entry in older[:2]
+                if entry.answer.strip()
+            ]
+
+        overview = ReflectionOverview(
+            plan=plan,
+            today=self._entry_payload(today_entry) if today_entry else None,
+            todayLocked=today_entry is None,
+            week=weekly_blocks,
+            teasers=teasers,
+            timelineUnlocked=is_premium,
+            answeredDates=[d.isoformat() for d in sorted(set(answered_dates))],
+        )
+        return overview
+
+    def history(
+        self, user_id: str, limit: int = 50, search: Optional[str] = None
+    ) -> List[ReflectionHistoryItem]:
+        answers = self._answers.recent_answers(user_id, limit=None)
+        items: List[ReflectionHistoryItem] = []
+        query = (search or "").strip().lower()
+        for stored in answers:
+            prompt, theme = self._question_meta(stored)
+            excerpt = self._excerpt(stored.answer, 200)
+            combined = f"{prompt} {theme} {excerpt}".lower()
+            if query and query not in combined:
+                continue
+            items.append(
+                ReflectionHistoryItem(
+                    answeredAt=stored.created_at,
+                    prompt=prompt,
+                    theme=theme,
+                    questionId=stored.question_id,
+                    excerpt=excerpt,
+                    xpAwarded=stored.xp_awarded,
+                    durationSeconds=stored.duration_seconds,
+                )
+            )
+            if len(items) >= limit:
+                break
+        return items
+
+    def _weekly_summaries(
+        self,
+        reference_day: date,
+        answers_by_date: Dict[date, StoredAnswer],
+        tz_offset_minutes: int,
+        allow_history: bool,
+    ) -> List[ReflectionDaySummary]:
+        start_of_week = reference_day - timedelta(days=reference_day.weekday())
+        days = []
+        for offset in range(self.WEEK_DAYS):
+            current = start_of_week + timedelta(days=offset)
+            stored = answers_by_date.get(current)
+            entry_payload = self._entry_payload(stored) if stored else None
+            if not allow_history and current != reference_day:
+                entry_payload = None
+            days.append(
+                ReflectionDaySummary(
+                    date=current,
+                    weekday=current.strftime("%A"),
+                    hasEntry=stored is not None,
+                    entry=entry_payload,
+                )
+            )
+        return days
+
+    def _entry_payload(
+        self, stored: Optional[StoredAnswer]
+    ) -> Optional[ReflectionEntry]:
+        if not stored:
+            return None
+        prompt, theme = self._question_meta(stored)
+        excerpt = self._excerpt(stored.answer)
+        return ReflectionEntry(
+            questionId=stored.question_id,
+            prompt=prompt,
+            theme=theme,
+            answeredAt=stored.created_at,
+            xpAwarded=stored.xp_awarded,
+            durationSeconds=stored.duration_seconds,
+            excerpt=excerpt,
+            answer=stored.answer,
+            feedback=stored.feedback or None,
+        )
+
+    def _teaser_payload(self, stored: StoredAnswer) -> ReflectionTeaser:
+        prompt, _ = self._question_meta(stored)
+        return ReflectionTeaser(
+            questionId=stored.question_id,
+            prompt=prompt,
+            answeredAt=stored.created_at,
+            snippet=self._excerpt(stored.answer, 140),
+        )
+
+    def _question_meta(self, stored: StoredAnswer) -> tuple[str, str]:
+        if stored.question_text:
+            return stored.question_text, stored.question_theme or "Unknown theme"
+        try:
+            question = self._questions.get_by_id(
+                stored.catalog_question_id or stored.question_id
+            )
+            return question.prompt, question.theme
+        except KeyError:
+            return ("Daily reflection", "Unknown theme")
+
+    @staticmethod
+    def _excerpt(answer: str, limit: int = 220) -> str:
+        text = answer.strip()
+        if len(text) <= limit:
+            return text
+        return text[: limit - 1].rstrip() + "…"
+
+    @staticmethod
+    def _local_date_from_timestamp(timestamp: datetime, tz_offset_minutes: int) -> date:
+        aware = timestamp
+        if timestamp.tzinfo is None:
+            aware = timestamp.replace(tzinfo=timezone.utc)
+        utc_value = aware.astimezone(timezone.utc)
+        local_dt = utc_value - timedelta(minutes=tz_offset_minutes)
+        return local_dt.date()
+
+    @staticmethod
+    def _local_date(tz_offset_minutes: int) -> date:
+        now_utc = datetime.now(timezone.utc)
+        return (now_utc - timedelta(minutes=tz_offset_minutes)).date()
