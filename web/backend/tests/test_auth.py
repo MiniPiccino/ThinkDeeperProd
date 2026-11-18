@@ -213,6 +213,19 @@ def test_token_subject_must_be_supabase_uuid(auth_client: TestClient) -> None:
     assert response.status_code == 401
 
 
+def test_modern_server_api_key_does_not_authenticate_invalid_user_jwt(
+    auth_client: TestClient,
+    auth_settings: Settings,
+) -> None:
+    auth_settings.supabase_service_key = "sb_secret_test-only-placeholder"
+
+    response = auth_client.get(
+        "/v1/badges", headers={"Authorization": "Bearer not-a-user-jwt"}
+    )
+
+    assert response.status_code == 401
+
+
 def test_asymmetric_token_uses_jwks_signing_key() -> None:
     private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     now = datetime.now(timezone.utc)

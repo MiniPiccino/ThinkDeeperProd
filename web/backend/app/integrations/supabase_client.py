@@ -9,7 +9,11 @@ import httpx
 class SupabaseClient:
     """Minimal PostgREST client for Supabase REST endpoints."""
 
+    MODERN_SECRET_KEY_PREFIX = "sb_secret_"
+
     def __init__(self, project_url: str, service_key: str, timeout: float = 10.0) -> None:
+        if not service_key or not service_key.strip():
+            raise ValueError("A Supabase server API key is required.")
         base = project_url.rstrip("/")
         if not base.endswith("/rest/v1"):
             base = f"{base}/rest/v1"
@@ -105,9 +109,13 @@ class SupabaseClient:
     def _headers(self, *, prefer: Optional[str] = None) -> Dict[str, str]:
         headers = {
             "apikey": self._service_key,
-            "Authorization": f"Bearer {self._service_key}",
             "Content-Type": "application/json",
         }
+        # Modern Supabase secret keys are opaque API keys, not JWTs. Legacy
+        # service-role keys are JWTs and remain compatible with the historical
+        # Authorization header expected by PostgREST.
+        if not self._service_key.startswith(self.MODERN_SECRET_KEY_PREFIX):
+            headers["Authorization"] = f"Bearer {self._service_key}"
         if prefer:
             headers["Prefer"] = prefer
         return headers
