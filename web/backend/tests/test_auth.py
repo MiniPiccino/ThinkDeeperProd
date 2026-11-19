@@ -3,11 +3,16 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 import jwt
 import pytest
-from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.asymmetric import ec, rsa
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.api.deps import get_answer_service, get_question_service, get_settings_dependency
+from app.api.deps import (
+    get_answer_service,
+    get_question_service,
+    get_settings_dependency,
+    get_token_verifier,
+)
 from app.api.routes import router as api_router
 from app.config import Settings
 from app.repositories import ProgressRepository
@@ -256,3 +261,97 @@ def test_asymmetric_token_uses_jwks_signing_key() -> None:
     principal = verifier.verify(token)
 
     assert principal.user_id == USER_A
+
+
+def test_es256_token_uses_supabase_jwks_signing_key() -> None:
+    private_key = ec.generate_private_key(ec.SECP256R1())
+    now = datetime.now(timezone.utc)
+    token = jwt.encode(
+        {
+            "sub": USER_A,
+            "role": "authenticated",
+            "aud": AUDIENCE,
+            "iss": ISSUER,
+            "iat": now,
+            "exp": now + timedelta(minutes=10),
+        },
+        private_key,
+        algorithm="ES256",
+        headers={"kid": "staging-es256-test-key"},
+    )
+    verifier = SupabaseTokenVerifier(
+        issuer=ISSUER,
+        audience=AUDIENCE,
+        jwks_url="https://test-project.supabase.co/auth/v1/.well-known/jwks.json",
+    )
+    verifier._jwks_client = type(  # type: ignore[attr-defined]
+        "StaticJwksClient",
+        (),
+        {
+            "get_signing_key_from_jwt": lambda self, raw: type(
+                "Key", (), {"key": private_key.public_key()}
+            )()
+        },
+    )()
+
+    principal = verifier.verify(token)
+
+    assert principal.user_id == USER_A
+    assert principal.role == "authenticated"
+
+
+def test_supabase_url_defaults_match_staging_issuer_and_jwks(
+    tmp_settings: Settings,
+) -> None:
+    values = tmp_settings.model_dump(by_alias=True)
+    values.update(
+        {
+            "SUPABASE_URL": "https://staging-project.supabase.co/",
+            "SUPABASE_JWT_ISSUER": None,
+            "SUPABASE_JWKS_URL": None,
+            "SUPABASE_JWT_SECRET": None,
+        }
+    )
+
+    verifier = get_token_verifier(Settings(**values))
+
+    assert verifier._issuer == "https://staging-project.supabase.co/auth/v1"
+    assert (
+        verifier._jwks_client.uri
+        == "https://staging-project.supabase.co/auth/v1/.well-known/jwks.json"
+    )
+
+
+def test_missing_crypto_is_reported_as_server_configuration_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.security import auth as auth_module
+
+    private_key = ec.generate_private_key(ec.SECP256R1())
+    token = _token(secret=private_key, algorithm="ES256")
+    verifier = SupabaseTokenVerifier(
+        issuer=ISSUER,
+        audience=AUDIENCE,
+        jwks_url="https://test-project.supabase.co/auth/v1/.well-known/jwks.json",
+    )
+    monkeypatch.setattr(auth_module, "has_crypto", False)
+
+    with pytest.raises(auth_module.AuthConfigurationError, match="cryptography"):
+        verifier.verify(token)
+
+
+def test_invalid_token_is_logged_without_token_value(
+    auth_client: TestClient,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    invalid_token = "invalid-token-value-that-must-not-be-logged"
+
+    with caplog.at_level("WARNING", logger="app.api.deps"):
+        response = auth_client.get(
+            "/v1/badges", headers={"Authorization": f"Bearer {invalid_token}"}
+        )
+
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Invalid or expired session."}
+    assert "Malformed access token." in caplog.text
+    assert invalid_token not in caplog.text

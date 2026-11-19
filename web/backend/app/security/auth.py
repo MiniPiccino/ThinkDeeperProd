@@ -5,6 +5,7 @@ from typing import Any, Mapping
 from uuid import UUID
 
 import jwt
+from jwt.algorithms import has_crypto
 from jwt import InvalidTokenError, PyJWKClient, PyJWKClientError
 
 
@@ -66,6 +67,10 @@ class SupabaseTokenVerifier:
             key: Any = self._legacy_jwt_secret
             algorithms = [self.LEGACY_ALGORITHM]
         elif algorithm in self.ASYMMETRIC_ALGORITHMS:
+            if not has_crypto:
+                raise AuthConfigurationError(
+                    "The cryptography package is required to verify asymmetric access tokens."
+                )
             try:
                 key = self._jwks_client.get_signing_key_from_jwt(token).key
             except (PyJWKClientError, InvalidTokenError) as exc:

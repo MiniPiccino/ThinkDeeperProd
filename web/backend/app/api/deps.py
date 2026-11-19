@@ -1,4 +1,5 @@
 from functools import lru_cache
+import logging
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -52,6 +53,7 @@ _BADGE_SERVICE: BadgeService | None = None
 _SUPABASE_CLIENT: SupabaseClient | None = None
 _BILLING_SERVICE: BillingService | None = None
 _BEARER_SCHEME = HTTPBearer(auto_error=False)
+logger = logging.getLogger(__name__)
 
 
 def _question_repository(settings: Settings) -> QuestionRepository:
@@ -282,6 +284,12 @@ def get_optional_principal(
             detail="Authentication is not configured for this token type.",
         ) from exc
     except TokenValidationError as exc:
+        cause = exc.__cause__
+        logger.warning(
+            "User JWT verification failed: %s (cause=%s)",
+            exc,
+            type(cause).__name__ if cause is not None else "none",
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired session.",
