@@ -144,6 +144,7 @@ def billing_settings(tmp_settings: Settings) -> Settings:
     values.update(
         {
             "PADDLE_API_KEY": "pdl_sdbx_test",
+            "PADDLE_ENVIRONMENT": "sandbox",
             "PADDLE_PRICE_ID": "pri_monthly",
             "PADDLE_ALLOWED_PRICE_IDS": "pri_monthly,pri_yearly",
             "PADDLE_RETURN_URL": "https://example.test/growth",
@@ -376,8 +377,40 @@ def test_checkout_uses_server_correlation_not_user_custom_data(
     url = service.create_checkout_session(USER_A, price_id="pri_yearly")
     assert url == "https://pay.test/checkout"
     assert "userId" not in captured["custom_data"]
+    assert captured["checkout"] == {"url": "https://example.test/growth"}
+    assert "return_url" not in captured
+    assert "cancel_url" not in captured
     correlation_id = captured["custom_data"]["thinkle_checkout_id"]
     assert repository.correlations[correlation_id].user_id == USER_A
+
+
+def test_staging_rejects_live_paddle_configuration(
+    repository: MemoryBillingRepository,
+    billing_settings: Settings,
+) -> None:
+    values = billing_settings.model_dump(by_alias=True)
+    values.update(
+        {
+            "DEPLOYMENT_ENVIRONMENT": "staging",
+            "PADDLE_ENVIRONMENT": "live",
+            "PADDLE_API_URL": "https://api.paddle.com",
+            "PADDLE_API_KEY": "pdl_live_test",
+        }
+    )
+    service = BillingService(repository, Settings(**values), clock=lambda: NOW)
+    with pytest.raises(BillingConfigError, match="Staging billing must use Paddle sandbox"):
+        service.create_checkout_session(USER_A)
+
+
+def test_paddle_environment_url_mismatch_fails_closed(
+    repository: MemoryBillingRepository,
+    billing_settings: Settings,
+) -> None:
+    values = billing_settings.model_dump(by_alias=True)
+    values["PADDLE_API_URL"] = "https://api.paddle.com"
+    service = BillingService(repository, Settings(**values), clock=lambda: NOW)
+    with pytest.raises(BillingConfigError, match="environment and API URL"):
+        service.create_checkout_session(USER_A)
 
 
 def test_database_failure_fails_closed(

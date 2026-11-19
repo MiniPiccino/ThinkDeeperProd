@@ -7,6 +7,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Callable
+from urllib.parse import urlparse
 from uuid import uuid4
 
 import httpx
@@ -74,6 +75,22 @@ class BillingService:
     def _ensure_billing_enabled(self) -> None:
         if not self._settings.paddle_api_key:
             raise BillingConfigError("Paddle Billing is not configured.")
+        environment = self._settings.paddle_environment
+        expected_url = (
+            "https://sandbox-api.paddle.com"
+            if environment == "sandbox"
+            else "https://api.paddle.com"
+        )
+        if self._base_url != expected_url:
+            raise BillingConfigError("Paddle environment and API URL do not match.")
+        is_sandbox_key = "_sdbx" in self._settings.paddle_api_key
+        if (environment == "sandbox") != is_sandbox_key:
+            raise BillingConfigError("Paddle credential and environment do not match.")
+        if (
+            self._settings.deployment_environment == "staging"
+            and environment != "sandbox"
+        ):
+            raise BillingConfigError("Staging billing must use Paddle sandbox.")
 
     def _headers(self) -> dict[str, str]:
         return {
@@ -91,8 +108,6 @@ class BillingService:
     def create_checkout_session(
         self,
         user_id: str,
-        success_url: str | None = None,
-        cancel_url: str | None = None,
         price_id: str | None = None,
     ) -> str:
         """Create a server-owned Paddle transaction and durable ownership correlation."""
@@ -100,8 +115,14 @@ class BillingService:
         selected_price = price_id or self._settings.paddle_price_id
         if not selected_price or selected_price not in self._allowed_price_ids():
             raise BillingRequestError("The requested billing price is not available.")
-        if not (success_url or self._settings.paddle_return_url):
-            raise BillingConfigError("Paddle return URL is not configured.")
+        checkout_url = (
+            self._settings.paddle_checkout_url or self._settings.paddle_return_url
+        )
+        if not checkout_url:
+            raise BillingConfigError("Paddle checkout URL is not configured.")
+        parsed_checkout_url = urlparse(checkout_url)
+        if parsed_checkout_url.scheme != "https" or not parsed_checkout_url.netloc:
+            raise BillingConfigError("Paddle checkout URL must be HTTPS.")
 
         now = datetime.fromtimestamp(self._clock(), tz=timezone.utc)
         correlation = CheckoutCorrelation(
@@ -120,11 +141,7 @@ class BillingService:
         payload: dict[str, Any] = {
             "items": [{"price_id": selected_price, "quantity": 1}],
             "custom_data": {"thinkle_checkout_id": correlation.correlation_id},
-            "return_url": success_url or self._settings.paddle_return_url,
-            "cancel_url": cancel_url
-            or self._settings.paddle_cancel_url
-            or success_url
-            or self._settings.paddle_return_url,
+            "checkout": {"url": checkout_url},
         }
         response = httpx.post(
             f"{self._base_url}/transactions",

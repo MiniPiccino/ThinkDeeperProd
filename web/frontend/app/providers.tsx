@@ -1,6 +1,6 @@
 'use client';
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import type { User } from '@supabase/supabase-js';
 import { ReactNode, createContext, useContext, useEffect, useReducer, useState } from 'react';
 
@@ -14,6 +14,7 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue>({ user: null, loading: true });
 
 function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [value, dispatch] = useReducer(
     (_: AuthContextValue, next: AuthContextValue) => next,
     {
@@ -34,15 +35,20 @@ function AuthProvider({ children }: { children: ReactNode }) {
       dispatch({ user: data.session?.user ?? null, loading: false });
     });
 
-    const { data: subscription } = supabaseClient.auth.onAuthStateChange((_event, session) => {
+    const { data: subscription } = supabaseClient.auth.onAuthStateChange((event, session) => {
       dispatch({ user: session?.user ?? null, loading: false });
+      if (event === 'SIGNED_OUT') {
+        queryClient.clear();
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+        void queryClient.invalidateQueries();
+      }
     });
 
     return () => {
       active = false;
       subscription.subscription.unsubscribe();
     };
-  }, []);
+  }, [queryClient]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
@@ -65,8 +71,8 @@ export function Providers({ children }: { children: ReactNode }) {
   );
 
   return (
-    <AuthProvider>
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
-    </AuthProvider>
+    <QueryClientProvider client={client}>
+      <AuthProvider>{children}</AuthProvider>
+    </QueryClientProvider>
   );
 }

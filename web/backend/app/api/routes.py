@@ -29,8 +29,6 @@ router = APIRouter(prefix="/v1", tags=["v1"])
 
 
 class CheckoutRequest(BaseModel):
-    successUrl: str | None = None
-    cancelUrl: str | None = None
     priceId: str | None = None
 
     model_config = ConfigDict(extra="forbid")
@@ -139,8 +137,6 @@ async def create_checkout_session(
     try:
         url = billing_service.create_checkout_session(
             user_id=user_id,
-            success_url=payload.successUrl,
-            cancel_url=payload.cancelUrl,
             price_id=payload.priceId,
         )
         return {"checkoutUrl": url}

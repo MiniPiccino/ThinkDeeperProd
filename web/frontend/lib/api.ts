@@ -1,4 +1,7 @@
 import { supabaseClient } from "@/lib/supabaseClient";
+import { assertStagingPublicConfiguration } from "@/lib/environment";
+
+assertStagingPublicConfiguration();
 
 export type DailyQuestionResponse = {
   id: string;
@@ -138,6 +141,14 @@ export type PaddleConfirmResponse = {
   confirmed: boolean;
 };
 
+export type BadgeResponse = {
+  id: string;
+  week_index: number;
+  theme: string;
+  name: string;
+  earned_at: string;
+};
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS === "true";
@@ -147,32 +158,77 @@ type FetchOptions = RequestInit & {
   auth?: "optional" | "required";
 };
 
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+async function getAccessToken(auth: FetchOptions["auth"]): Promise<string | null> {
+  if (!auth || !supabaseClient) {
+    return null;
+  }
+  const { data, error } = await supabaseClient.auth.getSession();
+  if (error) {
+    throw new Error("Unable to verify your session. Please sign in again.");
+  }
+  return data.session?.access_token ?? null;
+}
+
+async function parseError(response: Response): Promise<ApiError> {
+  let message = `Request failed: ${response.status}`;
+  try {
+    const body = (await response.json()) as { detail?: unknown };
+    if (typeof body.detail === "string" && body.detail.trim()) {
+      message = body.detail;
+    }
+  } catch {
+    // Keep the status-only message. Never reflect an arbitrary HTML error body.
+  }
+  return new ApiError(message, response.status);
+}
+
 async function request<T>(path: string, options: FetchOptions = {}): Promise<T> {
   const { auth, ...fetchOptions } = options;
-  let accessToken: string | null = null;
-  if (auth && supabaseClient) {
-    const { data, error } = await supabaseClient.auth.getSession();
-    if (error) {
-      throw new Error("Unable to verify your session. Please sign in again.");
-    }
-    accessToken = data.session?.access_token ?? null;
-  }
+  let accessToken = await getAccessToken(auth);
   if (auth === "required" && !accessToken) {
     throw new Error("Sign in to continue.");
   }
   const url = new URL(path, API_BASE_URL);
-  const response = await fetch(url, {
-    ...fetchOptions,
-    headers: {
-      "Content-Type": "application/json",
-      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-      ...(options.headers ?? {}),
-    },
-  });
+  const execute = (token: string | null) =>
+    fetch(url, {
+      ...fetchOptions,
+      headers: {
+        "Content-Type": "application/json",
+        ...(options.headers ?? {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+  let response = await execute(accessToken);
+
+  if (response.status === 401 && accessToken && supabaseClient) {
+    const { data, error } = await supabaseClient.auth.refreshSession();
+    accessToken = error ? null : data.session?.access_token ?? null;
+    if (accessToken) {
+      response = await execute(accessToken);
+    } else {
+      await supabaseClient.auth.signOut({ scope: "local" });
+      if (auth === "optional") {
+        response = await execute(null);
+      }
+    }
+  }
 
   if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || `Request failed: ${response.status}`);
+    if (response.status === 401) {
+      throw new ApiError("Your session expired. Please sign in again.", 401);
+    }
+    throw await parseError(response);
   }
 
   return (await response.json()) as T;
@@ -222,14 +278,17 @@ export function fetchReflectionHistory(limit = 50, search?: string): Promise<Ref
   });
 }
 
-export function createCheckoutSession(successUrl?: string, cancelUrl?: string, priceId?: string): Promise<CheckoutResponse> {
+export function fetchBadges(): Promise<BadgeResponse[]> {
+  return request<BadgeResponse[]>("/v1/badges", {
+    cache: "no-store",
+    auth: "required",
+  });
+}
+
+export function createCheckoutSession(priceId?: string): Promise<CheckoutResponse> {
   return request<CheckoutResponse>("/v1/billing/checkout", {
     method: "POST",
-    body: JSON.stringify({
-      successUrl,
-      cancelUrl,
-      priceId,
-    }),
+    body: JSON.stringify({ priceId }),
     auth: "required",
   });
 }

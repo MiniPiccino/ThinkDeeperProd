@@ -44,7 +44,9 @@ GOOGLE_APPLICATION_CREDENTIALS_JSON='{"type":"service_account", ...}'  # optiona
 | `SUPABASE_ANSWERS_TABLE` | Table name for persisted answers (defaults to `answers`). |
 | `SUPABASE_PROGRESS_TABLE` | Table name for user progress rows (defaults to `user_progress`). |
 | `PADDLE_API_KEY` | Secret Paddle Billing API key. Use a sandbox key outside production. |
+| `PADDLE_ENVIRONMENT` | `sandbox` or `live`; must agree with the API URL and credential. Staging requires `sandbox`. |
 | `PADDLE_API_URL` | Sandbox or production Paddle Billing API base URL. |
+| `PADDLE_CHECKOUT_URL` | Stable HTTPS app URL serving `/checkout`; Paddle appends the transaction ID. |
 | `PADDLE_PRICE_ID` | Default recurring price accepted by server-created checkout. |
 | `PADDLE_ALLOWED_PRICE_IDS` | Comma-separated recurring price allowlist; browser price IDs grant no authority. |
 | `PADDLE_WEBHOOK_SECRET` | Endpoint secret for the exact Paddle notification destination. |

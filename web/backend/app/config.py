@@ -1,6 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings
@@ -73,11 +73,15 @@ class Settings(BaseSettings):
         default=8, alias="EVALUATION_MAX_CONCURRENCY"
     )
     paddle_api_key: Optional[str] = Field(default=None, alias="PADDLE_API_KEY")
+    paddle_environment: Literal["sandbox", "live"] = Field(
+        default="live", alias="PADDLE_ENVIRONMENT"
+    )
     paddle_price_id: Optional[str] = Field(default=None, alias="PADDLE_PRICE_ID")
     paddle_allowed_price_ids: Optional[str] = Field(
         default=None, alias="PADDLE_ALLOWED_PRICE_IDS"
     )
     paddle_return_url: Optional[str] = Field(default=None, alias="PADDLE_RETURN_URL")
+    paddle_checkout_url: Optional[str] = Field(default=None, alias="PADDLE_CHECKOUT_URL")
     paddle_cancel_url: Optional[str] = Field(default=None, alias="PADDLE_CANCEL_URL")
     paddle_webhook_secret: Optional[str] = Field(
         default=None, alias="PADDLE_WEBHOOK_SECRET"
@@ -97,6 +101,9 @@ class Settings(BaseSettings):
     )
     paddle_api_url: str = Field(
         default="https://api.paddle.com", alias="PADDLE_API_URL"
+    )
+    deployment_environment: Literal["local", "staging", "production"] = Field(
+        default="local", alias="DEPLOYMENT_ENVIRONMENT"
     )
     paddle_classic_vendor_id: Optional[str] = Field(
         default=None, alias="PADDLE_CLASSIC_VENDOR_ID"

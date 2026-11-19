@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { StreakReplay } from "@/components/StreakTree";
 import { FloatingAction } from "@/components/FloatingAction";
-import { createCheckoutSession, fetchDailyQuestion, fetchReflectionHistory, fetchReflectionOverview } from "@/lib/api";
+import { createCheckoutSession, fetchBadges, fetchDailyQuestion, fetchReflectionHistory, fetchReflectionOverview } from "@/lib/api";
 import { useUserIdentifier } from "@/hooks/useUserIdentifier";
 import { TREE_ANIMATION_UNLOCK_STREAK } from "@/constants/experience";
 
@@ -283,6 +283,13 @@ export function GrowthClient() {
     queryKey: ["reflection-history", userId],
     queryFn: () => fetchReflectionHistory(50),
     enabled: Boolean(userId && reflectionData?.timelineUnlocked),
+    staleTime: 0,
+    retry: false,
+  });
+  const { data: persistedBadges = [] } = useQuery({
+    queryKey: ["badges", userId],
+    queryFn: fetchBadges,
+    enabled: Boolean(userId),
     staleTime: 0,
     retry: false,
   });
@@ -754,7 +761,7 @@ export function GrowthClient() {
       }
       answeredDaysByWeek.get(weekIdx)?.add(dayIdx);
     });
-    const earnedWeeks = new Set<number>();
+    const earnedWeeks = new Set<number>(persistedBadges.map((badge) => badge.week_index));
     answeredDaysByWeek.forEach((days, weekIdx) => {
       if (days.size >= DAYS_PER_WEEK_TOTAL) {
         earnedWeeks.add(weekIdx);
@@ -788,6 +795,7 @@ export function GrowthClient() {
     return { catalog, earnedCount: earnedWeeks.size, progressPercent, completed, totalDays };
   }, [
     reflectionData?.answeredDates,
+    persistedBadges,
     weekBadgeEarned,
     mondayWeekIndex,
     weeklyBadgeCatalog,
@@ -836,10 +844,7 @@ export function GrowthClient() {
     }
     setUpgradeLoading(true);
     try {
-      const origin = typeof window !== "undefined" ? window.location.origin : undefined;
-      const successUrl = origin ? `${origin}/growth?plan=premium` : undefined;
-      const cancelUrl = origin ? `${origin}/growth?plan=free` : undefined;
-      const { checkoutUrl } = await createCheckoutSession(successUrl, cancelUrl);
+      const { checkoutUrl } = await createCheckoutSession();
       if (!checkoutUrl) {
         throw new Error("Checkout link missing from server.");
       }

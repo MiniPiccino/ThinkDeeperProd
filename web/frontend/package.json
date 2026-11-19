@@ -10,6 +10,7 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@paddle/paddle-js": "^1.6.6",
     "@supabase/supabase-js": "^2.80.0",
     "@tanstack/react-query": "^5.51.0",
     "next": "^16.4.6",
@@ -22,15 +23,16 @@
     "@testing-library/jest-dom": "^6.4.3",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.5.2",
-    "@types/node": "^20",
+    "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@vitest/coverage-v8": "^2.1.1",
+    "@vitest/coverage-v8": "^5.1.1",
     "eslint": "^9",
     "eslint-config-next": "16.0.1",
     "jsdom": "^24.0.0",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^2.1.1"
+    "vite": "^7.2.2",
+    "vitest": "^5.1.1"
   }
 }

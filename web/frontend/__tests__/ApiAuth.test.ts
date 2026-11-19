@@ -1,10 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getSession } = vi.hoisted(() => ({ getSession: vi.fn() }));
+const { getSession, refreshSession, signOut } = vi.hoisted(() => ({
+  getSession: vi.fn(),
+  refreshSession: vi.fn(),
+  signOut: vi.fn(),
+}));
 
 vi.mock("@/lib/supabaseClient", () => ({
   supabaseClient: {
-    auth: { getSession },
+    auth: { getSession, refreshSession, signOut },
   },
 }));
 
@@ -17,6 +21,11 @@ describe("API authentication", () => {
       data: { session: { access_token: "signed-access-token" } },
       error: null,
     });
+    refreshSession.mockResolvedValue({
+      data: { session: { access_token: "refreshed-access-token" } },
+      error: null,
+    });
+    signOut.mockResolvedValue({ error: null });
   });
 
   it("adds the Supabase bearer token and omits selectable user identity", async () => {
@@ -60,5 +69,33 @@ describe("API authentication", () => {
     await expect(
       submitAnswer({ questionId: "week-1-day-1", answer: "Answer", durationSeconds: 10 }),
     ).rejects.toThrow("Sign in to continue.");
+  });
+
+  it("refreshes an expired token once and retries with the new access token", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({ detail: "expired" }) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ feedback: "ok" }) });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await submitAnswer({ questionId: "week-1-day-1", answer: "Answer", durationSeconds: 10 });
+
+    expect(refreshSession).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[1][1].headers.Authorization).toBe("Bearer refreshed-access-token");
+  });
+
+  it("signs out locally and fails closed when token refresh fails", async () => {
+    refreshSession.mockResolvedValue({ data: { session: null }, error: new Error("refresh failed") });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: async () => ({ detail: "expired" }),
+    }));
+
+    await expect(
+      submitAnswer({ questionId: "week-1-day-1", answer: "Answer", durationSeconds: 10 }),
+    ).rejects.toThrow("Your session expired. Please sign in again.");
+    expect(signOut).toHaveBeenCalledWith({ scope: "local" });
   });
 });

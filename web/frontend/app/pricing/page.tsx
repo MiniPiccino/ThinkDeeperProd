@@ -29,12 +29,7 @@ export default function PricingPage() {
       if (!priceId) {
         throw new Error("Missing Paddle price ID.");
       }
-      const origin = window.location.origin;
-      const { checkoutUrl } = await createCheckoutSession(
-        `${origin}/growth?plan=premium`,
-        `${origin}/growth?plan=free`,
-        priceId,
-      );
+      const { checkoutUrl } = await createCheckoutSession(priceId);
       if (!checkoutUrl) throw new Error("Paddle checkout not available yet.");
       window.location.href = checkoutUrl;
     } catch (err) {
