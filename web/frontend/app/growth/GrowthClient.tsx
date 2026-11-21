@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 
+import { useAuth } from "@/app/providers";
 import { StreakReplay } from "@/components/StreakTree";
 import { FloatingAction } from "@/components/FloatingAction";
 import { createCheckoutSession, fetchBadges, fetchDailyQuestion, fetchReflectionHistory, fetchReflectionOverview } from "@/lib/api";
@@ -254,6 +255,7 @@ function BadgePill({ title, icon, description, tone }: BadgePillProps) {
 }
 
 export function GrowthClient() {
+  const { loading: authLoading } = useAuth();
   const userId = useUserIdentifier();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -1252,9 +1254,22 @@ ${xrefPosition}
           ) : null}
         </header>
 
-        {!userId ? (
+        {authLoading ? (
           <div className="rounded-3xl border border-dashed border-slate-700/70 px-6 py-8 text-center text-sm text-slate-300">
             Linking your growth data…
+          </div>
+        ) : null}
+
+        {!authLoading && !userId ? (
+          <div className="rounded-3xl border border-dashed border-slate-700/70 px-6 py-8 text-center text-sm text-slate-300">
+            <p className="font-semibold text-slate-100">Sign in to view your growth</p>
+            <p className="mt-2">Your streaks, XP, badges, and reflection history are linked to your account.</p>
+            <Link
+              href="/"
+              className="mt-4 inline-flex rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-emerald-500"
+            >
+              Go to sign in
+            </Link>
           </div>
         ) : null}
 
