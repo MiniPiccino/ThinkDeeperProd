@@ -13,6 +13,7 @@ from .billing_repository import (
     PaddleEventMutation,
     SupabaseBillingRepository,
     UnavailableBillingRepository,
+    UserSubscription,
 )
 from .progress_repository import ProgressRepository
 from .question_repository import QuestionRepository
@@ -38,4 +39,5 @@ __all__ = [
     "PaddleEventMutation",
     "SupabaseBillingRepository",
     "UnavailableBillingRepository",
+    "UserSubscription",
 ]

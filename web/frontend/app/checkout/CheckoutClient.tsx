@@ -3,6 +3,7 @@
 import { initializePaddle, type PaddleEventData } from "@paddle/paddle-js";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { CheckoutShell } from "./CheckoutShell";
 import { useAuth } from "@/app/providers";
@@ -13,6 +14,7 @@ const TRANSACTION_PATTERN = /^txn_[a-z0-9]{26}$/;
 
 export function CheckoutClient() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   const openedRef = useRef(false);
@@ -61,6 +63,10 @@ export function CheckoutClient() {
       setMessage("Payment accepted. Confirming premium access…");
       try {
         await confirmPaddleTransaction(transactionId);
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["billing-status"] }),
+          queryClient.invalidateQueries({ queryKey: ["reflections"] }),
+        ]);
         router.replace("/growth?plan=premium");
       } catch {
         setMessage("Payment was accepted, but activation is still processing. Refresh Growth shortly.");
@@ -96,7 +102,7 @@ export function CheckoutClient() {
     return () => {
       active = false;
     };
-  }, [authLoading, configurationError, router, token, transactionId]);
+  }, [authLoading, configurationError, queryClient, router, token, transactionId]);
 
   return <CheckoutShell message={configurationError ?? message} />;
 }

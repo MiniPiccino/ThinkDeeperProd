@@ -141,6 +141,15 @@ export type PaddleConfirmResponse = {
   confirmed: boolean;
 };
 
+export type BillingStatusResponse = {
+  plan: "free" | "premium";
+  status: string;
+  premiumActive: boolean;
+  expiresAt: string | null;
+  cancelAtPeriodEnd: boolean;
+  managementAvailable: boolean;
+};
+
 export type BadgeResponse = {
   id: string;
   week_index: number;
@@ -305,6 +314,21 @@ export function confirmPaddleTransaction(transactionId: string): Promise<PaddleC
   return request<PaddleConfirmResponse>("/v1/billing/confirm", {
     method: "POST",
     body: JSON.stringify({ transactionId }),
+    auth: "required",
+  });
+}
+
+export function fetchBillingStatus(): Promise<BillingStatusResponse> {
+  return request<BillingStatusResponse>("/v1/billing/status", {
+    cache: "no-store",
+    auth: "required",
+  });
+}
+
+export function createSubscriptionManagementSession(): Promise<{ portalUrl: string }> {
+  return request<{ portalUrl: string }>("/v1/billing/manage", {
+    method: "POST",
+    body: JSON.stringify({}),
     auth: "required",
   });
 }

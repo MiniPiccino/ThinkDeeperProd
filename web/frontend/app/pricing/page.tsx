@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useCallback, useState } from "react";
 
 import { createCheckoutSession } from "@/lib/api";
-import { useUserIdentifier } from "@/hooks/useUserIdentifier";
+import { formatEntitlementDate } from "@/components/SubscriptionStatus";
+import { useBillingStatus } from "@/hooks/useBillingStatus";
 
 const FEATURES = [
   "Daily guided reflections with feedback",
@@ -14,13 +15,13 @@ const FEATURES = [
 ];
 
 export default function PricingPage() {
-  const userId = useUserIdentifier();
+  const { user, authLoading, data: billing, isLoading: billingLoading, isError: billingError, refetch } = useBillingStatus();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const startCheckout = useCallback(async (priceId: string) => {
     setError(null);
-    if (!userId) {
+    if (!user) {
       setError("Sign in first so we can attach premium to your account.");
       return;
     }
@@ -37,7 +38,14 @@ export default function PricingPage() {
       setError(message);
       setLoading(false);
     }
-  }, [userId]);
+  }, [user]);
+
+  const checking = authLoading || Boolean(user && billingLoading);
+  const canSubscribe = !checking && !billingError && (!user || billing?.premiumActive === false);
+  const entitlementDate = formatEntitlementDate(billing?.expiresAt ?? null);
+  const currentPlanLabel = billing?.cancelAtPeriodEnd && entitlementDate
+    ? `Premium active until ${entitlementDate}`
+    : "Premium Active";
 
   return (
     <div className="bg-black text-white">
@@ -46,31 +54,29 @@ export default function PricingPage() {
           <p className="text-xs uppercase tracking-[0.3em] text-emerald-200">Pricing</p>
           <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">One plan. Think deeper.</h1>
           <p className="text-base text-slate-300">
-            Pick monthly or yearly. Your reflections, streaks, and exports are unlocked on premium.
+            Your reflections, streaks, and exports are unlocked on premium.
           </p>
+          {checking ? <p className="text-sm text-slate-300">Checking your current plan…</p> : null}
+          {billingError ? (
+            <div className="space-y-2 text-sm text-amber-200">
+              <p>We couldn&apos;t verify your plan. Checkout is paused to protect against duplicate subscriptions.</p>
+              <button type="button" className="underline" onClick={() => void refetch()}>Try again</button>
+            </div>
+          ) : null}
           {error ? <p className="text-xs text-red-300">{error}</p> : null}
         </header>
 
-        <section className="grid gap-6 md:grid-cols-2">
+        <section className="mx-auto grid w-full max-w-xl gap-6">
           <PricingCard
-            title="Premium — Monthly"
+            title={billing?.premiumActive ? "Your Current Plan" : "Premium — Monthly"}
             price="€5"
             cadence="per month"
-            ctaLabel={loading ? "Connecting…" : "Start monthly"}
-            highlight="Flexibility to pause anytime."
+            ctaLabel={billing?.premiumActive ? currentPlanLabel : loading ? "Connecting…" : user ? "Start monthly" : "Sign in to subscribe"}
+            highlight={billing?.premiumActive ? currentPlanLabel : "Flexibility to cancel anytime."}
             priceId={process.env.NEXT_PUBLIC_PADDLE_PRICE_ID_MONTHLY ?? ""}
             onStartCheckout={startCheckout}
-            disabled={loading}
-          />
-          <PricingCard
-            title="Premium — Yearly"
-            price="€50"
-            cadence="per year"
-            ctaLabel={loading ? "Connecting…" : "Start yearly"}
-            highlight="Save 17% vs monthly. One receipt for the year."
-            priceId={process.env.NEXT_PUBLIC_PADDLE_PRICE_ID_YEARLY ?? ""}
-            onStartCheckout={startCheckout}
-            disabled={loading}
+            disabled={loading || !canSubscribe}
+            hideAction={Boolean(billing?.premiumActive)}
           />
         </section>
 
@@ -114,9 +120,10 @@ type PricingCardProps = {
   priceId: string;
   onStartCheckout: (priceId: string) => void;
   disabled?: boolean;
+  hideAction?: boolean;
 };
 
-function PricingCard({ title, price, cadence, ctaLabel, highlight, priceId, onStartCheckout, disabled }: PricingCardProps) {
+function PricingCard({ title, price, cadence, ctaLabel, highlight, priceId, onStartCheckout, disabled, hideAction }: PricingCardProps) {
   return (
     <div className="flex flex-col justify-between rounded-2xl border border-white/10 bg-white/5 p-6 shadow-lg shadow-emerald-500/5">
       <div className="space-y-3">
@@ -128,14 +135,18 @@ function PricingCard({ title, price, cadence, ctaLabel, highlight, priceId, onSt
           <span className="text-sm text-slate-400">{cadence}</span>
         </div>
       </div>
-      <button
+      {hideAction ? (
+        <div className="mt-6 rounded-full border border-emerald-400/40 px-4 py-2 text-center text-sm font-semibold text-emerald-200">
+          {ctaLabel}
+        </div>
+      ) : <button
         type="button"
         onClick={() => onStartCheckout(priceId)}
         disabled={disabled || !priceId}
         className="mt-6 inline-flex justify-center rounded-full bg-emerald-500/90 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {ctaLabel}
-      </button>
+      </button>}
     </div>
   );
 }

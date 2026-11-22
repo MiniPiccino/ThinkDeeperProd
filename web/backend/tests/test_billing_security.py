@@ -23,6 +23,7 @@ from app.repositories import (
     EventProcessingResult,
     LocalSubscription,
     PaddleEventMutation,
+    UserSubscription,
 )
 from app.services import (
     BillingConflictError,
@@ -163,6 +164,25 @@ class MemoryBillingRepository:
             )
             for subscription_id, item in self.subscriptions.items()
         ]
+
+    def get_user_subscription(self, user_id: str) -> UserSubscription | None:
+        match = next(
+            ((subscription_id, item) for subscription_id, item in self.subscriptions.items() if item["user_id"] == user_id),
+            None,
+        )
+        if match is None:
+            return None
+        subscription_id, item = match
+        return UserSubscription(
+            subscription_id=subscription_id,
+            user_id=user_id,
+            customer_id=item.get("customer_id", CUSTOMER),
+            status=item["status"],
+            access_until=item.get("access_until"),
+            scheduled_change_action=item.get("scheduled_change_action"),
+            scheduled_change_at=item.get("scheduled_change_at"),
+            access_revoked=item.get("revoked", False),
+        )
 
 
 @pytest.fixture
@@ -430,6 +450,44 @@ def test_active_subscription_rejects_new_checkout_without_paddle_call(
     with pytest.raises(BillingConflictError, match="already active"):
         service.create_checkout_session(USER_A)
     assert called is False
+
+
+def test_management_session_uses_server_owned_customer_and_subscription(
+    service: BillingService,
+    repository: MemoryBillingRepository,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository.subscriptions[SUB] = {
+        "user_id": USER_A,
+        "customer_id": CUSTOMER,
+        "status": "active",
+        "last_event_at": datetime.fromtimestamp(NOW, timezone.utc),
+        "revoked": False,
+    }
+    captured: dict[str, Any] = {}
+
+    def fake_post(url: str, **kwargs: Any) -> httpx.Response:
+        captured["url"] = url
+        captured["json"] = kwargs["json"]
+        return httpx.Response(
+            201,
+            request=httpx.Request("POST", url),
+            json={"data": {"urls": {"general": {"overview": "https://sandbox-customer-portal.paddle.com/session"}}}},
+        )
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    assert service.create_customer_portal_session(USER_A).startswith("https://")
+    assert captured["url"].endswith(f"/customers/{CUSTOMER}/portal-sessions")
+    assert captured["json"] == {"subscription_ids": [SUB]}
+
+
+def test_management_session_rejects_unmapped_user_without_paddle_call(
+    service: BillingService,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(httpx, "post", lambda *args, **kwargs: pytest.fail("Paddle must not be called"))
+    with pytest.raises(BillingRequestError, match="No manageable subscription"):
+        service.create_customer_portal_session(USER_B)
 
 
 def test_repeated_checkout_reuses_linked_transaction(

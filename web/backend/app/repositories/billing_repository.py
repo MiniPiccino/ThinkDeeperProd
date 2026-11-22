@@ -77,6 +77,18 @@ class LocalSubscription:
     last_event_at: datetime
 
 
+@dataclass(frozen=True, slots=True)
+class UserSubscription:
+    subscription_id: str
+    user_id: str
+    customer_id: str
+    status: str
+    access_until: datetime | None
+    scheduled_change_action: str | None
+    scheduled_change_at: datetime | None
+    access_revoked: bool
+
+
 class BillingRepository(Protocol):
     def reserve_checkout(self, correlation: CheckoutCorrelation) -> CheckoutReservation: ...
 
@@ -92,6 +104,8 @@ class BillingRepository(Protocol):
     ) -> EventProcessingResult: ...
 
     def list_subscriptions(self) -> list[LocalSubscription]: ...
+
+    def get_user_subscription(self, user_id: str) -> UserSubscription | None: ...
 
 
 class SupabaseBillingRepository:
@@ -235,6 +249,42 @@ class SupabaseBillingRepository:
             raise BillingStoreUnavailable("Stored subscription data is invalid.") from exc
         return subscriptions
 
+    def get_user_subscription(self, user_id: str) -> UserSubscription | None:
+        try:
+            rows = self._client.select(
+                "paddle_subscriptions",
+                filters={"user_id": user_id},
+                order=("last_event_at", "desc"),
+            )
+        except RuntimeError as exc:
+            raise BillingStoreUnavailable("Billing state is unavailable.") from exc
+        if not rows:
+            return None
+        row = rows[0]
+        try:
+            return UserSubscription(
+                subscription_id=str(row["subscription_id"]),
+                user_id=str(row["user_id"]),
+                customer_id=str(row["customer_id"]),
+                status=str(row["status"]),
+                access_until=self._optional_datetime(row.get("access_until")),
+                scheduled_change_action=(
+                    str(row["scheduled_change_action"])
+                    if row.get("scheduled_change_action")
+                    else None
+                ),
+                scheduled_change_at=self._optional_datetime(row.get("scheduled_change_at")),
+                access_revoked=bool(row.get("access_revoked")),
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise BillingStoreUnavailable("Stored subscription data is invalid.") from exc
+
+    @staticmethod
+    def _optional_datetime(value: Any) -> datetime | None:
+        if not value:
+            return None
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+
 
 class UnavailableBillingRepository:
     """Fail-closed repository used when durable billing persistence is not configured."""
@@ -263,5 +313,9 @@ class UnavailableBillingRepository:
         raise AssertionError("unreachable")
 
     def list_subscriptions(self) -> list[LocalSubscription]:
+        self._unavailable()
+        raise AssertionError("unreachable")
+
+    def get_user_subscription(self, user_id: str) -> UserSubscription | None:
         self._unavailable()
         raise AssertionError("unreachable")

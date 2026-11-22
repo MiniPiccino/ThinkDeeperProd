@@ -5,6 +5,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { CheckoutClient } from '@/app/checkout/CheckoutClient';
 import { useAuth } from '@/app/providers';
 import { confirmPaddleTransaction } from '@/lib/api';
+import { useQueryClient } from '@tanstack/react-query';
+
+vi.mock('@tanstack/react-query', () => ({
+  useQueryClient: vi.fn(),
+}));
 
 vi.mock('@paddle/paddle-js', () => ({
   initializePaddle: vi.fn(),
@@ -35,6 +40,7 @@ const mockUseAuth = vi.mocked(useAuth);
 const mockConfirmTransaction = vi.mocked(confirmPaddleTransaction);
 const checkoutOpen = vi.fn();
 const replace = vi.fn();
+const invalidateQueries = vi.fn().mockResolvedValue(undefined);
 
 function getCheckoutEventCallback() {
   const firstCall = mockInitializePaddle.mock.calls.at(0);
@@ -53,6 +59,7 @@ describe('CheckoutClient', () => {
     mockUseRouter.mockReturnValue({ replace } as never);
     mockUseSearchParams.mockReturnValue(new URLSearchParams({ _ptxn: TRANSACTION_ID }) as never);
     mockUseAuth.mockReturnValue({ user: { id: 'user-123' } as never, loading: false });
+    vi.mocked(useQueryClient).mockReturnValue({ invalidateQueries } as never);
     mockInitializePaddle.mockResolvedValue({ Checkout: { open: checkoutOpen } } as never);
     mockConfirmTransaction.mockResolvedValue({ confirmed: true });
   });

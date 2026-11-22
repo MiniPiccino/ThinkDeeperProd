@@ -211,6 +211,37 @@ class BillingService:
             raise BillingRequestError("Paddle client token was unavailable.")
         return token
 
+    def get_subscription(self, user_id: str):
+        try:
+            return self._billing.get_user_subscription(user_id)
+        except BillingStoreUnavailable as exc:
+            raise BillingConfigError("Billing is temporarily unavailable.") from exc
+
+    def create_customer_portal_session(self, user_id: str) -> str:
+        """Create a short-lived portal link from server-owned customer identity."""
+        self._ensure_billing_enabled()
+        subscription = self.get_subscription(user_id)
+        if subscription is None or subscription.access_revoked:
+            raise BillingRequestError("No manageable subscription was found.")
+        response = httpx.post(
+            f"{self._base_url}/customers/{subscription.customer_id}/portal-sessions",
+            json={"subscription_ids": [subscription.subscription_id]},
+            headers=self._headers(),
+            timeout=15,
+        )
+        self._raise_provider_error(response, "Paddle subscription management is unavailable.")
+        data = (response.json().get("data") or {}) if response.content else {}
+        url = (((data.get("urls") or {}).get("general") or {}).get("overview"))
+        parsed = urlparse(url) if isinstance(url, str) else None
+        if (
+            not parsed
+            or parsed.scheme != "https"
+            or not parsed.hostname
+            or not parsed.hostname.endswith(".paddle.com")
+        ):
+            raise BillingRequestError("Paddle returned an invalid management link.")
+        return url
+
     def confirm_transaction(self, transaction_id: str, expected_user_id: str) -> None:
         """Reconcile a completed checkout without trusting Paddle custom data as identity."""
         self._ensure_billing_enabled()

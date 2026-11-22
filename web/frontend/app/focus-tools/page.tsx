@@ -10,6 +10,7 @@ import { FloatingAction } from '@/components/FloatingAction';
 import { XpMeter } from '@/components/XpMeter';
 import { StreakProgress } from '@/components/StreakProgress';
 import { useAuth } from '@/app/providers';
+import { SubscriptionStatus } from '@/components/SubscriptionStatus';
 
 export default function FocusToolsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -160,6 +161,8 @@ export default function FocusToolsPage() {
             </Link>
           </div>
         ) : null}
+
+        {user ? <SubscriptionStatus compact /> : null}
 
         {!isLoading && !isError && user ? (
           <>

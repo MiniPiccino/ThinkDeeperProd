@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/app/providers";
 import { StreakReplay } from "@/components/StreakTree";
 import { FloatingAction } from "@/components/FloatingAction";
+import { SubscriptionStatus } from "@/components/SubscriptionStatus";
 import { createCheckoutSession, fetchBadges, fetchDailyQuestion, fetchReflectionHistory, fetchReflectionOverview } from "@/lib/api";
 import { useUserIdentifier } from "@/hooks/useUserIdentifier";
 import { TREE_ANIMATION_UNLOCK_STREAK } from "@/constants/experience";
@@ -1222,6 +1223,7 @@ ${xrefPosition}
         </div>
       ) : null}
       <div className="mx-auto flex max-w-4xl flex-col gap-8 pb-16">
+        {userId ? <SubscriptionStatus compact /> : null}
         <header className="space-y-3 text-center">
           <p className="text-xs uppercase tracking-[0.4em] text-emerald-300">Growth</p>
           <h1 className="text-3xl font-semibold">Watch your streak replay</h1>

@@ -6,10 +6,12 @@ from pydantic import BaseModel, ConfigDict
 from ..models.answer import AnswerCreate, AnswerResult
 from ..models.badge import Badge
 from ..models.reflection import ReflectionHistoryItem, ReflectionOverview
+from ..repositories import EntitlementStoreUnavailable
 from .deps import (
     get_answer_service,
     get_badge_service,
     get_billing_service,
+    get_entitlement_service,
     get_authenticated_user_id,
     get_optional_user_id,
     get_premium_user_id,
@@ -46,6 +48,15 @@ class ClientTokenResponse(BaseModel):
 
 class TransactionConfirmRequest(BaseModel):
     transactionId: str
+
+
+class BillingStatusResponse(BaseModel):
+    plan: str
+    status: str
+    premiumActive: bool
+    expiresAt: str | None
+    cancelAtPeriodEnd: bool
+    managementAvailable: bool
 
 
 @router.get("/questions/daily")
@@ -159,6 +170,61 @@ async def create_checkout_session(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
         ) from exc
+
+
+@router.get("/billing/status", response_model=BillingStatusResponse)
+async def billing_status(
+    billing_service=Depends(get_billing_service),
+    entitlement_service=Depends(get_entitlement_service),
+    user_id: str = Depends(get_authenticated_user_id),
+) -> BillingStatusResponse:
+    try:
+        entitlement = entitlement_service.entitlement_for(user_id)
+    except EntitlementStoreUnavailable as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Premium access cannot be verified right now.",
+        ) from exc
+    premium_active = entitlement.is_active()
+    try:
+        subscription = billing_service.get_subscription(user_id)
+    except BillingConfigError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Billing status is unavailable.",
+        ) from exc
+    scheduled_cancel = bool(
+        subscription and subscription.scheduled_change_action == "cancel" and premium_active
+    )
+    expires_at = (
+        subscription.scheduled_change_at
+        if scheduled_cancel and subscription
+        else entitlement.expires_at
+    )
+    return BillingStatusResponse(
+        plan="premium" if premium_active else "free",
+        status=entitlement.status,
+        premiumActive=premium_active,
+        expiresAt=expires_at.isoformat() if expires_at else None,
+        cancelAtPeriodEnd=scheduled_cancel,
+        managementAvailable=bool(subscription and not subscription.access_revoked),
+    )
+
+
+@router.post("/billing/manage")
+async def manage_subscription(
+    billing_service=Depends(get_billing_service),
+    user_id: str = Depends(get_authenticated_user_id),
+) -> dict:
+    try:
+        return {"portalUrl": billing_service.create_customer_portal_session(user_id)}
+    except BillingConfigError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Subscription management is unavailable.",
+        ) from exc
+    except BillingRequestError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
 
 @router.post("/billing/client-token", response_model=ClientTokenResponse)
