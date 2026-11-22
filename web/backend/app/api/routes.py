@@ -16,7 +16,13 @@ from .deps import (
     get_question_service,
     get_reflection_service,
 )
-from ..services import BillingConfigError, BillingRequestError, WebhookVerificationError
+from ..services import (
+    BillingConflictError,
+    BillingConfigError,
+    BillingProcessingRetryableError,
+    BillingRequestError,
+    WebhookVerificationError,
+)
 from ..services.answer_service import (
     AnswerPersistenceError,
     DuplicateAnswerError,
@@ -145,6 +151,10 @@ async def create_checkout_session(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Billing is unavailable.",
         ) from exc
+    except BillingConflictError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=str(exc)
+        ) from exc
     except BillingRequestError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
@@ -186,6 +196,11 @@ async def confirm_paddle_transaction(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Billing is unavailable.",
         ) from exc
+    except BillingProcessingRetryableError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Billing activation is still processing.",
+        ) from exc
     except BillingRequestError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
@@ -210,6 +225,11 @@ async def paddle_webhook(
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Billing is unavailable.",
+        ) from exc
+    except BillingProcessingRetryableError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Webhook processing should be retried.",
         ) from exc
     except BillingRequestError as exc:
         raise HTTPException(

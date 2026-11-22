@@ -17,13 +17,15 @@ No production configuration is read or changed by these instructions.
 
 ## Required staging database state
 
-No new migration was introduced. Staging must already have
-`supabase/migrations/202611120001_secure_paddle_billing.sql` applied, including:
+Staging must have `supabase/migrations/202611120001_secure_paddle_billing.sql`
+and `supabase/migrations/202611220001_atomic_paddle_checkout_reservation.sql`
+applied, including:
 
 - `billing_checkout_correlations`;
 - `paddle_subscriptions`;
 - `paddle_webhook_events`;
 - `process_paddle_billing_event(jsonb)`;
+- `reserve_paddle_checkout(uuid, text, uuid, timestamptz)`;
 - billing fields on `user_plan`;
 - RLS enabled and browser roles revoked.
 

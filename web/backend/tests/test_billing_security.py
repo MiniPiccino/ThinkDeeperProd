@@ -10,17 +10,24 @@ from typing import Any
 
 import httpx
 import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 
+from app.api.deps import get_billing_service
+from app.api.routes import router as api_router
 from app.config import Settings
 from app.repositories import (
     BillingStoreUnavailable,
     CheckoutCorrelation,
+    CheckoutReservation,
     EventProcessingResult,
     LocalSubscription,
     PaddleEventMutation,
 )
 from app.services import (
+    BillingConflictError,
     BillingConfigError,
+    BillingProcessingRetryableError,
     BillingRequestError,
     BillingService,
     WebhookVerificationError,
@@ -43,11 +50,29 @@ class MemoryBillingRepository:
         self.subscriptions: dict[str, dict[str, Any]] = {}
         self._lock = Lock()
         self.fail = False
+        self.active_user_ids: set[str] = set()
+        self.forced_event_result: EventProcessingResult | None = None
 
-    def create_checkout_correlation(self, correlation: CheckoutCorrelation) -> None:
+    def reserve_checkout(self, correlation: CheckoutCorrelation) -> CheckoutReservation:
         if self.fail:
             raise BillingStoreUnavailable
-        self.correlations[correlation.correlation_id] = correlation
+        with self._lock:
+            if correlation.user_id in self.active_user_ids:
+                return CheckoutReservation(status="active_subscription", subscription_id=SUB)
+            existing = next(
+                (
+                    item
+                    for item in self.correlations.values()
+                    if item.user_id == correlation.user_id
+                    and item.status in {"pending", "linked"}
+                    and item.expires_at > datetime.fromtimestamp(NOW, timezone.utc)
+                ),
+                None,
+            )
+            if existing:
+                return CheckoutReservation(status="existing", correlation=existing)
+            self.correlations[correlation.correlation_id] = correlation
+            return CheckoutReservation(status="created", correlation=correlation)
 
     def link_checkout_transaction(self, correlation_id: str, transaction_id: str) -> None:
         correlation = self.correlations[correlation_id]
@@ -81,6 +106,8 @@ class MemoryBillingRepository:
         if self.fail:
             raise BillingStoreUnavailable
         with self._lock:
+            if self.forced_event_result is not None:
+                return self.forced_event_result
             if mutation.event_id in self.events:
                 return EventProcessingResult(status="duplicate")
             self.events[mutation.event_id] = mutation
@@ -363,6 +390,7 @@ def test_checkout_uses_server_correlation_not_user_custom_data(
     repository: MemoryBillingRepository,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    repository.correlations.clear()
     captured: dict[str, Any] = {}
 
     def fake_post(url: str, **kwargs: Any) -> httpx.Response:
@@ -382,6 +410,170 @@ def test_checkout_uses_server_correlation_not_user_custom_data(
     assert "cancel_url" not in captured
     correlation_id = captured["custom_data"]["thinkle_checkout_id"]
     assert repository.correlations[correlation_id].user_id == USER_A
+
+
+def test_active_subscription_rejects_new_checkout_without_paddle_call(
+    service: BillingService,
+    repository: MemoryBillingRepository,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository.correlations.clear()
+    repository.active_user_ids.add(USER_A)
+    called = False
+
+    def fake_post(*args: Any, **kwargs: Any) -> httpx.Response:
+        nonlocal called
+        called = True
+        raise AssertionError("Paddle must not be called")
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    with pytest.raises(BillingConflictError, match="already active"):
+        service.create_checkout_session(USER_A)
+    assert called is False
+
+
+def test_repeated_checkout_reuses_linked_transaction(
+    service: BillingService,
+    repository: MemoryBillingRepository,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository.correlations.clear()
+    post_count = 0
+
+    def fake_post(url: str, **kwargs: Any) -> httpx.Response:
+        nonlocal post_count
+        post_count += 1
+        return httpx.Response(
+            201,
+            request=httpx.Request("POST", url),
+            json={"data": {"id": TXN, "checkout": {"url": "https://pay.test/existing"}}},
+        )
+
+    def fake_get(url: str, **kwargs: Any) -> httpx.Response:
+        correlation = next(iter(repository.correlations.values()))
+        return httpx.Response(
+            200,
+            request=httpx.Request("GET", url),
+            json={
+                "data": {
+                    "id": TXN,
+                    "status": "ready",
+                    "custom_data": {"thinkle_checkout_id": correlation.correlation_id},
+                    "checkout": {"url": "https://pay.test/existing"},
+                }
+            },
+        )
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    monkeypatch.setattr(httpx, "get", fake_get)
+
+    assert service.create_checkout_session(USER_A) == "https://pay.test/existing"
+    assert service.create_checkout_session(USER_A) == "https://pay.test/existing"
+    assert post_count == 1
+
+
+def test_concurrent_checkout_attempts_create_one_paddle_transaction(
+    service: BillingService,
+    repository: MemoryBillingRepository,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository.correlations.clear()
+    post_count = 0
+    post_lock = Lock()
+
+    def fake_post(url: str, **kwargs: Any) -> httpx.Response:
+        nonlocal post_count
+        with post_lock:
+            post_count += 1
+        return httpx.Response(
+            201,
+            request=httpx.Request("POST", url),
+            json={"data": {"id": TXN, "checkout": {"url": "https://pay.test/concurrent"}}},
+        )
+
+    def fake_get(url: str, **kwargs: Any) -> httpx.Response:
+        correlation = next(iter(repository.correlations.values()))
+        return httpx.Response(
+            200,
+            request=httpx.Request("GET", url),
+            json={
+                "data": {
+                    "id": TXN,
+                    "status": "ready",
+                    "custom_data": {"thinkle_checkout_id": correlation.correlation_id},
+                    "checkout": {"url": "https://pay.test/concurrent"},
+                }
+            },
+        )
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    monkeypatch.setattr(httpx, "get", fake_get)
+
+    def attempt(_: int) -> str:
+        try:
+            return service.create_checkout_session(USER_A)
+        except BillingConflictError:
+            return "conflict"
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        outcomes = list(pool.map(attempt, range(8)))
+
+    assert post_count == 1
+    assert "https://pay.test/concurrent" in outcomes
+    assert all(value in {"https://pay.test/concurrent", "conflict"} for value in outcomes)
+
+
+@pytest.mark.parametrize("reason", ["ownership_unmapped", "adjustment_unmapped"])
+def test_retryable_event_processing_failures_raise_retryable_error(
+    service: BillingService,
+    repository: MemoryBillingRepository,
+    reason: str,
+) -> None:
+    repository.forced_event_result = EventProcessingResult(status="failed", reason=reason)
+    payload = _event("evt_retry", "subscription.created", _subscription_data())
+    with pytest.raises(BillingProcessingRetryableError):
+        service.handle_webhook(payload, _signature(payload))
+
+
+@pytest.mark.parametrize(
+    "reason",
+    ["invalid_subscription_snapshot", "ownership_conflict", "payload_hash_conflict"],
+)
+def test_permanent_event_processing_failures_raise_request_error(
+    service: BillingService,
+    repository: MemoryBillingRepository,
+    reason: str,
+) -> None:
+    repository.forced_event_result = EventProcessingResult(status="failed", reason=reason)
+    payload = _event("evt_permanent", "subscription.created", _subscription_data())
+    with pytest.raises(BillingRequestError):
+        service.handle_webhook(payload, _signature(payload))
+
+
+def test_webhook_route_returns_retryable_status_instead_of_acknowledging() -> None:
+    class RetryableService:
+        @staticmethod
+        def handle_webhook(payload: bytes, signature: str | None) -> None:
+            raise BillingProcessingRetryableError
+
+    app = FastAPI()
+    app.include_router(api_router)
+    app.dependency_overrides[get_billing_service] = lambda: RetryableService()
+    response = TestClient(app).post("/v1/billing/webhook", content=b"{}")
+    assert response.status_code == 503
+
+
+def test_webhook_route_returns_bad_request_for_permanent_processing_failure() -> None:
+    class PermanentFailureService:
+        @staticmethod
+        def handle_webhook(payload: bytes, signature: str | None) -> None:
+            raise BillingRequestError
+
+    app = FastAPI()
+    app.include_router(api_router)
+    app.dependency_overrides[get_billing_service] = lambda: PermanentFailureService()
+    response = TestClient(app).post("/v1/billing/webhook", content=b"{}")
+    assert response.status_code == 400
 
 
 def test_staging_rejects_live_paddle_configuration(

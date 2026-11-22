@@ -3,7 +3,9 @@
 from .answer_service import AnswerService
 from .badge_service import BadgeService
 from .billing_service import (
+    BillingConflictError,
     BillingConfigError,
+    BillingProcessingRetryableError,
     BillingRequestError,
     BillingService,
     ReconciliationReport,
@@ -20,6 +22,8 @@ __all__ = [
     "BadgeService",
     "BillingService",
     "BillingConfigError",
+    "BillingConflictError",
+    "BillingProcessingRetryableError",
     "BillingRequestError",
     "EvaluationService",
     "EvaluationRateLimiter",

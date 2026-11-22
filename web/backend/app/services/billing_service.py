@@ -31,6 +31,14 @@ class BillingRequestError(RuntimeError):
     """Raised for a safe-to-report invalid billing request."""
 
 
+class BillingConflictError(BillingRequestError):
+    """Raised when billing state safely rejects a duplicate operation."""
+
+
+class BillingProcessingRetryableError(RuntimeError):
+    """Raised when a valid billing event should be retried later."""
+
+
 class WebhookVerificationError(RuntimeError):
     """Raised when a webhook cannot be authenticated as a fresh Paddle delivery."""
 
@@ -59,6 +67,7 @@ class BillingService:
         "subscription.canceled",
     }
     SUPPORTED_ADJUSTMENT_EVENTS = {"adjustment.created", "adjustment.updated"}
+    RETRYABLE_EVENT_FAILURES = {"ownership_unmapped", "adjustment_unmapped"}
 
     def __init__(
         self,
@@ -134,13 +143,23 @@ class BillingService:
             expires_at=now + timedelta(minutes=self._settings.paddle_checkout_correlation_ttl_minutes),
         )
         try:
-            self._billing.create_checkout_correlation(correlation)
+            reservation = self._billing.reserve_checkout(correlation)
         except BillingStoreUnavailable as exc:
             raise BillingConfigError("Billing is temporarily unavailable.") from exc
 
+        if reservation.status == "active_subscription":
+            raise BillingConflictError("Premium is already active for this account.")
+        reserved = reservation.correlation
+        if reserved is None:
+            raise BillingConfigError("Checkout reservation is unavailable.")
+        if reservation.status == "existing":
+            if not reserved.paddle_transaction_id:
+                raise BillingConflictError("A checkout is already being prepared for this account.")
+            return self._existing_checkout_url(reserved)
+
         payload: dict[str, Any] = {
             "items": [{"price_id": selected_price, "quantity": 1}],
-            "custom_data": {"thinkle_checkout_id": correlation.correlation_id},
+            "custom_data": {"thinkle_checkout_id": reserved.correlation_id},
             "checkout": {"url": checkout_url},
         }
         response = httpx.post(
@@ -156,9 +175,24 @@ class BillingService:
         if not isinstance(transaction_id, str) or not isinstance(checkout_url, str):
             raise BillingRequestError("Paddle checkout returned an incomplete response.")
         try:
-            self._billing.link_checkout_transaction(correlation.correlation_id, transaction_id)
+            self._billing.link_checkout_transaction(reserved.correlation_id, transaction_id)
         except (BillingStoreUnavailable, BillingOwnershipError) as exc:
             raise BillingConfigError("Checkout ownership could not be persisted.") from exc
+        return checkout_url
+
+    def _existing_checkout_url(self, correlation: CheckoutCorrelation) -> str:
+        transaction_id = correlation.paddle_transaction_id
+        if not transaction_id:
+            raise BillingConflictError("A checkout is already being prepared for this account.")
+        transaction = self._get_paddle_entity(f"transactions/{transaction_id}")
+        custom_data = transaction.get("custom_data") or {}
+        if custom_data.get("thinkle_checkout_id") != correlation.correlation_id:
+            raise BillingRequestError("Existing checkout ownership metadata is invalid.")
+        if transaction.get("status") in {"paid", "completed", "billed"}:
+            raise BillingConflictError("A completed checkout is already being processed for this account.")
+        checkout_url = (transaction.get("checkout") or {}).get("url") or transaction.get("checkout_url")
+        if not isinstance(checkout_url, str) or not checkout_url:
+            raise BillingConflictError("The existing checkout is not available yet.")
         return checkout_url
 
     def create_client_token(self) -> str:
@@ -412,7 +446,7 @@ class BillingService:
 
     def _persist_event(self, mutation: PaddleEventMutation) -> EventProcessingResult:
         try:
-            return self._billing.process_event(
+            result = self._billing.process_event(
                 mutation,
                 past_due_grace_days=self._settings.paddle_past_due_grace_days,
             )
@@ -420,6 +454,11 @@ class BillingService:
             raise BillingRequestError("Paddle ownership mapping is invalid.") from exc
         except BillingStoreUnavailable as exc:
             raise BillingConfigError("Billing event persistence is unavailable.") from exc
+        if result.status == "failed":
+            if result.reason in self.RETRYABLE_EVENT_FAILURES:
+                raise BillingProcessingRetryableError("Billing event processing should be retried.")
+            raise BillingRequestError("Paddle event could not be processed safely.")
+        return result
 
     def _get_paddle_entity(self, path: str) -> dict[str, Any]:
         response = httpx.get(

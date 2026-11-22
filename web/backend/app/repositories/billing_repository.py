@@ -26,6 +26,13 @@ class CheckoutCorrelation:
 
 
 @dataclass(frozen=True, slots=True)
+class CheckoutReservation:
+    status: str
+    correlation: CheckoutCorrelation | None = None
+    subscription_id: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class PaddleEventMutation:
     event_id: str
     notification_id: str
@@ -71,7 +78,7 @@ class LocalSubscription:
 
 
 class BillingRepository(Protocol):
-    def create_checkout_correlation(self, correlation: CheckoutCorrelation) -> None: ...
+    def reserve_checkout(self, correlation: CheckoutCorrelation) -> CheckoutReservation: ...
 
     def link_checkout_transaction(self, correlation_id: str, transaction_id: str) -> None: ...
 
@@ -91,25 +98,55 @@ class SupabaseBillingRepository:
     """Durable billing store backed by PostgreSQL through Supabase PostgREST."""
 
     CHECKOUT_TABLE = "billing_checkout_correlations"
+    RESERVE_CHECKOUT_RPC = "reserve_paddle_checkout"
     PROCESS_EVENT_RPC = "process_paddle_billing_event"
 
     def __init__(self, client: SupabaseClient) -> None:
         self._client = client
 
-    def create_checkout_correlation(self, correlation: CheckoutCorrelation) -> None:
+    def reserve_checkout(self, correlation: CheckoutCorrelation) -> CheckoutReservation:
         try:
-            self._client.insert(
-                self.CHECKOUT_TABLE,
+            response = self._client.rpc(
+                self.RESERVE_CHECKOUT_RPC,
                 {
-                    "correlation_id": correlation.correlation_id,
-                    "user_id": correlation.user_id,
-                    "price_id": correlation.price_id,
-                    "status": correlation.status,
-                    "expires_at": correlation.expires_at.isoformat(),
+                    "p_user_id": correlation.user_id,
+                    "p_price_id": correlation.price_id,
+                    "p_correlation_id": correlation.correlation_id,
+                    "p_expires_at": correlation.expires_at.isoformat(),
                 },
             )
         except RuntimeError as exc:
             raise BillingStoreUnavailable("Billing state is unavailable.") from exc
+        if isinstance(response, list):
+            response = response[0] if response else None
+        if not isinstance(response, dict) or not isinstance(response.get("status"), str):
+            raise BillingStoreUnavailable("Checkout reservation returned an invalid result.")
+        reservation_status = response["status"]
+        if reservation_status == "active_subscription":
+            return CheckoutReservation(
+                status=reservation_status,
+                subscription_id=response.get("subscription_id"),
+            )
+        if reservation_status not in {"created", "existing"}:
+            raise BillingStoreUnavailable("Checkout reservation returned an unknown status.")
+        try:
+            reserved = CheckoutCorrelation(
+                correlation_id=str(response["correlation_id"]),
+                user_id=correlation.user_id,
+                price_id=str(response["price_id"]),
+                paddle_transaction_id=(
+                    str(response["paddle_transaction_id"])
+                    if response.get("paddle_transaction_id")
+                    else None
+                ),
+                status=str(response["checkout_status"]),
+                expires_at=datetime.fromisoformat(
+                    str(response["expires_at"]).replace("Z", "+00:00")
+                ),
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise BillingStoreUnavailable("Checkout reservation is invalid.") from exc
+        return CheckoutReservation(status=reservation_status, correlation=reserved)
 
     def link_checkout_transaction(self, correlation_id: str, transaction_id: str) -> None:
         try:
@@ -206,8 +243,9 @@ class UnavailableBillingRepository:
     def _unavailable() -> None:
         raise BillingStoreUnavailable("Durable billing storage is not configured.")
 
-    def create_checkout_correlation(self, correlation: CheckoutCorrelation) -> None:
+    def reserve_checkout(self, correlation: CheckoutCorrelation) -> CheckoutReservation:
         self._unavailable()
+        raise AssertionError("unreachable")
 
     def link_checkout_transaction(self, correlation_id: str, transaction_id: str) -> None:
         self._unavailable()
