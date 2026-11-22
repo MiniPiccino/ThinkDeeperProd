@@ -9,21 +9,22 @@ import { fetchDailyQuestion, fetchReflectionOverview, type DailyQuestionResponse
 import { FloatingAction } from '@/components/FloatingAction';
 import { XpMeter } from '@/components/XpMeter';
 import { StreakProgress } from '@/components/StreakProgress';
-import { useUserIdentifier } from '@/hooks/useUserIdentifier';
+import { useAuth } from '@/app/providers';
 
 export default function FocusToolsPage() {
-  const userId = useUserIdentifier();
+  const { user, loading: authLoading } = useAuth();
+  const userId = user?.id ?? null;
   const timezoneOffsetMinutes = useMemo(() => new Date().getTimezoneOffset(), []);
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['focus-tools', userId],
     queryFn: fetchDailyQuestion,
     staleTime: 0,
-    enabled: Boolean(userId),
+    enabled: Boolean(user),
   });
   const { data: reflectionOverview } = useQuery({
     queryKey: ['reflections-focus', userId],
     queryFn: () => fetchReflectionOverview(timezoneOffsetMinutes),
-    enabled: Boolean(userId),
+    enabled: Boolean(user),
     staleTime: 0,
     retry: false,
   });
@@ -121,8 +122,11 @@ export default function FocusToolsPage() {
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-300">
           <button
             type="button"
-            onClick={() => refetch()}
-            className="inline-flex gap-2 rounded-full border border-white/20 bg-white/5 px-4 py-1.5 text-[12px] font-semibold uppercase tracking-wide text-emerald-50 shadow-lg shadow-emerald-900/60 backdrop-blur transition hover:-translate-y-0.5 hover:border-white/40 hover:bg-white/10"
+            onClick={() => {
+              if (user) void refetch();
+            }}
+            disabled={!user || authLoading}
+            className="inline-flex gap-2 rounded-full border border-white/20 bg-white/5 px-4 py-1.5 text-[12px] font-semibold uppercase tracking-wide text-emerald-50 shadow-lg shadow-emerald-900/60 backdrop-blur transition hover:-translate-y-0.5 hover:border-white/40 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:border-white/20 disabled:hover:bg-white/5"
           >
             Refresh focus tools
           </button>
@@ -139,13 +143,25 @@ export default function FocusToolsPage() {
           </div>
         </div>
 
-        {!userId ? (
+        {authLoading ? (
           <div className="rounded-3xl border border-dashed border-slate-600 px-5 py-6 text-center text-slate-400">
             Connecting to your streak...
           </div>
         ) : null}
 
-        {!isLoading && !isError && userId ? (
+        {!authLoading && !user ? (
+          <div className="rounded-3xl border border-dashed border-slate-600 px-5 py-6 text-center text-slate-400">
+            <p className="font-semibold text-slate-100">Sign in to use Focus Tools</p>
+            <Link
+              href="/"
+              className="mt-4 inline-flex rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-emerald-500"
+            >
+              Go to sign in
+            </Link>
+          </div>
+        ) : null}
+
+        {!isLoading && !isError && user ? (
           <>
             <section className="grid gap-4 lg:grid-cols-2">
               <XpMeter
@@ -208,20 +224,20 @@ export default function FocusToolsPage() {
           </>
         ) : null}
 
-        {isLoading ? (
+        {user && isLoading ? (
           <div className="rounded-3xl border border-dashed border-slate-600 px-5 py-6 text-center text-slate-400">
             Loading focus tools...
           </div>
         ) : null}
 
-        {isError ? (
+        {user && isError ? (
           <div className="rounded-3xl border border-red-500/40 bg-red-500/10 px-5 py-6 text-sm text-red-200">
             <p className="font-semibold">Couldn&apos;t load today&apos;s focus tools.</p>
             <p className="mt-1">Check your connection or try again.</p>
           </div>
         ) : null}
 
-        {dopamine ? (
+        {user && dopamine ? (
           <>
             <DopamineDrivers
               curiosity={dopamineCuriosity(dopamine)}
@@ -231,6 +247,7 @@ export default function FocusToolsPage() {
             />
           </>
         ) : (
+          user &&
           !isLoading &&
           !isError && (
             <div className="rounded-3xl border border-slate-500/40 bg-slate-900/80 px-5 py-6 text-sm text-slate-300">
